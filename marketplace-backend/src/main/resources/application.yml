@@ -1,0 +1,30 @@
+spring:
+  data:
+    mongodb:
+
+      uri: mongodb+srv://marketplace-user:marketplace123@marketplace-cluster.vu5awxj.mongodb.net/?retryWrites=true&w=majority&appName=marketplace-cluster
+      auto-index-creation: true
+      database: marketplace
+  application:
+    name: marketplace-backend
+  main:
+    allow-circular-references: true
+
+server:
+  port: 8080
+
+jwt:
+  secret: mySecretKey123456789abcdefghijklmnopqrstuvwxyz
+  expiration: 86400000 # 24 hours
+
+stripe:
+  api-key: sk_test_your_stripe_secret_key_here
+  publishable-key: pk_test_your_stripe_publishable_key_here
+
+cors:
+  allowed-origins: http://localhost:5173,http://localhost:3000
+
+logging:
+  level:
+    com.marketplace: DEBUG
+    org.springframework.security: DEBUG
