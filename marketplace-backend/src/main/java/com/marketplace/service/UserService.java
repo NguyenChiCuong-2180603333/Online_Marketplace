@@ -1,5 +1,7 @@
 package com.marketplace.service;
 
+import com.marketplace.dto.ChangePasswordRequest;
+import com.marketplace.dto.UpdateProfileRequest;
 import com.marketplace.model.User;
 import com.marketplace.repository.UserRepository;
 import com.marketplace.exception.ResourceNotFoundException;
@@ -13,8 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Collections;
+import java.util.Map;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -100,5 +104,87 @@ public class UserService implements UserDetailsService {
     public boolean validatePassword(String email, String rawPassword) {
         User user = getUserByEmail(email);
         return passwordEncoder.matches(rawPassword, user.getPassword());
+    }
+
+    public User updateUserProfile(String userId, UpdateProfileRequest updateRequest) {
+        User user = getUserById(userId);
+
+        user.setFirstName(updateRequest.getFirstName());
+        user.setLastName(updateRequest.getLastName());
+        user.setPhone(updateRequest.getPhone());
+        if (updateRequest.getAvatar() != null) {
+            user.setAvatar(updateRequest.getAvatar());
+        }
+        user.setUpdatedAt(LocalDateTime.now());
+
+        return userRepository.save(user);
+    }
+
+    public void changePassword(String userId, ChangePasswordRequest request) {
+        User user = getUserById(userId);
+
+        // Verify current password
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new BadRequestException("Mật khẩu hiện tại không đúng");
+        }
+
+        // Verify new password confirmation
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BadRequestException("Mật khẩu xác nhận không khớp");
+        }
+
+        // Check if new password is different from current
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new BadRequestException("Mật khẩu mới phải khác mật khẩu hiện tại");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    public void deactivateUser(String userId) {
+        User user = getUserById(userId);
+        user.setEnabled(false);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    public void activateUser(String userId) {
+        User user = getUserById(userId);
+        user.setEnabled(true);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    public List<User> searchUsers(String searchTerm) {
+        // Implement search functionality if needed
+        return userRepository.findAll().stream()
+                .filter(user ->
+                        user.getFirstName().toLowerCase().contains(searchTerm.toLowerCase()) ||
+                                user.getLastName().toLowerCase().contains(searchTerm.toLowerCase()) ||
+                                user.getEmail().toLowerCase().contains(searchTerm.toLowerCase())
+                )
+                .toList();
+    }
+
+    public Map<String, Object> getUserStats() {
+        List<User> allUsers = userRepository.findAll();
+        Map<String, Object> stats = new HashMap<>();
+
+        stats.put("totalUsers", allUsers.size());
+        stats.put("activeUsers", allUsers.stream().filter(User::isEnabled).count());
+        stats.put("inactiveUsers", allUsers.stream().filter(u -> !u.isEnabled()).count());
+        stats.put("adminUsers", allUsers.stream().filter(u -> "ADMIN".equals(u.getRole())).count());
+        stats.put("regularUsers", allUsers.stream().filter(u -> "USER".equals(u.getRole())).count());
+
+        // New users this month
+        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+        long newUsersThisMonth = allUsers.stream()
+                .filter(u -> u.getCreatedAt().isAfter(startOfMonth))
+                .count();
+        stats.put("newUsersThisMonth", newUsersThisMonth);
+
+        return stats;
     }
 }

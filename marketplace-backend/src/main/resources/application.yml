@@ -9,6 +9,18 @@ spring:
     name: marketplace-backend
   main:
     allow-circular-references: true
+  # File upload configuration
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+      enabled: true
+
+  # Static resource handling
+  web:
+    resources:
+      static-locations: classpath:/static/,file:uploads/
+      add-mappings:
 
 server:
   port: 8080
@@ -24,7 +36,24 @@ stripe:
 cors:
   allowed-origins: http://localhost:5173,http://localhost:3000
 
+# File storage configuration
+file:
+  upload:
+    dir: uploads/
+    max-size: 10485760 # 10MB
+    allowed-types: image/jpeg,image/jpg,image/png,image/gif
+
 logging:
   level:
     com.marketplace: DEBUG
     org.springframework.security: DEBUG
+    org.springframework.web.multipart: DEBUG
+# Pagination defaults
+pagination:
+  default-page-size: 20
+  max-page-size: 100
+
+# Search configuration
+search:
+  max-results: 100
+  suggestion-limit: 10

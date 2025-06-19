@@ -8,7 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -140,5 +141,157 @@ public class ProductService {
         product.setActive(false);
         product.setUpdatedAt(LocalDateTime.now());
         productRepository.save(product);
+    }
+
+    public List<Product> searchProductsAdvanced(String query, String category, Double minPrice,
+                                                Double maxPrice, Double minRating, String sortBy,
+                                                String sortOrder, int page, int size) {
+        List<Product> products = productRepository.findByActiveTrue();
+
+        // Apply filters
+        if (query != null && !query.isEmpty()) {
+            products = products.stream()
+                    .filter(p -> p.getName().toLowerCase().contains(query.toLowerCase()) ||
+                            (p.getDescription() != null && p.getDescription().toLowerCase().contains(query.toLowerCase())) ||
+                            p.getTags().stream().anyMatch(tag -> tag.toLowerCase().contains(query.toLowerCase())))
+                    .toList();
+        }
+
+        if (category != null && !category.isEmpty()) {
+            products = products.stream()
+                    .filter(p -> p.getCategory().equals(category))
+                    .toList();
+        }
+
+        if (minPrice != null) {
+            products = products.stream()
+                    .filter(p -> p.getPrice() >= minPrice)
+                    .toList();
+        }
+
+        if (maxPrice != null) {
+            products = products.stream()
+                    .filter(p -> p.getPrice() <= maxPrice)
+                    .toList();
+        }
+
+        if (minRating != null) {
+            products = products.stream()
+                    .filter(p -> p.getAverageRating() >= minRating)
+                    .toList();
+        }
+
+        // Apply sorting
+        products = products.stream()
+                .sorted(getComparator(sortBy, sortOrder))
+                .toList();
+
+        // Apply pagination
+        int start = page * size;
+        int end = Math.min(start + size, products.size());
+
+        if (start >= products.size()) {
+            return List.of();
+        }
+
+        return products.subList(start, end);
+    }
+
+    public List<Product> getRelatedProducts(String productId, int limit) {
+        Product product = getProductById(productId);
+
+        // Find products in same category
+        List<Product> relatedProducts = productRepository.findByCategoryAndActiveTrue(product.getCategory())
+                .stream()
+                .filter(p -> !p.getId().equals(productId))
+                .limit(limit)
+                .toList();
+
+        return relatedProducts;
+    }
+
+    public Map<String, Object> getProductStatistics() {
+        List<Product> allProducts = productRepository.findAll();
+        List<Product> activeProducts = productRepository.findByActiveTrue();
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalProducts", allProducts.size());
+        stats.put("activeProducts", activeProducts.size());
+        stats.put("inactiveProducts", allProducts.size() - activeProducts.size());
+
+        // Category breakdown
+        Map<String, Long> categoryStats = activeProducts.stream()
+                .collect(Collectors.groupingBy(Product::getCategory, Collectors.counting()));
+        stats.put("categoryBreakdown", categoryStats);
+
+        // Price statistics
+        DoubleSummaryStatistics priceStats = activeProducts.stream()
+                .mapToDouble(Product::getPrice)
+                .summaryStatistics();
+        stats.put("averagePrice", priceStats.getAverage());
+        stats.put("minPrice", priceStats.getMin());
+        stats.put("maxPrice", priceStats.getMax());
+
+        // Rating statistics
+        DoubleSummaryStatistics ratingStats = activeProducts.stream()
+                .filter(p -> p.getReviewCount() > 0)
+                .mapToDouble(Product::getAverageRating)
+                .summaryStatistics();
+        stats.put("averageRating", ratingStats.getAverage());
+        stats.put("productsWithReviews", ratingStats.getCount());
+
+        return stats;
+    }
+
+    private Comparator<Product> getComparator(String sortBy, String sortOrder) {
+        Comparator<Product> comparator;
+
+        switch (sortBy.toLowerCase()) {
+            case "price":
+                comparator = Comparator.comparing(Product::getPrice);
+                break;
+            case "rating":
+                comparator = Comparator.comparing(Product::getAverageRating);
+                break;
+            case "createdat":
+                comparator = Comparator.comparing(Product::getCreatedAt);
+                break;
+            case "reviewcount":
+                comparator = Comparator.comparing(Product::getReviewCount);
+                break;
+            case "name":
+            default:
+                comparator = Comparator.comparing(Product::getName, String.CASE_INSENSITIVE_ORDER);
+                break;
+        }
+
+        if ("desc".equalsIgnoreCase(sortOrder)) {
+            comparator = comparator.reversed();
+        }
+
+        return comparator;
+    }
+
+    public void updateProductStock(String productId, int newStock) {
+        Product product = getProductById(productId);
+        product.setStockQuantity(newStock);
+        product.setUpdatedAt(LocalDateTime.now());
+        productRepository.save(product);
+    }
+
+    public List<Product> getLowStockProducts(int threshold) {
+        return productRepository.findByActiveTrue()
+                .stream()
+                .filter(p -> p.getStockQuantity() <= threshold)
+                .toList();
+    }
+
+    public List<Product> getTopRatedProducts(int limit) {
+        return productRepository.findByActiveTrue()
+                .stream()
+                .filter(p -> p.getReviewCount() > 0)
+                .sorted(Comparator.comparing(Product::getAverageRating).reversed())
+                .limit(limit)
+                .toList();
     }
 }
