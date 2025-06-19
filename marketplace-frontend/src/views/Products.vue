@@ -1,125 +1,187 @@
 <template>
   <div class="products-page">
     <div class="container">
-      <!-- Header -->
+      <!-- Page Header -->
       <div class="page-header">
-        <h1 class="page-title">🌟 Khám phá vũ trụ sản phẩm</h1>
-        <p class="page-subtitle">Hàng nghìn sản phẩm tuyệt vời đang chờ bạn khám phá</p>
+        <h1 class="page-title">🌌 Khám phá Vũ trụ Sản phẩm</h1>
+        <p class="page-subtitle">Tìm kiếm những báu vật tuyệt vời từ khắp thiên hà</p>
       </div>
 
-      <!-- Filters & Search -->
-      <div class="filters-section space-card">
+      <!-- Search & Filters -->
+      <div class="search-filters">
         <div class="search-container">
           <div class="search-box">
-            <input
-              v-model="searchTerm"
-              @input="handleSearch"
-              type="text"
-              class="form-input search-input"
-              placeholder="🔍 Tìm kiếm sản phẩm..."
+            <input 
+              v-model="searchQuery" 
+              type="text" 
+              placeholder="Tìm kiếm sản phẩm trong vũ trụ..."
+              class="search-input"
+              @keyup.enter="performSearch"
             />
-            <button @click="clearSearch" v-if="searchTerm" class="clear-search">✕</button>
+            <button @click="performSearch" class="search-btn">
+              🔍 Tìm kiếm
+            </button>
           </div>
         </div>
 
+        <!-- Filters -->
         <div class="filter-controls">
           <div class="filter-group">
-            <label class="filter-label">Danh mục:</label>
-            <select v-model="selectedCategory" @change="handleFilter" class="form-input filter-select">
+            <label for="category">Danh mục:</label>
+            <select id="category" v-model="filters.category" @change="applyFilters" class="filter-select">
               <option value="">Tất cả danh mục</option>
-              <option v-for="category in categories" :key="category.id" :value="category.name">
-                {{ category.name }}
-              </option>
+              <option value="tech">💻 Công nghệ</option>
+              <option value="fashion">👗 Thời trang</option>
+              <option value="home">🏠 Gia đình</option>
+              <option value="books">📚 Sách</option>
             </select>
           </div>
 
           <div class="filter-group">
-            <label class="filter-label">Giá:</label>
-            <select v-model="selectedPriceRange" @change="handleFilter" class="form-input filter-select">
+            <label for="priceRange">Giá:</label>
+            <select id="priceRange" v-model="filters.priceRange" @change="applyFilters" class="filter-select">
               <option value="">Tất cả mức giá</option>
-              <option value="0-500000">Dưới 500.000₫</option>
-              <option value="500000-1000000">500.000₫ - 1.000.000₫</option>
-              <option value="1000000-5000000">1.000.000₫ - 5.000.000₫</option>
-              <option value="5000000-999999999">Trên 5.000.000₫</option>
+              <option value="0-500000">Dưới 500k</option>
+              <option value="500000-2000000">500k - 2M</option>
+              <option value="2000000-10000000">2M - 10M</option>
+              <option value="10000000+">Trên 10M</option>
             </select>
           </div>
 
           <div class="filter-group">
-            <label class="filter-label">Sắp xếp:</label>
-            <select v-model="sortBy" @change="handleSort" class="form-input filter-select">
+            <label for="sortBy">Sắp xếp:</label>
+            <select id="sortBy" v-model="filters.sortBy" @change="applyFilters" class="filter-select">
               <option value="newest">Mới nhất</option>
-              <option value="price-asc">Giá thấp → cao</option>
-              <option value="price-desc">Giá cao → thấp</option>
+              <option value="price-asc">Giá tăng dần</option>
+              <option value="price-desc">Giá giảm dần</option>
               <option value="rating">Đánh giá cao</option>
               <option value="popular">Phổ biến</option>
             </select>
           </div>
+
+          <button @click="clearAllFilters" class="clear-filters-btn">
+            🔄 Xóa bộ lọc
+          </button>
         </div>
       </div>
 
-      <!-- Results Summary -->
-      <div class="results-summary" v-if="!loading">
-        <p>
-          <span class="text-accent">{{ filteredProducts.length }}</span> sản phẩm
-          <span v-if="searchTerm"> cho "<strong>{{ searchTerm }}</strong>"</span>
-          <span v-if="selectedCategory"> trong danh mục "<strong>{{ selectedCategory }}</strong>"</span>
-        </p>
+      <!-- Results Info -->
+      <div class="results-info">
+        <div class="results-count">
+          <span v-if="!loading">
+            Tìm thấy {{ totalResults }} sản phẩm
+            <span v-if="searchQuery"> cho "{{ searchQuery }}"</span>
+          </span>
+          <span v-else>Đang tìm kiếm...</span>
+        </div>
+        
+        <div class="view-toggle">
+          <button 
+            @click="viewMode = 'grid'" 
+            class="view-btn"
+            :class="{ active: viewMode === 'grid' }"
+          >
+            ⚏ Lưới
+          </button>
+          <button 
+            @click="viewMode = 'list'" 
+            class="view-btn"
+            :class="{ active: viewMode === 'list' }"
+          >
+            ☰ Danh sách
+          </button>
+        </div>
+      </div>
+
+      <!-- Products Grid/List -->
+      <div v-if="!loading && products.length > 0" class="products-container">
+        <div class="products-grid" :class="{ 'list-view': viewMode === 'list' }">
+          <div 
+            v-for="product in products" 
+            :key="product.id" 
+            class="product-card space-card"
+            @click="viewProduct(product.id)"
+          >
+            <div class="product-image">
+              <img 
+                :src="product.images?.[0] || '/placeholder-product.jpg'" 
+                :alt="product.name"
+                loading="lazy"
+              />
+              <div class="product-badges">
+                <span v-if="product.isNew" class="badge new-badge">🆕 Mới</span>
+                <span v-if="product.discount" class="badge discount-badge">
+                  -{{ product.discount }}%
+                </span>
+                <span v-if="product.isBestSeller" class="badge bestseller-badge">
+                  🔥 Bán chạy
+                </span>
+              </div>
+              <div class="product-actions-overlay">
+                <button 
+                  @click.stop="quickView(product)" 
+                  class="action-btn"
+                  title="Xem nhanh"
+                >
+                  👁️
+                </button>
+                <button 
+                  @click.stop="toggleWishlist(product.id)" 
+                  class="action-btn"
+                  :class="{ active: isInWishlist(product.id) }"
+                  title="Yêu thích"
+                >
+                  {{ isInWishlist(product.id) ? '❤️' : '🤍' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="product-info">
+              <div class="product-category">{{ product.category?.name }}</div>
+              <h3 class="product-title">{{ product.name }}</h3>
+              
+              <div class="product-rating">
+                <div class="rating-stars">
+                  <span v-for="i in 5" :key="i" class="star" :class="[i <= product.rating ? 'filled' : '']">⭐</span>
+                </div>
+                <span class="rating-text">({{ product.reviewCount }})</span>
+              </div>
+              
+              <p class="product-description">{{ truncateText(product.description, 80) }}</p>
+              
+              <div class="product-price">
+                <span v-if="product.originalPrice && product.originalPrice > product.price" class="original-price">
+                  {{ formatCurrency(product.originalPrice) }}
+                </span>
+                <span class="current-price">{{ formatCurrency(product.price) }}</span>
+              </div>
+              
+              <div class="product-actions">
+                <button 
+                  @click.stop="addToCart(product)" 
+                  class="btn btn-primary" 
+                  :disabled="cartLoading"
+                  :class="{ 'loading': cartLoading }"
+                >
+                  🛒 Thêm vào giỏ
+                </button>
+                <button @click.stop="buyNow(product)" class="btn btn-secondary">
+                  🚀 Mua ngay
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="loading-section">
-        <div class="loading"></div>
-        <p class="mt-2">Đang tải sản phẩm...</p>
-      </div>
-
-      <!-- Products Grid -->
-      <div v-else-if="filteredProducts.length > 0" class="product-grid">
-        <div v-for="product in paginatedProducts" :key="product.id" class="product-card">
-          <div class="product-image-container">
-            <img 
-              :src="product.images?.[0] || '/placeholder-product.jpg'" 
-              :alt="product.name"
-              class="product-image"
-              @error="handleImageError"
-            />
-            <div class="product-badges">
-              <span v-if="isNewProduct(product)" class="product-badge new">🆕 Mới</span>
-              <span v-if="product.averageRating >= 4.5" class="product-badge hot">🔥 Hot</span>
-            </div>
-            <div class="product-overlay">
-              <button @click="quickView(product)" class="quick-view-btn">👁️ Xem nhanh</button>
-            </div>
-          </div>
-          
-          <div class="product-content">
-            <div class="product-category">{{ product.category }}</div>
-            <h3 class="product-title">{{ product.name }}</h3>
-            <p class="product-price">{{ formatPrice(product.price) }}</p>
-            
-            <div class="product-rating" v-if="product.averageRating > 0">
-              <div class="stars">
-                <span v-for="i in 5" :key="i" :class="['star', i <= product.averageRating ? 'filled' : '']">⭐</span>
-              </div>
-              <span class="rating-text">({{ product.reviewCount }})</span>
-            </div>
-            
-            <p class="product-description">{{ truncateText(product.description, 80) }}</p>
-            
-            <div class="product-actions">
-              <router-link :to="`/products/${product.id}`" class="btn btn-secondary">
-                📋 Chi tiết
-              </router-link>
-              <button 
-                @click="addToCart(product)" 
-                class="btn btn-primary" 
-                :disabled="cartLoading"
-                :class="{ 'loading': cartLoading }"
-              >
-                🛒 Thêm vào giỏ
-              </button>
-            </div>
-          </div>
+      <div v-else-if="loading" class="loading-container">
+        <div class="cosmic-loader">
+          <div class="planet"></div>
+          <div class="orbit"></div>
+          <div class="orbit orbit-2"></div>
         </div>
+        <p>Đang khám phá vũ trụ sản phẩm...</p>
       </div>
 
       <!-- No Results -->
@@ -143,9 +205,18 @@
             ← Trước
           </button>
           
-          <span class="pagination-info">
-            Trang {{ currentPage }} / {{ totalPages }}
-          </span>
+          <div class="pagination-numbers">
+            <button 
+              v-for="page in visiblePages" 
+              :key="page"
+              @click="goToPage(page)"
+              class="pagination-btn"
+              :class="{ active: page === currentPage }"
+              v-show="page !== '...'"
+            >
+              {{ page }}
+            </button>
+          </div>
           
           <button 
             @click="goToPage(currentPage + 1)" 
@@ -154,6 +225,10 @@
           >
             Sau →
           </button>
+        </div>
+        
+        <div class="pagination-info">
+          Trang {{ currentPage }} / {{ totalPages }} ({{ totalResults }} sản phẩm)
         </div>
       </div>
     </div>
@@ -164,19 +239,33 @@
         <button @click="closeQuickView" class="modal-close">✕</button>
         <div v-if="selectedProduct" class="quick-view-content">
           <div class="quick-view-image">
-            <img :src="selectedProduct.images?.[0]" :alt="selectedProduct.name" />
+            <img 
+              :src="selectedProduct.images?.[0] || '/placeholder-product.jpg'" 
+              :alt="selectedProduct.name" 
+            />
           </div>
           <div class="quick-view-info">
             <h3>{{ selectedProduct.name }}</h3>
-            <p class="price">{{ formatPrice(selectedProduct.price) }}</p>
-            <p class="description">{{ selectedProduct.description }}</p>
+            <div class="quick-view-rating">
+              <div class="rating-stars">
+                <span v-for="i in 5" :key="i" class="star" :class="[i <= selectedProduct.rating ? 'filled' : '']">⭐</span>
+              </div>
+              <span>({{ selectedProduct.reviewCount }} đánh giá)</span>
+            </div>
+            <div class="quick-view-price">
+              <span v-if="selectedProduct.originalPrice && selectedProduct.originalPrice > selectedProduct.price" class="original-price">
+                {{ formatCurrency(selectedProduct.originalPrice) }}
+              </span>
+              <span class="current-price">{{ formatCurrency(selectedProduct.price) }}</span>
+            </div>
+            <p class="quick-view-description">{{ selectedProduct.description }}</p>
             <div class="quick-view-actions">
-              <router-link :to="`/products/${selectedProduct.id}`" class="btn btn-secondary">
-                Xem chi tiết
-              </router-link>
               <button @click="addToCart(selectedProduct)" class="btn btn-primary">
-                Thêm vào giỏ
+                🛒 Thêm vào giỏ
               </button>
+              <router-link :to="`/products/${selectedProduct.id}`" class="btn btn-secondary">
+                📋 Xem chi tiết
+              </router-link>
             </div>
           </div>
         </div>
@@ -187,60 +276,147 @@
 
 <script>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
-import { useAuthStore } from '@/stores/auth'
-import { productAPI, categoryAPI } from '@/services/api'
 
 export default {
   name: 'Products',
   setup() {
+    const router = useRouter()
+    const route = useRoute()
     const cartStore = useCartStore()
-    const authStore = useAuthStore()
     
     // Reactive data
-    const products = ref([])
-    const categories = ref([])
     const loading = ref(false)
     const cartLoading = ref(false)
-    const searchTerm = ref('')
-    const selectedCategory = ref('')
-    const selectedPriceRange = ref('')
-    const sortBy = ref('newest')
-    const currentPage = ref(1)
-    const itemsPerPage = 12
-    
-    // Quick view modal
+    const searchQuery = ref('')
+    const viewMode = ref('grid')
     const showQuickView = ref(false)
     const selectedProduct = ref(null)
-
+    const wishlist = ref([])
+    
+    const filters = ref({
+      category: '',
+      priceRange: '',
+      sortBy: 'newest'
+    })
+    
+    const currentPage = ref(1)
+    const itemsPerPage = ref(12)
+    const totalResults = ref(0)
+    
+    // Mock products data
+    const allProducts = ref([
+      {
+        id: 1,
+        name: 'Laptop Gaming Galactic Pro',
+        description: 'Laptop gaming cao cấp với hiệu năng vượt trội, thiết kế futuristic và công nghệ tiên tiến từ tương lai.',
+        price: 25000000,
+        originalPrice: 30000000,
+        discount: 17,
+        rating: 4.5,
+        reviewCount: 128,
+        category: { name: 'Công nghệ' },
+        images: ['/placeholder-product.jpg'],
+        isNew: true,
+        isBestSeller: true
+      },
+      {
+        id: 2,
+        name: 'Gaming Mouse Nebula',
+        description: 'Chuột gaming với độ chính xác cao, RGB đa màu và thiết kế ergonomic.',
+        price: 1500000,
+        rating: 4.3,
+        reviewCount: 89,
+        category: { name: 'Công nghệ' },
+        images: ['/placeholder-product.jpg'],
+        isNew: false,
+        isBestSeller: false
+      },
+      {
+        id: 3,
+        name: 'Mechanical Keyboard Cosmos',
+        description: 'Bàn phím cơ với switch cherry, đèn LED RGB và thiết kế compact.',
+        price: 2200000,
+        rating: 4.7,
+        reviewCount: 156,
+        category: { name: 'Công nghệ' },
+        images: ['/placeholder-product.jpg'],
+        isNew: true,
+        isBestSeller: false
+      },
+      {
+        id: 4,
+        name: 'Gaming Headset Galaxy',
+        description: 'Tai nghe gaming với âm thanh 7.1 surround và micro chống ồn.',
+        price: 1800000,
+        rating: 4.2,
+        reviewCount: 67,
+        category: { name: 'Công nghệ' },
+        images: ['/placeholder-product.jpg'],
+        isNew: false,
+        isBestSeller: true
+      },
+      {
+        id: 5,
+        name: 'Áo khoác Nebula Style',
+        description: 'Áo khoác thời trang với họa tiết thiên hà độc đáo.',
+        price: 1200000,
+        originalPrice: 1500000,
+        discount: 20,
+        rating: 4.4,
+        reviewCount: 93,
+        category: { name: 'Thời trang' },
+        images: ['/placeholder-product.jpg'],
+        isNew: true,
+        isBestSeller: false
+      },
+      {
+        id: 6,
+        name: 'Đèn LED Galaxy',
+        description: 'Đèn LED trang trí với hiệu ứng thiên hà tuyệt đẹp.',
+        price: 800000,
+        rating: 4.6,
+        reviewCount: 201,
+        category: { name: 'Gia đình' },
+        images: ['/placeholder-product.jpg'],
+        isNew: false,
+        isBestSeller: true
+      }
+    ])
+    
     // Computed properties
-    const filteredProducts = computed(() => {
-      let filtered = [...products.value]
-
-      // Search filter
-      if (searchTerm.value) {
-        const term = searchTerm.value.toLowerCase()
+    const products = computed(() => {
+      let filtered = [...allProducts.value]
+      
+      // Apply search filter
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
         filtered = filtered.filter(product => 
-          product.name.toLowerCase().includes(term) ||
-          product.description.toLowerCase().includes(term)
+          product.name.toLowerCase().includes(query) ||
+          product.description.toLowerCase().includes(query)
         )
       }
-
-      // Category filter
-      if (selectedCategory.value) {
-        filtered = filtered.filter(product => product.category === selectedCategory.value)
-      }
-
-      // Price range filter
-      if (selectedPriceRange.value) {
-        const [min, max] = selectedPriceRange.value.split('-').map(Number)
+      
+      // Apply category filter
+      if (filters.value.category) {
         filtered = filtered.filter(product => 
-          product.price >= min && product.price <= max
+          product.category.name.toLowerCase().includes(filters.value.category)
         )
       }
-
-      // Sort
-      switch (sortBy.value) {
+      
+      // Apply price range filter
+      if (filters.value.priceRange) {
+        const [min, max] = filters.value.priceRange.split('-').map(Number)
+        if (max) {
+          filtered = filtered.filter(product => product.price >= min && product.price <= max)
+        } else {
+          filtered = filtered.filter(product => product.price >= min)
+        }
+      }
+      
+      // Apply sorting
+      switch (filters.value.sortBy) {
         case 'price-asc':
           filtered.sort((a, b) => a.price - b.price)
           break
@@ -248,171 +424,194 @@ export default {
           filtered.sort((a, b) => b.price - a.price)
           break
         case 'rating':
-          filtered.sort((a, b) => b.averageRating - a.averageRating)
+          filtered.sort((a, b) => b.rating - a.rating)
           break
         case 'popular':
           filtered.sort((a, b) => b.reviewCount - a.reviewCount)
           break
         case 'newest':
         default:
-          filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          filtered.sort((a, b) => b.id - a.id)
+          break
       }
-
-      return filtered
+      
+      // Update total results
+      totalResults.value = filtered.length
+      
+      // Apply pagination
+      const start = (currentPage.value - 1) * itemsPerPage.value
+      const end = start + itemsPerPage.value
+      return filtered.slice(start, end)
     })
-
-    const totalPages = computed(() => 
-      Math.ceil(filteredProducts.value.length / itemsPerPage)
-    )
-
-    const paginatedProducts = computed(() => {
-      const start = (currentPage.value - 1) * itemsPerPage
-      const end = start + itemsPerPage
-      return filteredProducts.value.slice(start, end)
+    
+    const totalPages = computed(() => {
+      return Math.ceil(totalResults.value / itemsPerPage.value)
     })
-
+    
+    const visiblePages = computed(() => {
+      const pages = []
+      const current = currentPage.value
+      const total = totalPages.value
+      
+      if (total <= 7) {
+        for (let i = 1; i <= total; i++) {
+          pages.push(i)
+        }
+      } else {
+        if (current <= 4) {
+          for (let i = 1; i <= 5; i++) pages.push(i)
+          pages.push('...')
+          pages.push(total)
+        } else if (current >= total - 3) {
+          pages.push(1)
+          pages.push('...')
+          for (let i = total - 4; i <= total; i++) pages.push(i)
+        } else {
+          pages.push(1)
+          pages.push('...')
+          for (let i = current - 1; i <= current + 1; i++) pages.push(i)
+          pages.push('...')
+          pages.push(total)
+        }
+      }
+      
+      return pages
+    })
+    
     // Methods
-    const loadProducts = async () => {
-      loading.value = true
-      try {
-        const response = await productAPI.getAll()
-        products.value = response.data
-      } catch (error) {
-        console.error('Error loading products:', error)
-      } finally {
-        loading.value = false
-      }
-    }
-
-    const loadCategories = async () => {
-      try {
-        const response = await categoryAPI.getAll()
-        categories.value = response.data
-      } catch (error) {
-        console.error('Error loading categories:', error)
-      }
-    }
-
-    const handleSearch = () => {
-      currentPage.value = 1
-    }
-
-    const handleFilter = () => {
-      currentPage.value = 1
-    }
-
-    const handleSort = () => {
-      currentPage.value = 1
-    }
-
-    const clearSearch = () => {
-      searchTerm.value = ''
-      currentPage.value = 1
-    }
-
-    const clearAllFilters = () => {
-      searchTerm.value = ''
-      selectedCategory.value = ''
-      selectedPriceRange.value = ''
-      currentPage.value = 1
-    }
-
-    const goToPage = (page) => {
-      if (page >= 1 && page <= totalPages.value) {
-        currentPage.value = page
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-      }
-    }
-
-    const formatPrice = (price) => {
+    const formatCurrency = (amount) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
         currency: 'VND'
-      }).format(price)
+      }).format(amount)
     }
-
+    
     const truncateText = (text, length) => {
-      if (!text) return ''
       return text.length > length ? text.substring(0, length) + '...' : text
     }
-
-    const isNewProduct = (product) => {
-      const createdDate = new Date(product.createdAt)
-      const now = new Date()
-      const diffDays = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24))
-      return diffDays <= 7 // Products created within 7 days
+    
+    const performSearch = () => {
+      currentPage.value = 1
+      // The search will be automatically applied through computed property
     }
-
-    const addToCart = async (product) => {
-      if (!authStore.isAuthenticated) {
-        // Redirect to login
-        return
+    
+    const applyFilters = () => {
+      currentPage.value = 1
+      // Filters will be automatically applied through computed property
+    }
+    
+    const clearAllFilters = () => {
+      searchQuery.value = ''
+      filters.value = {
+        category: '',
+        priceRange: '',
+        sortBy: 'newest'
       }
-
-      cartLoading.value = true
-      try {
-        await cartStore.addItem(product.id, 1)
-        // Show success message (you can add a toast notification here)
-      } catch (error) {
-        console.error('Add to cart error:', error)
-        // Show error message
-      } finally {
-        cartLoading.value = false
+      currentPage.value = 1
+    }
+    
+    const goToPage = (page) => {
+      if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' })
       }
     }
-
+    
+    const viewProduct = (productId) => {
+      router.push(`/products/${productId}`)
+    }
+    
     const quickView = (product) => {
       selectedProduct.value = product
       showQuickView.value = true
     }
-
+    
     const closeQuickView = () => {
       showQuickView.value = false
       selectedProduct.value = null
     }
-
-    const handleImageError = (event) => {
-      event.target.src = '/placeholder-product.jpg'
+    
+    const addToCart = async (product) => {
+      try {
+        cartLoading.value = true
+        await cartStore.addToCart(product.id, 1)
+        alert('Đã thêm sản phẩm vào giỏ hàng!')
+      } catch (error) {
+        console.error('Error adding to cart:', error)
+        alert('Có lỗi xảy ra khi thêm vào giỏ hàng')
+      } finally {
+        cartLoading.value = false
+      }
     }
-
-    // Watch for URL params
-    watch(() => currentPage.value, () => {
-      // You can add URL update logic here
-    })
-
+    
+    const buyNow = (product) => {
+      addToCart(product).then(() => {
+        router.push('/cart')
+      })
+    }
+    
+    const toggleWishlist = (productId) => {
+      const index = wishlist.value.indexOf(productId)
+      if (index > -1) {
+        wishlist.value.splice(index, 1)
+      } else {
+        wishlist.value.push(productId)
+      }
+    }
+    
+    const isInWishlist = (productId) => {
+      return wishlist.value.includes(productId)
+    }
+    
+    // Lifecycle
     onMounted(() => {
-      loadProducts()
-      loadCategories()
+      // Load products from route query if any
+      if (route.query.search) {
+        searchQuery.value = route.query.search
+      }
+      if (route.query.category) {
+        filters.value.category = route.query.category
+      }
     })
-
+    
+    // Watch for route changes
+    watch(() => route.query, (newQuery) => {
+      if (newQuery.search) {
+        searchQuery.value = newQuery.search
+      }
+      if (newQuery.category) {
+        filters.value.category = newQuery.category
+      }
+    })
+    
     return {
-      products,
-      categories,
       loading,
       cartLoading,
-      searchTerm,
-      selectedCategory,
-      selectedPriceRange,
-      sortBy,
-      currentPage,
+      searchQuery,
+      viewMode,
       showQuickView,
       selectedProduct,
-      filteredProducts,
-      paginatedProducts,
+      wishlist,
+      filters,
+      currentPage,
+      totalResults,
+      products,
       totalPages,
-      handleSearch,
-      handleFilter,
-      handleSort,
-      clearSearch,
+      visiblePages,
+      formatCurrency,
+      truncateText,
+      performSearch,
+      applyFilters,
       clearAllFilters,
       goToPage,
-      formatPrice,
-      truncateText,
-      isNewProduct,
-      addToCart,
+      viewProduct,
       quickView,
       closeQuickView,
-      handleImageError
+      addToCart,
+      buyNow,
+      toggleWishlist,
+      isInWishlist
     }
   }
 }
@@ -420,201 +619,511 @@ export default {
 
 <style scoped>
 .products-page {
-  padding: 40px 0;
+  min-height: 100vh;
+  padding: 2rem 0;
 }
 
 .page-header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 3rem;
 }
 
 .page-title {
   font-size: 2.5rem;
-  font-weight: 600;
-  margin-bottom: 12px;
+  font-weight: 700;
   color: var(--text-accent);
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
 }
 
 .page-subtitle {
-  font-size: 1.1rem;
   color: var(--text-secondary);
+  font-size: 1.1rem;
+  opacity: 0.9;
 }
 
-.filters-section {
-  margin-bottom: 32px;
-  padding: 24px;
+.search-filters {
+  margin-bottom: 2rem;
 }
 
 .search-container {
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .search-box {
-  position: relative;
-  max-width: 500px;
+  display: flex;
+  max-width: 600px;
   margin: 0 auto;
+  gap: 0.5rem;
 }
 
 .search-input {
-  width: 100%;
-  padding-right: 50px;
+  flex: 1;
+  padding: 1rem 1.5rem;
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  color: white;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
 }
 
-.clear-search {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
+.search-input:focus {
+  border-color: var(--text-accent);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.search-btn {
+  background: var(--aurora-gradient);
   border: none;
-  color: var(--text-secondary);
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  color: white;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 18px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.search-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--neon-glow);
 }
 
 .filter-controls {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
+  gap: 1rem;
+  align-items: end;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
-.filter-label {
-  font-size: 14px;
-  font-weight: 500;
+.filter-group label {
   color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.9rem;
 }
 
 .filter-select {
-  padding: 10px 12px;
+  padding: 0.75rem 1rem;
+  background: rgba(26, 26, 46, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.results-summary {
-  margin-bottom: 24px;
-  text-align: center;
+.filter-select:focus {
+  outline: none;
+  border-color: var(--text-accent);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
+}
+
+.clear-filters-btn {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.clear-filters-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+}
+
+.results-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.results-count {
   color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
-.loading-section {
-  text-align: center;
-  padding: 60px 0;
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
 }
 
-.product-image-container {
+.view-btn {
+  background: rgba(26, 26, 46, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.view-btn:hover,
+.view-btn.active {
+  background: var(--aurora-gradient);
+  border-color: var(--text-accent);
+  color: white;
+}
+
+.products-container {
+  margin-bottom: 3rem;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.products-grid.list-view {
+  grid-template-columns: 1fr;
+}
+
+.products-grid.list-view .product-card {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.products-grid.list-view .product-image {
+  width: 200px;
+  height: 150px;
+  flex: none;
+}
+
+.products-grid.list-view .product-info {
+  flex: 1;
+}
+
+.product-card {
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-  border-radius: 12px 12px 0 0;
-  height: 250px;
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--space-glow);
+}
+
+.product-image {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image img {
+  transform: scale(1.05);
 }
 
 .product-badges {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 0.75rem;
+  left: 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.5rem;
 }
 
-.product-badge.new {
-  background: var(--aurora-gradient);
-  color: var(--space-dark);
+.badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
 }
 
-.product-badge.hot {
-  background: var(--nebula-gradient);
+.new-badge {
+  background: rgba(16, 185, 129, 0.9);
   color: white;
 }
 
-.product-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: all 0.3s ease;
+.discount-badge {
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
 }
 
-.product-card:hover .product-overlay {
+.bestseller-badge {
+  background: rgba(245, 158, 11, 0.9);
+  color: white;
+}
+
+.product-actions-overlay {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.product-card:hover .product-actions-overlay {
   opacity: 1;
 }
 
-.quick-view-btn {
-  background: rgba(0, 212, 255, 0.9);
-  color: white;
+.action-btn {
+  width: 40px;
+  height: 40px;
   border: none;
-  padding: 10px 20px;
-  border-radius: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
   cursor: pointer;
-  font-weight: 500;
   transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  font-size: 1rem;
 }
 
-.quick-view-btn:hover {
-  background: var(--text-accent);
-  transform: translateY(-2px);
+.action-btn:hover {
+  background: var(--aurora-gradient);
+  transform: scale(1.1);
+}
+
+.action-btn.active {
+  background: var(--accent-gradient);
+}
+
+.product-info {
+  flex: 1;
 }
 
 .product-category {
-  font-size: 12px;
   color: var(--text-accent);
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.product-title {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  line-height: 1.3;
+}
+
+.product-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 0.1rem;
+}
+
+.star {
+  font-size: 1rem;
+  opacity: 0.3;
+  transition: all 0.3s ease;
+}
+
+.star.filled {
+  opacity: 1;
+  filter: drop-shadow(0 0 5px currentColor);
+}
+
+.rating-text {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.product-description {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.product-price {
+  margin-bottom: 1rem;
+}
+
+.original-price {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+  font-size: 0.9rem;
+  opacity: 0.7;
+  margin-right: 0.5rem;
+}
+
+.current-price {
+  color: var(--text-accent);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.product-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.product-actions .btn {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 4rem 0;
+}
+
+.cosmic-loader {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 2rem;
+}
+
+.planet {
+  width: 40px;
+  height: 40px;
+  background: var(--aurora-gradient);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.orbit {
+  position: absolute;
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  border-radius: 50%;
+  animation: rotate 3s linear infinite;
+}
+
+.orbit:nth-child(2) {
+  width: 60px;
+  height: 60px;
+  top: 10px;
+  left: 10px;
+}
+
+.orbit-2 {
+  width: 80px;
+  height: 80px;
+  top: 0;
+  left: 0;
+  animation-duration: 4s;
+  animation-direction: reverse;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.1); }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .no-results {
-  padding: 60px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 40vh;
 }
 
 .no-results-content {
   text-align: center;
+  padding: 3rem;
   max-width: 400px;
-  margin: 0 auto;
-  padding: 40px;
 }
 
 .no-results-icon {
   font-size: 4rem;
-  margin-bottom: 24px;
+  margin-bottom: 1rem;
   opacity: 0.5;
 }
 
+.no-results-content h3 {
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.no-results-content p {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
 .pagination-container {
-  margin-top: 40px;
-  display: flex;
-  justify-content: center;
+  margin-top: 3rem;
+  text-align: center;
 }
 
 .pagination {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 20px;
-  padding: 20px 30px;
-  background: rgba(26, 26, 46, 0.7);
-  border-radius: 25px;
-  backdrop-filter: blur(10px);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.pagination-numbers {
+  display: flex;
+  gap: 0.25rem;
 }
 
 .pagination-btn {
-  background: var(--text-accent);
-  color: var(--space-dark);
-  border: none;
-  padding: 8px 16px;
-  border-radius: 15px;
+  background: rgba(26, 26, 46, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: var(--text-secondary);
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: 500;
   transition: all 0.3s ease;
+  font-size: 0.9rem;
+  min-width: 40px;
+}
+
+.pagination-btn:hover:not(:disabled),
+.pagination-btn.active {
+  background: var(--aurora-gradient);
+  border-color: var(--text-accent);
+  color: white;
 }
 
 .pagination-btn:disabled {
@@ -622,17 +1131,11 @@ export default {
   cursor: not-allowed;
 }
 
-.pagination-btn:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: var(--neon-glow);
-}
-
 .pagination-info {
   color: var(--text-secondary);
-  font-weight: 500;
+  font-size: 0.8rem;
 }
 
-/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -653,79 +1156,235 @@ export default {
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
+  margin: 2rem;
 }
 
 .modal-close {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  background: rgba(0, 0, 0, 0.5);
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.7);
   color: white;
   border: none;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 1.2rem;
   z-index: 1001;
+  transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+  background: rgba(239, 68, 68, 0.8);
+  transform: scale(1.1);
 }
 
 .quick-view-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  padding: 30px;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.quick-view-image {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .quick-view-image img {
   width: 100%;
   height: 300px;
   object-fit: cover;
-  border-radius: 12px;
 }
 
 .quick-view-info h3 {
+  color: var(--text-primary);
   font-size: 1.5rem;
-  margin-bottom: 12px;
-  color: var(--text-accent);
+  margin-bottom: 1rem;
 }
 
-.quick-view-info .price {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-accent);
-  margin-bottom: 16px;
+.quick-view-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
-.quick-view-info .description {
+.quick-view-price {
+  margin-bottom: 1rem;
+}
+
+.quick-view-price .original-price {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.quick-view-price .current-price {
+  font-size: 1.5rem;
+}
+
+.quick-view-description {
   color: var(--text-secondary);
   line-height: 1.6;
-  margin-bottom: 24px;
+  margin-bottom: 2rem;
 }
 
 .quick-view-actions {
   display: flex;
-  gap: 12px;
+  gap: 1rem;
+}
+
+.quick-view-actions .btn {
+  flex: 1;
+  padding: 0.8rem 1.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .filter-controls {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
 }
 
 @media (max-width: 768px) {
+  .products-page {
+    padding: 1rem 0;
+  }
+  
   .page-title {
     font-size: 2rem;
   }
   
+  .search-box {
+    flex-direction: column;
+  }
+  
+  .search-btn {
+    border-radius: 12px;
+  }
+  
   .filter-controls {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .results-info {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .products-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .products-grid.list-view .product-card {
+    flex-direction: column;
+  }
+  
+  .products-grid.list-view .product-image {
+    width: 100%;
+    height: 200px;
+  }
+  
+  .pagination {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  .pagination-numbers {
+    flex-wrap: wrap;
   }
   
   .quick-view-content {
     grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1.5rem;
   }
   
-  .pagination {
-    gap: 12px;
-    padding: 16px 20px;
+  .quick-view-actions {
+    flex-direction: column;
   }
 }
-</style>
 
-</template
+@media (max-width: 480px) {
+  .product-card {
+    padding: 1rem;
+  }
+  
+  .product-image {
+    height: 150px;
+  }
+  
+  .product-actions {
+    flex-direction: column;
+  }
+  
+  .quick-view-image img {
+    height: 200px;
+  }
+  
+  .modal-content {
+    margin: 1rem;
+  }
+  
+  .pagination-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    min-width: 35px;
+  }
+}
+
+/* Loading Animation */
+.btn.loading {
+  position: relative;
+  color: transparent;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Custom scrollbar for modal */
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.5);
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.7);
+}
+</style>
