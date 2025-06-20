@@ -17,6 +17,11 @@ public class ProductService {
     @Autowired
     private ProductRepository productRepository;
 
+    public Product saveProduct(Product product) {
+        product.setUpdatedAt(LocalDateTime.now());
+        return productRepository.save(product);
+    }
+
     public List<Product> getAllProducts() {
         return productRepository.findByActiveTrue();
     }

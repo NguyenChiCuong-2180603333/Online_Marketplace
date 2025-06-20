@@ -22,17 +22,19 @@ public class Review {
 
     private String userAvatar;
 
-    @NotNull(message = "Rating is required")
     @Min(value = 1, message = "Rating must be at least 1")
-    @Max(value = 5, message = "Rating must not exceed 5")
-    private int rating; // 1-5 stars
+    @Max(value = 5, message = "Rating must be at most 5")
+    private int rating;
 
-    @Size(max = 500, message = "Comment must not exceed 500 characters")
+    @NotBlank(message = "Comment is required")
+    @Size(max = 1000, message = "Comment must not exceed 1000 characters")
     private String comment;
 
-    private boolean verified = false; // Chỉ người mua mới được đánh giá
-    private String orderId; // Reference đến order để verify
+    private boolean verified = false; // Đã mua sản phẩm hay chưa
+    private String orderId; // ID của đơn hàng đã mua
+
     private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime updatedAt;
 
     // Constructors
     public Review() {}
@@ -75,4 +77,7 @@ public class Review {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

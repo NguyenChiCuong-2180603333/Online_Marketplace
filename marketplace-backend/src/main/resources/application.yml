@@ -1,7 +1,6 @@
 spring:
   data:
     mongodb:
-
       uri: mongodb+srv://marketplace-user:marketplace123@marketplace-cluster.vu5awxj.mongodb.net/?retryWrites=true&w=majority&appName=marketplace-cluster
       auto-index-creation: true
       database: marketplace
@@ -9,6 +8,32 @@ spring:
     name: marketplace-backend
   main:
     allow-circular-references: true
+
+  # Email Configuration
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${EMAIL_USERNAME:your-email@gmail.com}
+    password: ${EMAIL_PASSWORD:your-app-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 3000
+          writetimeout: 5000
+
+  # Thymeleaf for email templates
+  thymeleaf:
+    prefix: classpath:/templates/email/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: false
+
   # File upload configuration
   servlet:
     multipart:
@@ -20,21 +45,29 @@ spring:
   web:
     resources:
       static-locations: classpath:/static/,file:uploads/
-      add-mappings:
+      add-mappings: true
 
 server:
   port: 8080
 
+# Application specific config
+app:
+  name: Cosmic Marketplace
+  url: ${APP_URL:http://localhost:5173}
+  support:
+    email: ${SUPPORT_EMAIL:support@cosmicmarketplace.com}
+
 jwt:
-  secret: mySecretKey123456789abcdefghijklmnopqrstuvwxyz
+  secret: ${JWT_SECRET:mySecretKey123456789abcdefghijklmnopqrstuvwxyz}
   expiration: 86400000 # 24 hours
 
 stripe:
-  api-key: sk_test_your_stripe_secret_key_here
-  publishable-key: pk_test_your_stripe_publishable_key_here
+  api-key: ${STRIPE_SECRET_KEY:sk_test_your_stripe_secret_key_here}
+  publishable-key: ${STRIPE_PUBLISHABLE_KEY:pk_test_your_stripe_publishable_key_here}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_your_webhook_secret}
 
 cors:
-  allowed-origins: http://localhost:5173,http://localhost:3000
+  allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
 
 # File storage configuration
 file:
@@ -48,6 +81,8 @@ logging:
     com.marketplace: DEBUG
     org.springframework.security: DEBUG
     org.springframework.web.multipart: DEBUG
+    org.springframework.mail: DEBUG
+
 # Pagination defaults
 pagination:
   default-page-size: 20
@@ -57,3 +92,14 @@ pagination:
 search:
   max-results: 100
   suggestion-limit: 10
+
+# Email settings
+email:
+  from-name: Cosmic Marketplace
+  templates:
+    welcome: welcome
+    order-confirmation: order-confirmation
+    order-status-update: order-status-update
+    new-product: new-product
+    promotion: promotion
+    password-reset: password-reset

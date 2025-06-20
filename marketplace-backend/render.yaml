@@ -1,0 +1,26 @@
+services:
+  # Backend API Service
+  - type: web
+    name: marketplace-backend
+    env: java
+    plan: free  # hoặc starter ($7/month)
+    buildCommand: ./mvnw clean package -DskipTests
+    startCommand: java -jar target/*.jar
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: PORT
+        value: 8080
+      - key: JAVA_OPTS
+        value: "-Xmx512m -Xms256m"
+
+  # MongoDB Database
+  - type: pserv
+    name: marketplace-mongodb
+    env: docker
+    plan: free
+    dockerfilePath: ./mongo.Dockerfile
+    disk:
+      name: mongodb-data
+      mountPath: /data/db
+      sizeGB: 1

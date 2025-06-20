@@ -33,4 +33,6 @@ public interface ProductRepository extends MongoRepository<Product, String> {
 
     // Đếm số sản phẩm theo category
     long countByCategoryAndActiveTrue(String category);
+
+    
 }

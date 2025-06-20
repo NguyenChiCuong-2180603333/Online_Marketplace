@@ -29,6 +29,15 @@ public class OrderService {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private LoyaltyService loyaltyService;
+
+    @Autowired
+    private MarketplaceEventListener eventListener;
+
     public Order createOrderFromCart(String userId, String shippingAddress, String billingAddress) {
         User user = userService.getUserById(userId);
         Cart cart = cartService.getCartByUserId(userId);
@@ -60,7 +69,8 @@ public class OrderService {
             // Update product stock
             product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
             product.setUpdatedAt(LocalDateTime.now());
-            // Note: You'll need to save the product - add this to ProductService
+            // Cần thêm method saveProduct trong ProductService
+            productService.saveProduct(product);
         }
 
         // Create order
@@ -72,6 +82,13 @@ public class OrderService {
 
         // Clear cart after successful order creation
         cartService.clearCart(userId);
+
+        eventListener.handleOrderCreated(
+                savedOrder.getId(),
+                user.getEmail(),
+                user.getFirstName() + " " + user.getLastName(),
+                savedOrder.getTotalAmount()
+        );
 
         return savedOrder;
     }
@@ -93,33 +110,36 @@ public class OrderService {
             throw new BadRequestException("Trạng thái đơn hàng không hợp lệ: " + status);
         }
 
+        String oldStatus = order.getStatus();
         order.setStatus(status);
         order.setUpdatedAt(LocalDateTime.now());
 
         if ("DELIVERED".equals(status)) {
             order.setDeliveredAt(LocalDateTime.now());
+
+            // 🆕 NEW: Award loyalty points for completed order
+            loyaltyService.awardPointsFromOrder(order);
         }
 
-        return orderRepository.save(order);
-    }
+        Order savedOrder = orderRepository.save(order);
 
-    public Order updatePaymentStatus(String orderId, String paymentStatus, String paymentId) {
-        Order order = getOrderById(orderId);
-
-        if (!isValidPaymentStatus(paymentStatus)) {
-            throw new BadRequestException("Trạng thái thanh toán không hợp lệ: " + paymentStatus);
+        // 🆕 NEW: Send status update email if status changed
+        if (!oldStatus.equals(status)) {
+            try {
+                User user = userService.getUserById(order.getUserId());
+                eventListener.handleOrderStatusUpdate(
+                        orderId,
+                        user.getEmail(),
+                        user.getFirstName() + " " + user.getLastName(),
+                        status
+                );
+            } catch (Exception e) {
+                // Log but don't fail order update
+                System.err.println("Failed to send order status email: " + e.getMessage());
+            }
         }
 
-        order.setPaymentStatus(paymentStatus);
-        order.setPaymentId(paymentId);
-        order.setUpdatedAt(LocalDateTime.now());
-
-        // If payment completed, update order status to PROCESSING
-        if ("COMPLETED".equals(paymentStatus) && "PENDING".equals(order.getStatus())) {
-            order.setStatus("PROCESSING");
-        }
-
-        return orderRepository.save(order);
+        return savedOrder;
     }
 
     public List<Order> getAllOrders() {
@@ -137,33 +157,47 @@ public class OrderService {
     public Order cancelOrder(String orderId, String userId) {
         Order order = getOrderById(orderId);
 
-        // Verify user owns this order
+        // Verify ownership
         if (!order.getUserId().equals(userId)) {
-            throw new BadRequestException("Bạn chỉ có thể hủy đơn hàng của chính mình");
+            throw new BadRequestException("Không có quyền hủy đơn hàng này");
         }
 
-        // Only allow cancellation for PENDING or PROCESSING orders
-        if (!("PENDING".equals(order.getStatus()) || "PROCESSING".equals(order.getStatus()))) {
-            throw new BadRequestException("Không thể hủy đơn hàng có trạng thái: " + order.getStatus());
+        // Check if order can be cancelled
+        if (List.of("SHIPPED", "DELIVERED", "CANCELLED").contains(order.getStatus())) {
+            throw new BadRequestException("Không thể hủy đơn hàng ở trạng thái hiện tại");
         }
+
+        order.setStatus("CANCELLED");
+        order.setUpdatedAt(LocalDateTime.now());
 
         // Restore product stock
         for (Order.OrderItem item : order.getItems()) {
             try {
                 Product product = productService.getProductById(item.getProductId());
                 product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
-                product.setUpdatedAt(LocalDateTime.now());
-                // Note: You'll need to save the product
+                productService.saveProduct(product);
             } catch (Exception e) {
-                // Log error but don't fail the cancellation
-                System.err.println("Không thể khôi phục số lượng kho cho sản phẩm: " + item.getProductId());
+                // Log but continue with cancellation
+                System.err.println("Failed to restore stock for product: " + item.getProductId());
             }
         }
 
-        order.setStatus("CANCELLED");
-        order.setUpdatedAt(LocalDateTime.now());
+        Order savedOrder = orderRepository.save(order);
 
-        return orderRepository.save(order);
+        // 🆕 NEW: Send cancellation email
+        try {
+            User user = userService.getUserById(userId);
+            eventListener.handleOrderStatusUpdate(
+                    orderId,
+                    user.getEmail(),
+                    user.getFirstName() + " " + user.getLastName(),
+                    "CANCELLED"
+            );
+        } catch (Exception e) {
+            System.err.println("Failed to send cancellation email: " + e.getMessage());
+        }
+
+        return savedOrder;
     }
 
     // Admin statistics methods
@@ -192,13 +226,24 @@ public class OrderService {
     }
 
     private boolean isValidStatus(String status) {
-        return "PENDING".equals(status) || "PROCESSING".equals(status) ||
-                "SHIPPED".equals(status) || "DELIVERED".equals(status) ||
-                "CANCELLED".equals(status);
+        return List.of("PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED")
+                .contains(status);
     }
 
     private boolean isValidPaymentStatus(String paymentStatus) {
         return "PENDING".equals(paymentStatus) || "COMPLETED".equals(paymentStatus) ||
                 "FAILED".equals(paymentStatus);
+    }
+    public void updatePaymentStatus(String orderId, String paymentStatus, String paymentId) {
+        Order order = getOrderById(orderId);
+        order.setPaymentStatus(paymentStatus);
+        order.setPaymentId(paymentId);
+        order.setUpdatedAt(LocalDateTime.now());
+
+        if ("COMPLETED".equals(paymentStatus)) {
+            order.setStatus("PROCESSING");
+        }
+
+        orderRepository.save(order);
     }
 }

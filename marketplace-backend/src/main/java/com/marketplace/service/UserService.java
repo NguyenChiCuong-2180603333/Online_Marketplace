@@ -6,6 +6,7 @@ import com.marketplace.model.User;
 import com.marketplace.repository.UserRepository;
 import com.marketplace.exception.ResourceNotFoundException;
 import com.marketplace.exception.BadRequestException;
+import com.marketplace.security.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -45,23 +46,19 @@ public class UserService implements UserDetailsService {
                 .build();
     }
 
-    public UserDetails loadUserById(String id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPassword())
-                .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole())))
-                .build();
+    public UserDetails loadUserById(String userId) {
+        User user = getUserById(userId);
+        return UserPrincipal.create(user);
     }
 
     public User createUser(User user) {
-        if (userRepository.existsByEmail(user.getEmail())) {
-            throw new BadRequestException("Email đã tồn tại");
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            throw new BadRequestException("Email đã được sử dụng");
         }
-
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        user.setRole("USER");
+        user.setEnabled(true);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 

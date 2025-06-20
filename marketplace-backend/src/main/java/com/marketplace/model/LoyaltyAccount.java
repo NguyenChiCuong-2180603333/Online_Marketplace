@@ -14,24 +14,22 @@ public class LoyaltyAccount {
     @NotBlank(message = "User ID is required")
     private String userId;
 
-    @Min(value = 0, message = "Points balance cannot be negative")
-    private int pointsBalance = 0;
+    @Min(value = 0, message = "Points cannot be negative")
+    private int totalPoints = 0;
 
-    @Min(value = 0, message = "Total earned points cannot be negative")
-    private int totalEarnedPoints = 0;
+    @Min(value = 0, message = "Available points cannot be negative")
+    private int availablePoints = 0;
 
-    @Min(value = 0, message = "Total spent points cannot be negative")
-    private int totalSpentPoints = 0;
+    @Min(value = 0, message = "Used points cannot be negative")
+    private int usedPoints = 0;
 
     @Pattern(regexp = "BRONZE|SILVER|GOLD|PLATINUM|DIAMOND",
-            message = "Tier must be BRONZE, SILVER, GOLD, PLATINUM, or DIAMOND")
+            message = "Invalid tier")
     private String tier = "BRONZE";
 
-    private int tierProgress = 0; // Points needed for next tier
-    private LocalDateTime lastEarnedAt;
-    private LocalDateTime lastSpentAt;
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime tierUpdatedAt = LocalDateTime.now();
 
     // Constructors
     public LoyaltyAccount() {}
@@ -47,30 +45,24 @@ public class LoyaltyAccount {
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
 
-    public int getPointsBalance() { return pointsBalance; }
-    public void setPointsBalance(int pointsBalance) { this.pointsBalance = pointsBalance; }
+    public int getTotalPoints() { return totalPoints; }
+    public void setTotalPoints(int totalPoints) { this.totalPoints = totalPoints; }
 
-    public int getTotalEarnedPoints() { return totalEarnedPoints; }
-    public void setTotalEarnedPoints(int totalEarnedPoints) { this.totalEarnedPoints = totalEarnedPoints; }
+    public int getAvailablePoints() { return availablePoints; }
+    public void setAvailablePoints(int availablePoints) { this.availablePoints = availablePoints; }
 
-    public int getTotalSpentPoints() { return totalSpentPoints; }
-    public void setTotalSpentPoints(int totalSpentPoints) { this.totalSpentPoints = totalSpentPoints; }
+    public int getUsedPoints() { return usedPoints; }
+    public void setUsedPoints(int usedPoints) { this.usedPoints = usedPoints; }
 
     public String getTier() { return tier; }
     public void setTier(String tier) { this.tier = tier; }
-
-    public int getTierProgress() { return tierProgress; }
-    public void setTierProgress(int tierProgress) { this.tierProgress = tierProgress; }
-
-    public LocalDateTime getLastEarnedAt() { return lastEarnedAt; }
-    public void setLastEarnedAt(LocalDateTime lastEarnedAt) { this.lastEarnedAt = lastEarnedAt; }
-
-    public LocalDateTime getLastSpentAt() { return lastSpentAt; }
-    public void setLastSpentAt(LocalDateTime lastSpentAt) { this.lastSpentAt = lastSpentAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public LocalDateTime getTierUpdatedAt() { return tierUpdatedAt; }
+    public void setTierUpdatedAt(LocalDateTime tierUpdatedAt) { this.tierUpdatedAt = tierUpdatedAt; }
 }

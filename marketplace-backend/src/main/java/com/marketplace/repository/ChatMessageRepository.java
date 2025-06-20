@@ -11,34 +11,27 @@ import java.util.List;
 @Repository
 public interface ChatMessageRepository extends MongoRepository<ChatMessage, String> {
 
-    // Lấy messages theo chat room (sắp xếp theo thời gian)
-    List<ChatMessage> findByChatRoomIdOrderByCreatedAtAsc(String chatRoomId);
+    List<ChatMessage> findByConversationIdOrderByCreatedAtAsc(String conversationId);
 
-    // Lấy messages gần đây của chat room
-    @Query("{'chatRoomId': ?0}")
-    List<ChatMessage> findByChatRoomIdOrderByCreatedAtDesc(String chatRoomId);
+    List<ChatMessage> findByConversationIdAndReceiverIdAndIsReadFalse(String conversationId, String receiverId);
 
-    // Lấy messages chưa đọc của user trong room
-    @Query("{'chatRoomId': ?0, 'senderId': {'$ne': ?1}, 'isRead': false}")
-    List<ChatMessage> findUnreadMessagesByRoomAndUser(String chatRoomId, String userId);
+    long countByReceiverIdAndIsReadFalse(String receiverId);
 
-    // Đếm messages chưa đọc
-    @Query(value = "{'chatRoomId': ?0, 'senderId': {'$ne': ?1}, 'isRead': false}", count = true)
-    long countUnreadMessagesByRoomAndUser(String chatRoomId, String userId);
+    List<ChatMessage> findBySenderIdOrReceiverIdOrderByCreatedAtDesc(String senderId, String receiverId);
 
-    // Tìm messages theo sender
-    List<ChatMessage> findBySenderIdOrderByCreatedAtDesc(String senderId);
+    @Query("{'conversationId': ?0, 'createdAt': {'$gte': ?1, '$lte': ?2}}")
+    List<ChatMessage> findByConversationIdAndDateRange(String conversationId, LocalDateTime start, LocalDateTime end);
 
-    // Tìm messages theo type
-    List<ChatMessage> findByMessageTypeAndChatRoomId(String messageType, String chatRoomId);
+    // Find latest message in conversation
+    @Query(value = "{'conversationId': ?0}", sort = "{'createdAt': -1}")
+    List<ChatMessage> findLatestByConversationId(String conversationId);
 
-    // Tìm messages trong khoảng thời gian
-    List<ChatMessage> findByChatRoomIdAndCreatedAtBetween(String chatRoomId, LocalDateTime start, LocalDateTime end);
+    // Delete messages older than specified date
+    void deleteByCreatedAtBefore(LocalDateTime date);
 
-    // Tìm message cuối cùng của room
-    @Query(value = "{'chatRoomId': ?0}", sort = "{'createdAt': -1}")
-    List<ChatMessage> findLastMessageByRoom(String chatRoomId);
+    // Statistics
+    long countByConversationId(String conversationId);
 
-    // Xóa tất cả messages của room
-    void deleteByChatRoomId(String chatRoomId);
+    @Query(value = "{'senderId': ?0, 'createdAt': {'$gte': ?1}}", count = true)
+    long countMessagesSentByUserSince(String userId, LocalDateTime since);
 }

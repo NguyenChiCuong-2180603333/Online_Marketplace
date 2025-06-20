@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: marketplace-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: marketplace
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - marketplace-network
+
+  # Backend API
+  backend:
+    build: .
+    container_name: marketplace-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Database
+      SPRING_DATA_MONGODB_URI: mongodb://marketplace_user:marketplace123@mongodb:27017/marketplace
+
+      # JWT
+      JWT_SECRET: your-super-secret-jwt-key-here-make-it-long-and-secure
+
+      # Stripe
+      STRIPE_SECRET_KEY: sk_test_your_stripe_secret_key
+      STRIPE_PUBLISHABLE_KEY: pk_test_your_stripe_publishable_key
+      STRIPE_WEBHOOK_SECRET: whsec_your_webhook_secret
+
+      # Email
+      EMAIL_USERNAME: your-email@gmail.com
+      EMAIL_PASSWORD: your-app-password
+      SUPPORT_EMAIL: support@cosmicmarketplace.com
+
+      # App
+      APP_URL: http://localhost:5173
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+
+      # Other
+      SPRING_PROFILES_ACTIVE: docker
+
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      - mongodb
+    networks:
+      - marketplace-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: marketplace-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - marketplace-network
+
+volumes:
+  mongodb_data:
+  uploads_data:
+  redis_data:
+
+networks:
+  marketplace-network:
+    driver: bridge

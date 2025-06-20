@@ -1,10 +1,10 @@
 package com.marketplace.controller;
 
-import com.marketplace.dto.JwtResponse;
 import com.marketplace.dto.LoginRequest;
 import com.marketplace.dto.RegisterRequest;
 import com.marketplace.model.User;
 import com.marketplace.service.AuthService;
+import com.marketplace.service.MarketplaceEventListener;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,26 +21,52 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
+    @Autowired
+    private MarketplaceEventListener eventListener;
+
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
-        User user = authService.register(registerRequest);
+    public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequest registerRequest) {
+        try {
+            User user = authService.register(registerRequest);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Đăng ký thành công");
-        response.put("userId", user.getId());
-        response.put("email", user.getEmail());
+            // Trigger post-registration events (EMAIL + LOYALTY)
+            eventListener.handleUserRegistration(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getFirstName() + " " + user.getLastName()
+            );
 
-        return ResponseEntity.ok(response);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Đăng ký thành công");
+            response.put("user", Map.of(
+                    "id", user.getId(),
+                    "email", user.getEmail(),
+                    "firstName", user.getFirstName(),
+                    "lastName", user.getLastName()
+            ));
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
-        JwtResponse jwtResponse = authService.login(loginRequest);
-        return ResponseEntity.ok(jwtResponse);
+    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest loginRequest) {
+        try {
+            Map<String, Object> authResponse = authService.login(loginRequest);
+            return ResponseEntity.ok(authResponse);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout() {
+    public ResponseEntity<Map<String, String>> logout() {
         Map<String, String> response = new HashMap<>();
         response.put("message", "Đăng xuất thành công");
         return ResponseEntity.ok(response);

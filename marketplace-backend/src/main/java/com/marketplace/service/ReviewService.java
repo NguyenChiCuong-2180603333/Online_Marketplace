@@ -32,6 +32,9 @@ public class ReviewService {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private MarketplaceEventListener eventListener;
+
     public List<Review> getReviewsByProductId(String productId) {
         return reviewRepository.findByProductIdOrderByCreatedAtDesc(productId);
     }
@@ -75,6 +78,24 @@ public class ReviewService {
         // Cập nhật rating trung bình của sản phẩm
         updateProductRating(reviewRequest.getProductId());
 
+        // 🆕 NEW: Trigger review events (loyalty points + seller notification)
+        try {
+            // Get seller info for notification
+            User seller = userService.getUserById(product.getSellerId());
+
+            eventListener.handleNewReview(
+                    userId,
+                    reviewRequest.getProductId(),
+                    seller.getEmail(),
+                    seller.getFirstName() + " " + seller.getLastName(),
+                    product.getName(),
+                    reviewRequest.getRating()
+            );
+        } catch (Exception e) {
+            // Log but don't fail review creation
+            System.err.println("Failed to process review events: " + e.getMessage());
+        }
+
         return savedReview;
     }
 
@@ -82,47 +103,40 @@ public class ReviewService {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
 
-        // Kiểm tra quyền sở hữu
         if (!review.getUserId().equals(userId)) {
-            throw new BadRequestException("Bạn chỉ có thể chỉnh sửa đánh giá của chính mình");
+            throw new BadRequestException("Bạn chỉ có thể sửa đánh giá của mình");
         }
 
         review.setRating(reviewRequest.getRating());
         review.setComment(reviewRequest.getComment());
+        review.setUpdatedAt(LocalDateTime.now());
 
-        Review updatedReview = reviewRepository.save(review);
+        Review savedReview = reviewRepository.save(review);
 
-        // Cập nhật rating trung bình của sản phẩm
+        // Cập nhật lại rating trung bình
         updateProductRating(review.getProductId());
 
-        return updatedReview;
+        return savedReview;
     }
 
     public void deleteReview(String reviewId, String userId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
 
-        // Kiểm tra quyền sở hữu
         if (!review.getUserId().equals(userId)) {
-            throw new BadRequestException("Bạn chỉ có thể xóa đánh giá của chính mình");
+            throw new BadRequestException("Bạn chỉ có thể xóa đánh giá của mình");
         }
 
-        String productId = review.getProductId();
         reviewRepository.delete(review);
-
-        // Cập nhật rating trung bình của sản phẩm
-        updateProductRating(productId);
+        updateProductRating(review.getProductId());
     }
 
     public void adminDeleteReview(String reviewId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
 
-        String productId = review.getProductId();
         reviewRepository.delete(review);
-
-        // Cập nhật rating trung bình của sản phẩm
-        updateProductRating(productId);
+        updateProductRating(review.getProductId());
     }
 
     public boolean hasUserReviewedProduct(String userId, String productId) {

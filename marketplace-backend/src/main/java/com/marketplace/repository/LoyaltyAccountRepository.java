@@ -10,14 +10,32 @@ import java.util.Optional;
 
 @Repository
 public interface LoyaltyAccountRepository extends MongoRepository<LoyaltyAccount, String> {
+
     Optional<LoyaltyAccount> findByUserId(String userId);
+
     List<LoyaltyAccount> findByTier(String tier);
 
-    @Query(value = "{}", sort = "{'totalEarnedPoints': -1}")
-    List<LoyaltyAccount> findTopAccountsByPoints();
+    List<LoyaltyAccount> findByTierOrderByTotalPointsDesc(String tier);
 
-    @Query(value = "{'pointsBalance': {'$gte': ?0}}")
-    List<LoyaltyAccount> findAccountsWithMinPoints(int minPoints);
+    // Top users by points
+    @Query(value = "{}", sort = "{'totalPoints': -1}")
+    List<LoyaltyAccount> findTopUsersByPoints();
+
+    // Users with points above threshold
+    @Query("{'totalPoints': {'$gte': ?0}}")
+    List<LoyaltyAccount> findUsersWithPointsAbove(int threshold);
+
+    // Users by tier and minimum points
+    @Query("{'tier': ?0, 'totalPoints': {'$gte': ?1}}")
+    List<LoyaltyAccount> findByTierAndMinPoints(String tier, int minPoints);
+
+    // Statistics
+    @Query(value = "{}", count = true)
+    long countAllAccounts();
 
     long countByTier(String tier);
+
+    // Average points by tier
+    @Query(value = "{'tier': ?0}", fields = "{'totalPoints': 1}")
+    List<LoyaltyAccount> findPointsByTier(String tier);
 }

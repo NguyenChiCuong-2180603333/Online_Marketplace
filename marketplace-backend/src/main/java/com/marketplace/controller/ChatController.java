@@ -1,196 +1,129 @@
 package com.marketplace.controller;
 
-import com.marketplace.dto.ChatMessageRequest;
-import com.marketplace.model.ChatRoom;
 import com.marketplace.model.ChatMessage;
+import com.marketplace.model.Conversation;
 import com.marketplace.service.ChatService;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@RestController
+@Controller
 @RequestMapping("/api/chat")
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
-@PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
 public class ChatController {
 
     @Autowired
     private ChatService chatService;
 
-    // Lấy danh sách chat rooms của user
-    @GetMapping("/rooms")
-    public ResponseEntity<List<ChatRoom>> getUserChatRooms() {
-        String userId = getCurrentUserId();
-        List<ChatRoom> rooms = chatService.getUserChatRooms(userId);
-        return ResponseEntity.ok(rooms);
+    /**
+     * WebSocket endpoint - Gửi tin nhắn real-time
+     */
+    @MessageMapping("/send")
+    public void sendMessage(@Payload Map<String, Object> message, Principal principal) {
+        String senderId = principal.getName(); // Extract from JWT
+        String conversationId = (String) message.get("conversationId");
+        String content = (String) message.get("content");
+        String messageType = (String) message.getOrDefault("messageType", "TEXT");
+
+        chatService.sendMessage(conversationId, senderId, content, messageType);
     }
 
-    // Tạo hoặc lấy chat room cho sản phẩm
-    @PostMapping("/rooms/product")
-    public ResponseEntity<ChatRoom> getOrCreateProductChatRoom(@RequestBody Map<String, String> request) {
-        String userId = getCurrentUserId();
-        String sellerId = request.get("sellerId");
+    /**
+     * REST endpoint - Tạo conversation
+     */
+    @PostMapping("/conversations")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<Conversation> createConversation(
+            @RequestBody Map<String, String> request) {
+        String currentUserId = getCurrentUserId();
+        String otherUserId = request.get("otherUserId");
         String productId = request.get("productId");
 
-        ChatRoom room = chatService.getOrCreateProductChatRoom(userId, sellerId, productId);
-        return ResponseEntity.ok(room);
+        Conversation conversation = chatService.getOrCreateConversation(
+                currentUserId, otherUserId, productId);
+
+        return ResponseEntity.ok(conversation);
     }
 
-    // Lấy chi tiết chat room với messages
-    @GetMapping("/rooms/{roomId}")
-    public ResponseEntity<Map<String, Object>> getChatRoomDetails(@PathVariable String roomId) {
+    /**
+     * Lấy danh sách conversations
+     */
+    @GetMapping("/conversations")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<List<Conversation>> getUserConversations() {
         String userId = getCurrentUserId();
-        Map<String, Object> details = chatService.getChatRoomDetails(roomId, userId);
-        return ResponseEntity.ok(details);
+        List<Conversation> conversations = chatService.getUserConversations(userId);
+        return ResponseEntity.ok(conversations);
     }
 
-    // Gửi tin nhắn qua REST API
-    @PostMapping("/messages")
-    public ResponseEntity<ChatMessage> sendMessage(@Valid @RequestBody ChatMessageRequest request) {
+    /**
+     * Lấy messages trong conversation
+     */
+    @GetMapping("/conversations/{conversationId}/messages")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<List<ChatMessage>> getConversationMessages(
+            @PathVariable String conversationId) {
         String userId = getCurrentUserId();
-        ChatMessage message = chatService.sendMessage(request, userId);
-        return ResponseEntity.ok(message);
+        List<ChatMessage> messages = chatService.getConversationMessages(conversationId, userId);
+        return ResponseEntity.ok(messages);
     }
 
-    // Đánh dấu tin nhắn đã đọc
-    @PutMapping("/rooms/{roomId}/read")
-    public ResponseEntity<?> markMessagesAsRead(@PathVariable String roomId) {
+    /**
+     * Đánh dấu đã đọc
+     */
+    @PutMapping("/conversations/{conversationId}/read")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> markAsRead(@PathVariable String conversationId) {
         String userId = getCurrentUserId();
-        chatService.markMessagesAsRead(roomId, userId);
+        chatService.markMessagesAsRead(conversationId, userId);
 
         Map<String, String> response = new HashMap<>();
-        response.put("message", "Đã đánh dấu tin nhắn đã đọc");
+        response.put("message", "Messages marked as read");
         return ResponseEntity.ok(response);
     }
 
-    // Chỉnh sửa tin nhắn
-    @PutMapping("/messages/{messageId}")
-    public ResponseEntity<ChatMessage> editMessage(
-            @PathVariable String messageId,
-            @RequestBody Map<String, String> request) {
-        String userId = getCurrentUserId();
-        String newContent = request.get("content");
-
-        ChatMessage message = chatService.editMessage(messageId, newContent, userId);
-        return ResponseEntity.ok(message);
-    }
-
-    // Xóa tin nhắn
-    @DeleteMapping("/messages/{messageId}")
-    public ResponseEntity<?> deleteMessage(@PathVariable String messageId) {
-        String userId = getCurrentUserId();
-        chatService.deleteMessage(messageId, userId);
-
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Tin nhắn đã được xóa");
-        return ResponseEntity.ok(response);
-    }
-
-    // Đóng chat room
-    @PutMapping("/rooms/{roomId}/close")
-    public ResponseEntity<?> closeChatRoom(@PathVariable String roomId) {
-        String userId = getCurrentUserId();
-        chatService.closeChatRoom(roomId, userId);
-
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Chat room đã được đóng");
-        return ResponseEntity.ok(response);
-    }
-
-    // Lấy số tin nhắn chưa đọc
+    /**
+     * Đếm tin nhắn chưa đọc
+     */
     @GetMapping("/unread-count")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getUnreadCount() {
         String userId = getCurrentUserId();
-        long unreadCount = chatService.getUnreadCount(userId);
+        long unreadCount = chatService.getUnreadMessageCount(userId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("unreadCount", unreadCount);
         return ResponseEntity.ok(response);
     }
 
-    // Tìm kiếm tin nhắn
-    @GetMapping("/rooms/{roomId}/search")
-    public ResponseEntity<List<ChatMessage>> searchMessages(
-            @PathVariable String roomId,
-            @RequestParam String query) {
+    /**
+     * Xóa tin nhắn
+     */
+    @DeleteMapping("/messages/{messageId}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> deleteMessage(@PathVariable String messageId) {
         String userId = getCurrentUserId();
-        List<ChatMessage> messages = chatService.searchMessages(roomId, query, userId);
-        return ResponseEntity.ok(messages);
-    }
+        chatService.deleteMessage(messageId, userId);
 
-    // Upload file cho chat
-    @PostMapping("/upload")
-    public ResponseEntity<Map<String, Object>> uploadChatFile(
-            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
-            @RequestParam("roomId") String roomId) {
-
-        // Validate file và room access
-        String userId = getCurrentUserId();
-
-        // Implementation for file upload
-        String fileUrl = "https://example.com/uploads/" + file.getOriginalFilename();
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("fileUrl", fileUrl);
-        response.put("fileName", file.getOriginalFilename());
-        response.put("fileSize", file.getSize());
-        response.put("contentType", file.getContentType());
-
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Message deleted successfully");
         return ResponseEntity.ok(response);
     }
 
     private String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated() &&
-                !authentication.getPrincipal().equals("anonymousUser")) {
-
-            String token = getJwtFromCurrentRequest();
-            if (token != null) {
-                try {
-                    org.springframework.context.ApplicationContext context =
-                            org.springframework.web.context.support.WebApplicationContextUtils
-                                    .getWebApplicationContext(((org.springframework.web.context.request.ServletRequestAttributes)
-                                            org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes())
-                                            .getRequest().getServletContext());
-
-                    if (context != null) {
-                        com.marketplace.security.JwtTokenProvider jwtProvider = context.getBean(com.marketplace.security.JwtTokenProvider.class);
-                        return jwtProvider.getUserIdFromToken(token);
-                    }
-                } catch (Exception e) {
-                    // Fall back to mock for now
-                }
-            }
-        }
-        return "mockUserId123";
-    }
-
-    private String getJwtFromCurrentRequest() {
-        try {
-            org.springframework.web.context.request.ServletRequestAttributes attr =
-                    (org.springframework.web.context.request.ServletRequestAttributes)
-                            org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes();
-            jakarta.servlet.http.HttpServletRequest request = attr.getRequest();
-            String bearerToken = request.getHeader("Authorization");
-            if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-                return bearerToken.substring(7);
-            }
-        } catch (Exception e) {
-            // Ignore
-        }
-        return null;
+        // Extract user ID from JWT token
+        return "currentUserId"; // Replace with actual implementation
     }
 }
-
