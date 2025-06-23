@@ -17,6 +17,32 @@
             class="search-input"
             @input="handleSearch"
           />
+          <button v-if="searchQuery" @click="clearSearch" class="clear-search-btn">❌</button>
+        </div>
+        
+        <!-- Filter Options -->
+        <div class="filter-options">
+          <button 
+            @click="sortBy = 'name'"
+            :class="{ active: sortBy === 'name' }"
+            class="filter-btn"
+          >
+            🔤 Tên A-Z
+          </button>
+          <button 
+            @click="sortBy = 'popularity'"
+            :class="{ active: sortBy === 'popularity' }"
+            class="filter-btn"
+          >
+            🔥 Phổ biến
+          </button>
+          <button 
+            @click="sortBy = 'products'"
+            :class="{ active: sortBy === 'products' }"
+            class="filter-btn"
+          >
+            📦 Số lượng
+          </button>
         </div>
       </div>
 
@@ -49,6 +75,7 @@
                     v-for="subCat in category.subCategories.slice(0, 3)" 
                     :key="subCat.id"
                     class="sub-category-tag"
+                    @click.stop="viewCategory(subCat)"
                   >
                     {{ subCat.name }}
                   </span>
@@ -68,9 +95,9 @@
                   <span class="meta-label">Đánh giá TB:</span>
                   <div class="rating-display">
                     <span class="rating-stars">
-                      <span v-for="i in 5" :key="i" class="star" :class="[i <= category.averageRating ? 'filled' : '']">⭐</span>
+                      <span v-for="i in 5" :key="i" class="star" :class="[i <= Math.round(category.averageRating) ? 'filled' : '']">⭐</span>
                     </span>
-                    <span class="rating-value">{{ category.averageRating }}/5</span>
+                    <span class="rating-value">{{ category.averageRating?.toFixed(1) || '0.0' }}/5</span>
                   </div>
                 </div>
                 <div class="meta-item">
@@ -98,7 +125,7 @@
       </div>
 
       <!-- Featured Categories Section -->
-      <div v-if="!loading" class="featured-categories-section">
+      <div v-if="!loading && featuredCategories.length" class="featured-categories-section">
         <div class="section-header">
           <h2>⭐ Danh mục nổi bật</h2>
           <p>Những danh mục được quan tâm nhất</p>
@@ -126,7 +153,7 @@
                   <span class="stat-label">Sản phẩm</span>
                 </div>
                 <div class="stat">
-                  <span class="stat-number">{{ featured.averageRating }}</span>
+                  <span class="stat-number">{{ featured.averageRating?.toFixed(1) || '0.0' }}</span>
                   <span class="stat-label">Đánh giá</span>
                 </div>
                 <div class="stat">
@@ -145,7 +172,7 @@
       </div>
 
       <!-- Popular Tags Section -->
-      <div v-if="!loading" class="tags-section">
+      <div v-if="!loading && popularTags.length" class="tags-section">
         <div class="section-header">
           <h2>🏷️ Thẻ phổ biến</h2>
           <p>Tìm kiếm nhanh theo thẻ</p>
@@ -166,7 +193,11 @@
 
       <!-- Loading State -->
       <div v-if="loading" class="loading-section">
-        <div class="loading-spinner">🔄</div>
+        <div class="cosmic-loader">
+          <div class="planet"></div>
+          <div class="orbit"></div>
+          <div class="orbit orbit-2"></div>
+        </div>
         <p>Đang tải danh mục...</p>
       </div>
 
@@ -198,212 +229,226 @@ export default {
     const featuredCategories = ref([])
     const popularTags = ref([])
     const searchQuery = ref('')
+    const sortBy = ref('popularity')
     const loading = ref(true)
     
     // Computed
     const filteredCategories = computed(() => {
-      if (!searchQuery.value) return categories.value
+      let filtered = [...categories.value]
       
-      const query = searchQuery.value.toLowerCase()
-      return categories.value.filter(category =>
-        category.name.toLowerCase().includes(query) ||
-        category.description.toLowerCase().includes(query) ||
-        category.subCategories?.some(sub => 
-          sub.name.toLowerCase().includes(query)
+      // Apply search filter
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        filtered = filtered.filter(category =>
+          category.name.toLowerCase().includes(query) ||
+          category.description.toLowerCase().includes(query) ||
+          category.subCategories?.some(sub => 
+            sub.name.toLowerCase().includes(query)
+          )
         )
-      )
+      }
+      
+      // Apply sorting
+      switch (sortBy.value) {
+        case 'name':
+          filtered.sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+          break
+        case 'popularity':
+          filtered.sort((a, b) => b.popularity - a.popularity)
+          break
+        case 'products':
+          filtered.sort((a, b) => b.productCount - a.productCount)
+          break
+      }
+      
+      return filtered
     })
     
     // Methods
+    const loadCategories = async () => {
+      try {
+        loading.value = true
+        
+        // Load all categories
+        const categoriesResponse = await categoryAPI.getAll()
+        categories.value = categoriesResponse.data || mockCategories()
+        
+        // Load featured categories
+        const featuredResponse = await categoryAPI.getFeatured()
+        featuredCategories.value = featuredResponse.data || mockFeaturedCategories()
+        
+        // Load popular tags
+        const tagsResponse = await categoryAPI.getPopularTags()
+        popularTags.value = tagsResponse.data || mockPopularTags()
+        
+      } catch (error) {
+        console.error('Error loading categories:', error)
+        // Use mock data as fallback
+        categories.value = mockCategories()
+        featuredCategories.value = mockFeaturedCategories()
+        popularTags.value = mockPopularTags()
+      } finally {
+        loading.value = false
+      }
+    }
+    
+    const viewCategory = (category) => {
+      router.push({
+        path: '/products',
+        query: { category: category.id }
+      })
+    }
+    
     const handleSearch = () => {
-      // Search is reactive through computed property
+      // Search is handled by computed property
     }
     
     const clearSearch = () => {
       searchQuery.value = ''
     }
     
-    const viewCategory = (category) => {
-      router.push(`/products?category=${category.slug}`)
-    }
-    
     const searchByTag = (tagName) => {
-      router.push(`/products?tag=${encodeURIComponent(tagName)}`)
+      router.push({
+        path: '/products',
+        query: { tag: tagName }
+      })
     }
     
-    const loadCategories = async () => {
-      try {
-        // Mock data - replace with real API call
-        categories.value = [
-          {
-            id: 1,
-            name: 'Điện tử & Công nghệ',
-            slug: 'electronics',
-            icon: '📱',
-            description: 'Smartphone, laptop, phụ kiện công nghệ hiện đại',
-            productCount: 1247,
-            averageRating: 4.6,
-            popularity: 85,
-            subCategories: [
-              { id: 11, name: 'Smartphone' },
-              { id: 12, name: 'Laptop' },
-              { id: 13, name: 'Phụ kiện' },
-              { id: 14, name: 'Gaming' }
-            ]
-          },
-          {
-            id: 2,
-            name: 'Thời trang',
-            slug: 'fashion',
-            icon: '👗',
-            description: 'Quần áo, giày dép, phụ kiện thời trang',
-            productCount: 892,
-            averageRating: 4.4,
-            popularity: 78,
-            subCategories: [
-              { id: 21, name: 'Nam' },
-              { id: 22, name: 'Nữ' },
-              { id: 23, name: 'Trẻ em' },
-              { id: 24, name: 'Phụ kiện' }
-            ]
-          },
-          {
-            id: 3,
-            name: 'Nhà cửa & Đời sống',
-            slug: 'home-living',
-            icon: '🏠',
-            description: 'Nội thất, đồ gia dụng, trang trí nhà cửa',
-            productCount: 654,
-            averageRating: 4.5,
-            popularity: 72,
-            subCategories: [
-              { id: 31, name: 'Nội thất' },
-              { id: 32, name: 'Gia dụng' },
-              { id: 33, name: 'Trang trí' }
-            ]
-          },
-          {
-            id: 4,
-            name: 'Sách & Văn phòng phẩm',
-            slug: 'books-stationery',
-            icon: '📚',
-            description: 'Sách, truyện, dụng cụ học tập và văn phòng',
-            productCount: 423,
-            averageRating: 4.7,
-            popularity: 65,
-            subCategories: [
-              { id: 41, name: 'Sách' },
-              { id: 42, name: 'Văn phòng phẩm' },
-              { id: 43, name: 'Dụng cụ học tập' }
-            ]
-          },
-          {
-            id: 5,
-            name: 'Thể thao & Du lịch',
-            slug: 'sports-travel',
-            icon: '⚽',
-            description: 'Đồ thể thao, dụng cụ tập luyện, phụ kiện du lịch',
-            productCount: 567,
-            averageRating: 4.3,
-            popularity: 68,
-            subCategories: [
-              { id: 51, name: 'Thể thao' },
-              { id: 52, name: 'Du lịch' },
-              { id: 53, name: 'Outdoor' }
-            ]
-          },
-          {
-            id: 6,
-            name: 'Làm đẹp & Sức khỏe',
-            slug: 'beauty-health',
-            icon: '💄',
-            description: 'Mỹ phẩm, chăm sóc sức khỏe, thực phẩm chức năng',
-            productCount: 389,
-            averageRating: 4.5,
-            popularity: 75,
-            subCategories: [
-              { id: 61, name: 'Mỹ phẩm' },
-              { id: 62, name: 'Chăm sóc da' },
-              { id: 63, name: 'Sức khỏe' }
-            ]
-          },
-          {
-            id: 7,
-            name: 'Ô tô & Xe máy',
-            slug: 'automotive',
-            icon: '🚗',
-            description: 'Phụ kiện ô tô, xe máy, đồ bảo hộ',
-            productCount: 234,
-            averageRating: 4.2,
-            popularity: 58,
-            subCategories: [
-              { id: 71, name: 'Ô tô' },
-              { id: 72, name: 'Xe máy' },
-              { id: 73, name: 'Phụ kiện' }
-            ]
-          },
-          {
-            id: 8,
-            name: 'Mẹ & Bé',
-            slug: 'mother-baby',
-            icon: '👶',
-            description: 'Đồ cho mẹ và bé, đồ chơi trẻ em',
-            productCount: 445,
-            averageRating: 4.8,
-            popularity: 82,
-            subCategories: [
-              { id: 81, name: 'Đồ cho bé' },
-              { id: 82, name: 'Đồ chơi' },
-              { id: 83, name: 'Mẹ bầu' }
-            ]
-          }
+    // Mock data functions
+    const mockCategories = () => [
+      {
+        id: 1,
+        name: 'Điện thoại & Phụ kiện',
+        icon: '📱',
+        description: 'Smartphone, tablet, phụ kiện di động cao cấp',
+        productCount: 1250,
+        averageRating: 4.3,
+        popularity: 95,
+        subCategories: [
+          { id: 11, name: 'iPhone' },
+          { id: 12, name: 'Samsung Galaxy' },
+          { id: 13, name: 'Xiaomi' },
+          { id: 14, name: 'Oppo' }
         ]
-        
-        // Featured categories (top 4)
-        featuredCategories.value = categories.value
-          .sort((a, b) => b.popularity - a.popularity)
-          .slice(0, 4)
-          
-      } catch (error) {
-        console.error('Error loading categories:', error)
+      },
+      {
+        id: 2,
+        name: 'Laptop & Máy tính',
+        icon: '💻',
+        description: 'Laptop gaming, văn phòng, linh kiện máy tính',
+        productCount: 890,
+        averageRating: 4.5,
+        popularity: 88,
+        subCategories: [
+          { id: 21, name: 'Gaming Laptop' },
+          { id: 22, name: 'MacBook' },
+          { id: 23, name: 'Ultrabook' }
+        ]
+      },
+      {
+        id: 3,
+        name: 'Thời trang Nam',
+        icon: '👔',
+        description: 'Quần áo, giày dép, phụ kiện thời trang nam',
+        productCount: 2100,
+        averageRating: 4.2,
+        popularity: 82,
+        subCategories: [
+          { id: 31, name: 'Áo sơ mi' },
+          { id: 32, name: 'Quần jeans' },
+          { id: 33, name: 'Giày sneaker' }
+        ]
+      },
+      {
+        id: 4,
+        name: 'Thời trang Nữ',
+        icon: '👗',
+        description: 'Váy áo, túi xách, giày cao gót thời trang',
+        productCount: 3200,
+        averageRating: 4.4,
+        popularity: 90,
+        subCategories: [
+          { id: 41, name: 'Váy đầm' },
+          { id: 42, name: 'Túi xách' },
+          { id: 43, name: 'Giày cao gót' }
+        ]
+      },
+      {
+        id: 5,
+        name: 'Điện gia dụng',
+        icon: '🏠',
+        description: 'Tủ lạnh, máy giặt, điều hòa, đồ gia dụng',
+        productCount: 650,
+        averageRating: 4.1,
+        popularity: 75,
+        subCategories: [
+          { id: 51, name: 'Tủ lạnh' },
+          { id: 52, name: 'Máy giặt' },
+          { id: 53, name: 'Điều hòa' }
+        ]
+      },
+      {
+        id: 6,
+        name: 'Sách & Văn phòng phẩm',
+        icon: '📚',
+        description: 'Sách, vở, bút, đồ dùng học tập văn phòng',
+        productCount: 1800,
+        averageRating: 4.0,
+        popularity: 65,
+        subCategories: [
+          { id: 61, name: 'Sách tiếng Việt' },
+          { id: 62, name: 'Sách tiếng Anh' },
+          { id: 63, name: 'Văn phòng phẩm' }
+        ]
       }
-    }
+    ]
     
-    const loadPopularTags = async () => {
-      try {
-        // Mock data - replace with real API call
-        popularTags.value = [
-          { name: 'iPhone', count: 156 },
-          { name: 'Samsung', count: 142 },
-          { name: 'Nike', count: 98 },
-          { name: 'Adidas', count: 87 },
-          { name: 'Gaming', count: 134 },
-          { name: 'Laptop', count: 123 },
-          { name: 'Wireless', count: 89 },
-          { name: 'Premium', count: 76 },
-          { name: 'Sale', count: 203 },
-          { name: 'New', count: 167 },
-          { name: 'Fashion', count: 112 },
-          { name: 'Home', count: 94 },
-          { name: 'Beauty', count: 78 },
-          { name: 'Sport', count: 65 },
-          { name: 'Books', count: 54 }
-        ]
-      } catch (error) {
-        console.error('Error loading tags:', error)
+    const mockFeaturedCategories = () => [
+      {
+        id: 1,
+        name: 'Điện thoại & Phụ kiện',
+        icon: '📱',
+        description: 'Công nghệ di động hàng đầu',
+        productCount: 1250,
+        averageRating: 4.3,
+        popularity: 95
+      },
+      {
+        id: 4,
+        name: 'Thời trang Nữ',
+        icon: '👗',
+        description: 'Xu hướng thời trang mới nhất',
+        productCount: 3200,
+        averageRating: 4.4,
+        popularity: 90
+      },
+      {
+        id: 2,
+        name: 'Laptop & Máy tính',
+        icon: '💻',
+        description: 'Hiệu năng mạnh mẽ cho mọi nhu cầu',
+        productCount: 890,
+        averageRating: 4.5,
+        popularity: 88
       }
-    }
+    ]
+    
+    const mockPopularTags = () => [
+      { name: 'Sale', count: 250 },
+      { name: 'New', count: 180 },
+      { name: 'Hot', count: 95 },
+      { name: 'Trending', count: 120 },
+      { name: 'Gaming', count: 85 },
+      { name: 'Fashion', count: 200 },
+      { name: 'Tech', count: 160 },
+      { name: 'Home', count: 75 },
+      { name: 'Beauty', count: 110 },
+      { name: 'Sport', count: 90 }
+    ]
     
     // Lifecycle
-    onMounted(async () => {
-      try {
-        await Promise.all([
-          loadCategories(),
-          loadPopularTags()
-        ])
-      } finally {
-        loading.value = false
-      }
+    onMounted(() => {
+      loadCategories()
     })
     
     return {
@@ -411,11 +456,12 @@ export default {
       featuredCategories,
       popularTags,
       searchQuery,
+      sortBy,
       loading,
       filteredCategories,
+      viewCategory,
       handleSearch,
       clearSearch,
-      viewCategory,
       searchByTag
     }
   }
@@ -423,11 +469,19 @@ export default {
 </script>
 
 <style scoped>
+/* Categories Page */
 .categories-page {
   min-height: 100vh;
   padding: 2rem 0;
 }
 
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Page Header */
 .page-header {
   text-align: center;
   margin-bottom: 3rem;
@@ -436,15 +490,17 @@ export default {
 .page-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: var(--text-accent);
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
-  text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+  background: var(--aurora-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .page-subtitle {
-  color: var(--text-secondary);
   font-size: 1.1rem;
-  opacity: 0.9;
+  color: var(--text-secondary);
+  margin: 0;
 }
 
 /* Search Section */
@@ -453,16 +509,18 @@ export default {
 }
 
 .search-box {
-  max-width: 500px;
-  margin: 0 auto;
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto 2rem;
 }
 
 .search-input {
   width: 100%;
   padding: 1rem 1.5rem;
+  padding-right: 3rem;
+  background: rgba(255, 255, 255, 0.1);
   border: 2px solid rgba(0, 212, 255, 0.3);
-  border-radius: 50px;
-  background: rgba(26, 26, 46, 0.8);
+  border-radius: 25px;
   color: var(--text-primary);
   font-size: 1rem;
   transition: all 0.3s ease;
@@ -471,7 +529,58 @@ export default {
 .search-input:focus {
   outline: none;
   border-color: var(--text-accent);
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+}
+
+.search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.25rem;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.clear-search-btn:hover {
+  color: var(--text-accent);
+  background: rgba(0, 212, 255, 0.1);
+}
+
+/* Filter Options */
+.filter-options {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 20px;
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.filter-btn:hover,
+.filter-btn.active {
+  background: var(--aurora-gradient);
+  color: white;
+  border-color: transparent;
 }
 
 /* Categories Grid */
@@ -508,6 +617,7 @@ export default {
 .category-icon {
   font-size: 3rem;
   line-height: 1;
+  filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.3));
 }
 
 .category-stats {
@@ -570,6 +680,13 @@ export default {
   border-radius: 12px;
   font-size: 0.8rem;
   border: 1px solid rgba(0, 212, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sub-category-tag:hover {
+  background: rgba(0, 212, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 .sub-category-more {
@@ -745,6 +862,7 @@ export default {
 .featured-icon {
   font-size: 3rem;
   margin-bottom: 1rem;
+  filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.5));
 }
 
 .featured-card h3 {
@@ -788,8 +906,7 @@ export default {
   justify-content: center;
   gap: 0.5rem;
   color: var(--text-accent);
-  font-weight: 500;
-  margin-top: 1rem;
+  font-weight: 600;
 }
 
 .action-icon {
@@ -813,61 +930,117 @@ export default {
 }
 
 .tag-item {
-  background: rgba(26, 26, 46, 0.8);
+  background: rgba(255, 255, 255, 0.1);
   color: var(--text-secondary);
   padding: 0.5rem 1rem;
   border-radius: 20px;
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-size: 0.9rem;
+  border: 1px solid rgba(0, 212, 255, 0.2);
 }
 
 .tag-item:hover {
   background: rgba(0, 212, 255, 0.1);
   color: var(--text-accent);
-  border-color: var(--text-accent);
   transform: translateY(-2px);
+  border-color: rgba(0, 212, 255, 0.4);
 }
 
-.tag-large {
+.tag-item.tag-large {
   font-size: 1.1rem;
-  font-weight: 600;
   padding: 0.75rem 1.25rem;
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--text-accent);
+  border-color: rgba(0, 212, 255, 0.4);
 }
 
-.tag-medium {
+.tag-item.tag-medium {
   font-size: 1rem;
-  font-weight: 500;
   padding: 0.6rem 1.1rem;
+  background: rgba(255, 255, 255, 0.15);
 }
 
-/* Loading & Empty States */
-.loading-section,
-.empty-section {
-  text-align: center;
+/* Loading Section */
+.loading-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
   padding: 4rem 0;
 }
 
-.loading-spinner {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  animation: spin 2s linear infinite;
+.cosmic-loader {
+  position: relative;
+  width: 80px;
+  height: 80px;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.planet {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  background: var(--aurora-gradient);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
+  animation: planetPulse 2s ease-in-out infinite;
+}
+
+.orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: rotate 3s linear infinite;
+}
+
+.orbit:nth-child(2) {
+  width: 40px;
+  height: 40px;
+}
+
+.orbit.orbit-2 {
+  width: 60px;
+  height: 60px;
+  border-color: rgba(142, 68, 173, 0.3);
+  animation-duration: 4s;
+  animation-direction: reverse;
+}
+
+@keyframes rotate {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes planetPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.2); }
+}
+
+/* Empty Section */
+.empty-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 0;
 }
 
 .empty-content {
+  text-align: center;
   max-width: 400px;
-  margin: 0 auto;
 }
 
 .empty-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
+  opacity: 0.5;
 }
 
 .empty-content h3 {
@@ -877,10 +1050,20 @@ export default {
 
 .empty-content p {
   color: var(--text-secondary);
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
-/* Responsive */
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .categories-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+  
+  .featured-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .categories-page {
     padding: 1rem 0;
@@ -890,42 +1073,173 @@ export default {
     font-size: 2rem;
   }
   
+  .page-subtitle {
+    font-size: 1rem;
+  }
+  
+  .search-section {
+    margin-bottom: 2rem;
+  }
+  
   .categories-grid {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
   
   .featured-grid {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
   
   .category-card {
     padding: 1.5rem;
   }
   
-  .featured-stats {
-    justify-content: space-between;
+  .featured-card {
+    padding: 1.5rem;
+    min-height: 180px;
+  }
+  
+  .filter-options {
+    gap: 0.5rem;
+  }
+  
+  .filter-btn {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .tags-cloud {
+    gap: 0.5rem;
   }
 }
 
 @media (max-width: 480px) {
-  .category-header {
-    flex-direction: column;
-    text-align: center;
-    gap: 1rem;
+  .container {
+    padding: 0 0.5rem;
   }
   
-  .category-stats {
-    text-align: center;
+  .page-header {
+    margin-bottom: 2rem;
   }
   
-  .tags-cloud {
-    justify-content: flex-start;
+  .page-title {
+    font-size: 1.5rem;
   }
   
-  .tag-large,
-  .tag-medium {
+  .search-input {
+    padding: 0.75rem 1rem;
     font-size: 0.9rem;
-    padding: 0.5rem 1rem;
+  }
+  
+  .category-card {
+    padding: 1rem;
+  }
+  
+  .category-icon {
+    font-size: 2.5rem;
+  }
+  
+  .category-name {
+    font-size: 1.2rem;
+  }
+  
+  .featured-card {
+    padding: 1rem;
+    min-height: 150px;
+  }
+  
+  .featured-icon {
+    font-size: 2.5rem;
+  }
+  
+  .featured-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .stat-number {
+    font-size: 1rem;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .search-input {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .filter-btn {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .tag-item {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .category-card,
+  .featured-card {
+    border: 2px solid var(--text-primary);
+  }
+  
+  .filter-btn {
+    border-width: 2px;
+  }
+  
+  .tag-item {
+    border-width: 2px;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .category-card,
+  .featured-card,
+  .tag-item,
+  .sub-category-tag {
+    transition: none;
+  }
+  
+  .category-card:hover,
+  .featured-card:hover {
+    transform: none;
+  }
+  
+  .planet,
+  .orbit {
+    animation: none;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .search-section,
+  .filter-options,
+  .category-overlay,
+  .loading-section {
+    display: none !important;
+  }
+  
+  .categories-grid,
+  .featured-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .category-card,
+  .featured-card {
+    break-inside: avoid;
+    border: 1px solid black !important;
+    background: white !important;
+    color: black !important;
   }
 }
 </style>

@@ -26,7 +26,7 @@
       <!-- Loading State -->
       <div v-if="loading" class="loading-container">
         <div class="cosmic-loader">
-          <div class="planet"></div>
+          <div class="planet">🌍</div>
           <div class="orbit"></div>
           <div class="orbit orbit-2"></div>
         </div>
@@ -44,7 +44,7 @@
               <p>Tổng người dùng</p>
               <div class="stat-change" :class="{ positive: stats.users.change > 0, negative: stats.users.change < 0 }">
                 <span>{{ stats.users.change > 0 ? '↗' : '↘' }} {{ Math.abs(stats.users.change) }}%</span>
-                <small>so với tháng trước</small>
+                <small>so với kỳ trước</small>
               </div>
             </div>
           </div>
@@ -56,7 +56,7 @@
               <p>Tổng sản phẩm</p>
               <div class="stat-change" :class="{ positive: stats.products.change > 0, negative: stats.products.change < 0 }">
                 <span>{{ stats.products.change > 0 ? '↗' : '↘' }} {{ Math.abs(stats.products.change) }}%</span>
-                <small>so với tháng trước</small>
+                <small>so với kỳ trước</small>
               </div>
             </div>
           </div>
@@ -68,7 +68,7 @@
               <p>Tổng đơn hàng</p>
               <div class="stat-change" :class="{ positive: stats.orders.change > 0, negative: stats.orders.change < 0 }">
                 <span>{{ stats.orders.change > 0 ? '↗' : '↘' }} {{ Math.abs(stats.orders.change) }}%</span>
-                <small>so với tháng trước</small>
+                <small>so với kỳ trước</small>
               </div>
             </div>
           </div>
@@ -80,235 +80,260 @@
               <p>Tổng doanh thu</p>
               <div class="stat-change" :class="{ positive: stats.revenue.change > 0, negative: stats.revenue.change < 0 }">
                 <span>{{ stats.revenue.change > 0 ? '↗' : '↘' }} {{ Math.abs(stats.revenue.change) }}%</span>
-                <small>so với tháng trước</small>
+                <small>so với kỳ trước</small>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions-section">
+          <h2>⚡ Hành động nhanh</h2>
+          <div class="quick-actions-grid">
+            <router-link to="/admin/users" class="quick-action-card space-card">
+              <div class="action-icon">👥</div>
+              <div class="action-content">
+                <h3>Quản lý người dùng</h3>
+                <p>{{ stats.users.pending || 0 }} tài khoản chờ duyệt</p>
+              </div>
+              <div class="action-arrow">→</div>
+            </router-link>
+
+            <router-link to="/admin/orders" class="quick-action-card space-card">
+              <div class="action-icon">📋</div>
+              <div class="action-content">
+                <h3>Đơn hàng mới</h3>
+                <p>{{ stats.orders.pending || 0 }} đơn hàng chờ xử lý</p>
+              </div>
+              <div class="action-arrow">→</div>
+            </router-link>
+
+            <router-link to="/admin/products" class="quick-action-card space-card">
+              <div class="action-icon">📦</div>
+              <div class="action-content">
+                <h3>Sản phẩm cần duyệt</h3>
+                <p>{{ stats.products.pending || 0 }} sản phẩm mới</p>
+              </div>
+              <div class="action-arrow">→</div>
+            </router-link>
+
+            <div @click="showSupportModal = true" class="quick-action-card space-card clickable">
+              <div class="action-icon">💬</div>
+              <div class="action-content">
+                <h3>Hỗ trợ khách hàng</h3>
+                <p>{{ stats.support?.pending || 0 }} yêu cầu mới</p>
+              </div>
+              <div class="action-arrow">→</div>
             </div>
           </div>
         </div>
 
         <!-- Charts Section -->
         <div class="charts-section">
-          <div class="chart-row">
+          <div class="charts-grid">
             <!-- Revenue Chart -->
-            <div class="chart-container space-card">
+            <div class="chart-card space-card">
               <div class="chart-header">
                 <h3>📈 Doanh thu theo thời gian</h3>
-                <div class="chart-actions">
-                  <button 
-                    v-for="period in chartPeriods" 
-                    :key="period.value"
-                    @click="selectedChartPeriod = period.value"
-                    class="period-btn"
-                    :class="{ active: selectedChartPeriod === period.value }"
-                  >
-                    {{ period.label }}
-                  </button>
+                <div class="chart-controls">
+                  <select v-model="revenueChartType" @change="updateRevenueChart">
+                    <option value="daily">Theo ngày</option>
+                    <option value="weekly">Theo tuần</option>
+                    <option value="monthly">Theo tháng</option>
+                  </select>
                 </div>
               </div>
-              <div class="chart-content">
+              <div class="chart-container">
                 <canvas ref="revenueChart" width="400" height="200"></canvas>
               </div>
             </div>
 
-            <!-- Order Status Chart -->
-            <div class="chart-container space-card">
+            <!-- Orders Chart -->
+            <div class="chart-card space-card">
               <div class="chart-header">
-                <h3>📊 Trạng thái đơn hàng</h3>
+                <h3>📊 Phân bố đơn hàng</h3>
               </div>
-              <div class="chart-content">
-                <canvas ref="orderStatusChart" width="300" height="300"></canvas>
+              <div class="chart-container">
+                <canvas ref="ordersChart" width="400" height="200"></canvas>
               </div>
             </div>
           </div>
 
-          <!-- Category Performance -->
-          <div class="chart-container space-card">
+          <!-- Products Performance -->
+          <div class="chart-card space-card">
             <div class="chart-header">
-              <h3>🏷️ Hiệu suất theo danh mục</h3>
+              <h3>🏆 Top sản phẩm bán chạy</h3>
+              <router-link to="/admin/products" class="view-all-link">Xem tất cả →</router-link>
             </div>
-            <div class="category-performance">
-              <div v-for="category in categoryPerformance" :key="category.id" class="category-item">
-                <div class="category-info">
-                  <h4>{{ category.name }}</h4>
-                  <div class="category-stats">
-                    <span>{{ category.productCount }} sản phẩm</span>
-                    <span>{{ formatCurrency(category.revenue) }}</span>
-                  </div>
+            <div class="products-list">
+              <div 
+                v-for="(product, index) in topProducts" 
+                :key="product.id"
+                class="product-item"
+              >
+                <div class="product-rank">{{ index + 1 }}</div>
+                <div class="product-image">
+                  <img :src="product.image || '/placeholder-product.jpg'" :alt="product.name">
                 </div>
-                <div class="category-progress">
-                  <div class="progress-bar">
-                    <div class="progress-fill" :style="{ width: category.percentage + '%' }"></div>
-                  </div>
-                  <span class="percentage">{{ category.percentage }}%</span>
+                <div class="product-info">
+                  <h4>{{ product.name }}</h4>
+                  <p>Đã bán: {{ product.soldCount }} • Doanh thu: {{ formatCurrency(product.revenue) }}</p>
+                </div>
+                <div class="product-trend" :class="{ positive: product.trend > 0, negative: product.trend < 0 }">
+                  {{ product.trend > 0 ? '↗' : '↘' }} {{ Math.abs(product.trend) }}%
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Tables Section -->
-        <div class="tables-section">
-          <div class="table-row">
+        <!-- Recent Activity -->
+        <div class="activity-section">
+          <div class="activity-grid">
             <!-- Recent Orders -->
-            <div class="table-container space-card">
-              <div class="table-header">
+            <div class="activity-card space-card">
+              <div class="activity-header">
                 <h3>🛒 Đơn hàng gần đây</h3>
-                <router-link to="/admin/orders" class="btn btn-secondary btn-small">Xem tất cả</router-link>
+                <router-link to="/admin/orders" class="view-all-link">Xem tất cả →</router-link>
               </div>
-              <div class="table-content">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Mã đơn</th>
-                      <th>Khách hàng</th>
-                      <th>Tổng tiền</th>
-                      <th>Trạng thái</th>
-                      <th>Ngày tạo</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="order in recentOrders" :key="order.id">
-                      <td>
-                        <router-link :to="`/admin/orders/${order.id}`" class="order-link">
-                          #{{ order.id.slice(-6) }}
-                        </router-link>
-                      </td>
-                      <td>
-                        <div class="customer-info">
-                          <img :src="order.customer.avatar" :alt="order.customer.name" class="customer-avatar" />
-                          <span>{{ order.customer.name }}</span>
-                        </div>
-                      </td>
-                      <td class="currency">{{ formatCurrency(order.total) }}</td>
-                      <td>
-                        <span class="status-badge" :class="order.status.toLowerCase()">
-                          {{ getStatusText(order.status) }}
-                        </span>
-                      </td>
-                      <td>{{ formatDate(order.createdAt) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div class="activity-list">
+                <div 
+                  v-for="order in recentOrders" 
+                  :key="order.id"
+                  class="activity-item"
+                >
+                  <div class="activity-icon">
+                    <span class="status-icon" :class="getOrderStatusClass(order.status)">
+                      {{ getOrderStatusIcon(order.status) }}
+                    </span>
+                  </div>
+                  <div class="activity-content">
+                    <div class="activity-title">Đơn hàng #{{ order.id }}</div>
+                    <div class="activity-subtitle">
+                      {{ order.customerName }} • {{ formatCurrency(order.total) }}
+                    </div>
+                    <div class="activity-time">{{ getTimeAgo(order.createdAt) }}</div>
+                  </div>
+                  <div class="activity-status">
+                    <span class="status-badge" :class="getOrderStatusClass(order.status)">
+                      {{ getOrderStatusText(order.status) }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Top Products -->
-            <div class="table-container space-card">
-              <div class="table-header">
-                <h3>🏆 Sản phẩm bán chạy</h3>
-                <router-link to="/admin/products" class="btn btn-secondary btn-small">Xem tất cả</router-link>
+            <!-- Low Stock Alerts -->
+            <div class="activity-card space-card">
+              <div class="activity-header">
+                <h3>⚠️ Sản phẩm sắp hết hàng</h3>
+                <router-link to="/admin/products?filter=low-stock" class="view-all-link">Xem tất cả →</router-link>
               </div>
-              <div class="table-content">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Sản phẩm</th>
-                      <th>Đã bán</th>
-                      <th>Doanh thu</th>
-                      <th>Đánh giá</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="product in topProducts" :key="product.id">
-                      <td>
-                        <div class="product-info">
-                          <img :src="product.image" :alt="product.name" class="product-image" />
-                          <div>
-                            <router-link :to="`/products/${product.id}`" class="product-name">
-                              {{ product.name }}
-                            </router-link>
-                            <p class="product-price">{{ formatCurrency(product.price) }}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="sold-count">{{ formatNumber(product.soldCount) }}</td>
-                      <td class="currency">{{ formatCurrency(product.revenue) }}</td>
-                      <td>
-                        <div class="rating">
-                          <span class="rating-value">{{ product.rating }}</span>
-                          <div class="stars">
-                            <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= product.rating }">⭐</span>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div class="activity-list">
+                <div 
+                  v-for="product in lowStockProducts" 
+                  :key="product.id"
+                  class="activity-item"
+                >
+                  <div class="activity-icon">
+                    <span class="alert-icon">⚠️</span>
+                  </div>
+                  <div class="activity-content">
+                    <div class="activity-title">{{ product.name }}</div>
+                    <div class="activity-subtitle">
+                      Còn lại: {{ product.stock }} sản phẩm
+                    </div>
+                    <div class="activity-progress">
+                      <div class="progress-bar">
+                        <div 
+                          class="progress-fill" 
+                          :style="{ width: (product.stock / product.maxStock) * 100 + '%' }"
+                          :class="{ danger: product.stock < 10, warning: product.stock < 20 }"
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="activity-action">
+                    <button @click="restockProduct(product)" class="btn-restock">
+                      📦 Nhập hàng
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Recent Users -->
-          <div class="table-container space-card">
-            <div class="table-header">
-              <h3>👤 Người dùng mới</h3>
-              <router-link to="/admin/users" class="btn btn-secondary btn-small">Xem tất cả</router-link>
-            </div>
-            <div class="table-content">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Người dùng</th>
-                    <th>Email</th>
-                    <th>Vai trò</th>
-                    <th>Trạng thái</th>
-                    <th>Ngày tham gia</th>
-                    <th>Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="user in recentUsers" :key="user.id">
-                    <td>
-                      <div class="user-info">
-                        <img :src="user.avatar" :alt="user.name" class="user-avatar" />
-                        <span>{{ user.name }}</span>
-                      </div>
-                    </td>
-                    <td>{{ user.email }}</td>
-                    <td>
-                      <span class="role-badge" :class="user.role.toLowerCase()">
-                        {{ getRoleText(user.role) }}
-                      </span>
-                    </td>
-                    <td>
-                      <span class="status-badge" :class="user.status.toLowerCase()">
-                        {{ user.status === 'active' ? 'Hoạt động' : 'Bị khóa' }}
-                      </span>
-                    </td>
-                    <td>{{ formatDate(user.createdAt) }}</td>
-                    <td>
-                      <div class="action-buttons">
-                        <button @click="toggleUserStatus(user)" class="btn btn-sm" :class="user.status === 'active' ? 'btn-warning' : 'btn-success'">
-                          {{ user.status === 'active' ? '🔒 Khóa' : '🔓 Mở khóa' }}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <!-- System Status -->
+            <div class="activity-card space-card">
+              <div class="activity-header">
+                <h3>🖥️ Trạng thái hệ thống</h3>
+              </div>
+              <div class="system-status">
+                <div class="status-item">
+                  <div class="status-indicator active"></div>
+                  <span>Database</span>
+                  <span class="status-value">Online</span>
+                </div>
+                <div class="status-item">
+                  <div class="status-indicator active"></div>
+                  <span>Payment Gateway</span>
+                  <span class="status-value">Online</span>
+                </div>
+                <div class="status-item">
+                  <div class="status-indicator warning"></div>
+                  <span>Email Service</span>
+                  <span class="status-value">Slow</span>
+                </div>
+                <div class="status-item">
+                  <div class="status-indicator active"></div>
+                  <span>File Storage</span>
+                  <span class="status-value">Online</span>
+                </div>
+                <div class="status-metrics">
+                  <div class="metric">
+                    <span class="metric-label">CPU Usage:</span>
+                    <span class="metric-value">{{ systemMetrics.cpu }}%</span>
+                  </div>
+                  <div class="metric">
+                    <span class="metric-label">Memory:</span>
+                    <span class="metric-value">{{ systemMetrics.memory }}%</span>
+                  </div>
+                  <div class="metric">
+                    <span class="metric-label">Storage:</span>
+                    <span class="metric-value">{{ systemMetrics.storage }}%</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- Alerts & Notifications -->
-        <div class="alerts-section">
-          <div class="alert-container space-card">
-            <h3>⚠️ Cảnh báo hệ thống</h3>
-            <div class="alerts-list">
-              <div v-for="alert in systemAlerts" :key="alert.id" class="alert-item" :class="alert.type">
-                <div class="alert-icon">{{ alert.icon }}</div>
-                <div class="alert-content">
-                  <h4>{{ alert.title }}</h4>
-                  <p>{{ alert.message }}</p>
-                  <small>{{ formatDate(alert.createdAt) }}</small>
-                </div>
-                <button @click="dismissAlert(alert.id)" class="alert-dismiss">×</button>
-              </div>
-              
-              <div v-if="systemAlerts.length === 0" class="no-alerts">
-                <span>✅ Không có cảnh báo nào</span>
-              </div>
+    <!-- Support Modal -->
+    <div v-if="showSupportModal" class="modal-overlay" @click="showSupportModal = false">
+      <div class="modal-content support-modal" @click.stop>
+        <div class="modal-header">
+          <h3>💬 Hỗ trợ khách hàng</h3>
+          <button @click="showSupportModal = false" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="support-stats">
+            <div class="support-stat">
+              <h4>{{ stats.support?.pending || 0 }}</h4>
+              <p>Yêu cầu chờ xử lý</p>
             </div>
+            <div class="support-stat">
+              <h4>{{ stats.support?.avgResponseTime || '2h' }}</h4>
+              <p>Thời gian phản hồi TB</p>
+            </div>
+            <div class="support-stat">
+              <h4>{{ stats.support?.satisfaction || '4.8' }}/5</h4>
+              <p>Đánh giá hài lòng</p>
+            </div>
+          </div>
+          <div class="support-actions">
+            <button class="btn btn-primary">📧 Xem tin nhắn mới</button>
+            <button class="btn btn-secondary">📊 Báo cáo hỗ trợ</button>
           </div>
         </div>
       </div>
@@ -317,43 +342,117 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { useAdminStore } from '@/stores/admin'
 
 export default {
   name: 'AdminDashboard',
   setup() {
-    const authStore = useAuthStore()
+    const adminStore = useAdminStore()
     
     // Reactive data
-    const loading = ref(true)
-    const selectedTimeRange = ref('30')
-    const selectedChartPeriod = ref('week')
-    const stats = ref({
-      users: { total: 0, change: 0 },
-      products: { total: 0, change: 0 },
-      orders: { total: 0, change: 0 },
-      revenue: { total: 0, change: 0 }
-    })
-    const recentOrders = ref([])
-    const topProducts = ref([])
-    const recentUsers = ref([])
-    const categoryPerformance = ref([])
-    const systemAlerts = ref([])
-    
-    // Chart refs
+    const selectedTimeRange = ref(30)
+    const revenueChartType = ref('daily')
+    const showSupportModal = ref(false)
     const revenueChart = ref(null)
-    const orderStatusChart = ref(null)
+    const ordersChart = ref(null)
     
-    // Chart periods
-    const chartPeriods = [
-      { label: 'Tuần', value: 'week' },
-      { label: 'Tháng', value: 'month' },
-      { label: 'Quý', value: 'quarter' },
-      { label: 'Năm', value: 'year' }
-    ]
+    // Mock data for demo
+    const mockStats = ref({
+      users: { total: 12847, change: 12.5, pending: 23 },
+      products: { total: 1563, change: 8.2, pending: 12 },
+      orders: { total: 8934, change: 15.7, pending: 45 },
+      revenue: { total: 2540000000, change: 18.3 },
+      support: { pending: 8, avgResponseTime: '1.5h', satisfaction: 4.7 }
+    })
+    
+    const topProducts = ref([
+      {
+        id: 1,
+        name: 'Laptop Gaming Galactic Pro',
+        image: '/placeholder-product.jpg',
+        soldCount: 234,
+        revenue: 450000000,
+        trend: 15.2
+      },
+      {
+        id: 2,
+        name: 'Smartphone Cosmic X',
+        image: '/placeholder-product.jpg',
+        soldCount: 512,
+        revenue: 380000000,
+        trend: 8.7
+      },
+      {
+        id: 3,
+        name: 'Headphones Nebula Pro',
+        image: '/placeholder-product.jpg',
+        soldCount: 189,
+        revenue: 180000000,
+        trend: -3.2
+      }
+    ])
+    
+    const recentOrders = ref([
+      {
+        id: 'ORD-2024-001',
+        customerName: 'Nguyễn Văn A',
+        total: 25000000,
+        status: 'PENDING',
+        createdAt: new Date(Date.now() - 1000 * 60 * 15) // 15 minutes ago
+      },
+      {
+        id: 'ORD-2024-002',
+        customerName: 'Trần Thị B',
+        total: 15000000,
+        status: 'PROCESSING',
+        createdAt: new Date(Date.now() - 1000 * 60 * 45) // 45 minutes ago
+      },
+      {
+        id: 'ORD-2024-003',
+        customerName: 'Lê Minh C',
+        total: 8500000,
+        status: 'SHIPPED',
+        createdAt: new Date(Date.now() - 1000 * 60 * 120) // 2 hours ago
+      }
+    ])
+    
+    const lowStockProducts = ref([
+      {
+        id: 1,
+        name: 'Laptop Gaming Galactic Pro',
+        stock: 5,
+        maxStock: 50
+      },
+      {
+        id: 2,
+        name: 'Mouse Wireless Pro',
+        stock: 8,
+        maxStock: 100
+      },
+      {
+        id: 3,
+        name: 'Keyboard Mechanical RGB',
+        stock: 12,
+        maxStock: 80
+      }
+    ])
+    
+    const systemMetrics = ref({
+      cpu: 35,
+      memory: 68,
+      storage: 45
+    })
+    
+    // Computed properties
+    const loading = computed(() => adminStore.loading.dashboard)
+    const stats = computed(() => mockStats.value) // In real app: adminStore.dashboardStats
     
     // Methods
+    const formatNumber = (num) => {
+      return new Intl.NumberFormat('vi-VN').format(num)
+    }
+    
     const formatCurrency = (amount) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
@@ -361,403 +460,147 @@ export default {
       }).format(amount)
     }
     
-    const formatNumber = (number) => {
-      return new Intl.NumberFormat('vi-VN').format(number)
+    const getTimeAgo = (date) => {
+      const now = new Date()
+      const diffMs = now - date
+      const diffMins = Math.floor(diffMs / (1000 * 60))
+      const diffHours = Math.floor(diffMins / 60)
+      const diffDays = Math.floor(diffHours / 24)
+      
+      if (diffMins < 1) return 'Vừa xong'
+      if (diffMins < 60) return `${diffMins} phút trước`
+      if (diffHours < 24) return `${diffHours} giờ trước`
+      return `${diffDays} ngày trước`
     }
     
-    const formatDate = (date) => {
-      return new Date(date).toLocaleDateString('vi-VN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
+    const getOrderStatusClass = (status) => {
+      const classes = {
+        'PENDING': 'warning',
+        'PROCESSING': 'info',
+        'SHIPPED': 'primary',
+        'DELIVERED': 'success',
+        'CANCELLED': 'danger'
+      }
+      return classes[status] || 'secondary'
+    }
+    
+    const getOrderStatusIcon = (status) => {
+      const icons = {
+        'PENDING': '⏳',
+        'PROCESSING': '⚙️',
+        'SHIPPED': '🚚',
+        'DELIVERED': '✅',
+        'CANCELLED': '❌'
+      }
+      return icons[status] || '📋'
+    }
+    
+    const getOrderStatusText = (status) => {
+      const texts = {
+        'PENDING': 'Chờ xử lý',
+        'PROCESSING': 'Đang xử lý',
+        'SHIPPED': 'Đã gửi',
+        'DELIVERED': 'Đã giao',
+        'CANCELLED': 'Đã hủy'
+      }
+      return texts[status] || status
+    }
+    
+    const refreshData = async () => {
+      try {
+        await adminStore.loadDashboard()
+        initCharts()
+      } catch (error) {
+        console.error('Error refreshing dashboard:', error)
+      }
+    }
+    
+    const loadDashboardData = () => {
+      // Load data based on selected time range
+      refreshData()
+    }
+    
+    const updateRevenueChart = () => {
+      // Update chart based on selected type
+      initRevenueChart()
+    }
+    
+    const restockProduct = (product) => {
+      // TODO: Implement restock functionality
+      alert(`Nhập hàng cho sản phẩm: ${product.name}`)
+    }
+    
+    const initCharts = () => {
+      nextTick(() => {
+        initRevenueChart()
+        initOrdersChart()
       })
     }
     
-    const getStatusText = (status) => {
-      const statusMap = {
-        'pending': 'Chờ xử lý',
-        'confirmed': 'Đã xác nhận',
-        'shipping': 'Đang giao',
-        'delivered': 'Đã giao',
-        'cancelled': 'Đã hủy'
-      }
-      return statusMap[status] || status
-    }
-    
-    const getRoleText = (role) => {
-      const roleMap = {
-        'admin': 'Quản trị viên',
-        'seller': 'Người bán',
-        'user': 'Khách hàng'
-      }
-      return roleMap[role] || role
-    }
-    
-    const loadDashboardData = async () => {
-      try {
-        loading.value = true
-        
-        // Simulate API calls
-        await Promise.all([
-          loadStats(),
-          loadRecentOrders(),
-          loadTopProducts(),
-          loadRecentUsers(),
-          loadCategoryPerformance(),
-          loadSystemAlerts()
-        ])
-        
-        // Initialize charts after data is loaded
-        await nextTick()
-        initializeCharts()
-        
-      } catch (error) {
-        console.error('Error loading dashboard data:', error)
-      } finally {
-        loading.value = false
-      }
-    }
-    
-    const loadStats = async () => {
-      // Mock data
-      stats.value = {
-        users: { total: 15420, change: 12.5 },
-        products: { total: 8750, change: 8.2 },
-        orders: { total: 3240, change: -2.1 },
-        revenue: { total: 2450000000, change: 15.8 }
-      }
-    }
-    
-    const loadRecentOrders = async () => {
-      // Mock data
-      recentOrders.value = [
-        {
-          id: 'order_001_recent',
-          customer: {
-            name: 'Nguyễn Văn A',
-            avatar: '/user-avatar-1.jpg'
-          },
-          total: 2500000,
-          status: 'pending',
-          createdAt: '2024-01-20T10:30:00Z'
-        },
-        {
-          id: 'order_002_recent',
-          customer: {
-            name: 'Trần Thị B',
-            avatar: '/user-avatar-2.jpg'
-          },
-          total: 1800000,
-          status: 'confirmed',
-          createdAt: '2024-01-20T09:15:00Z'
-        },
-        {
-          id: 'order_003_recent',
-          customer: {
-            name: 'Lê Văn C',
-            avatar: '/user-avatar-3.jpg'
-          },
-          total: 3200000,
-          status: 'shipping',
-          createdAt: '2024-01-19T16:45:00Z'
-        },
-        {
-          id: 'order_004_recent',
-          customer: {
-            name: 'Phạm Thị D',
-            avatar: '/user-avatar-4.jpg'
-          },
-          total: 950000,
-          status: 'delivered',
-          createdAt: '2024-01-19T14:20:00Z'
-        }
-      ]
-    }
-    
-    const loadTopProducts = async () => {
-      // Mock data
-      topProducts.value = [
-        {
-          id: 'product_001',
-          name: 'Laptop Gaming Galactic Pro',
-          image: '/placeholder-product.jpg',
-          price: 25000000,
-          soldCount: 245,
-          revenue: 6125000000,
-          rating: 4.8
-        },
-        {
-          id: 'product_002',
-          name: 'Smartphone Cosmic X12',
-          image: '/placeholder-phone.jpg',
-          price: 15000000,
-          soldCount: 189,
-          revenue: 2835000000,
-          rating: 4.6
-        },
-        {
-          id: 'product_003',
-          name: 'Gaming Mouse Nebula',
-          image: '/placeholder-mouse.jpg',
-          price: 1500000,
-          soldCount: 567,
-          revenue: 850500000,
-          rating: 4.7
-        },
-        {
-          id: 'product_004',
-          name: 'Mechanical Keyboard Cosmos',
-          image: '/placeholder-keyboard.jpg',
-          price: 2200000,
-          soldCount: 334,
-          revenue: 734800000,
-          rating: 4.5
-        }
-      ]
-    }
-    
-    const loadRecentUsers = async () => {
-      // Mock data
-      recentUsers.value = [
-        {
-          id: 'user_001',
-          name: 'Hoàng Văn E',
-          email: 'hoang.e@example.com',
-          avatar: '/user-avatar-5.jpg',
-          role: 'user',
-          status: 'active',
-          createdAt: '2024-01-20T08:30:00Z'
-        },
-        {
-          id: 'user_002',
-          name: 'Ngô Thị F',
-          email: 'ngo.f@example.com',
-          avatar: '/user-avatar-6.jpg',
-          role: 'seller',
-          status: 'active',
-          createdAt: '2024-01-19T20:15:00Z'
-        },
-        {
-          id: 'user_003',
-          name: 'Vũ Văn G',
-          email: 'vu.g@example.com',
-          avatar: '/user-avatar-7.jpg',
-          role: 'user',
-          status: 'blocked',
-          createdAt: '2024-01-19T15:45:00Z'
-        }
-      ]
-    }
-    
-    const loadCategoryPerformance = async () => {
-      // Mock data
-      categoryPerformance.value = [
-        {
-          id: 'cat_001',
-          name: 'Công nghệ',
-          productCount: 2450,
-          revenue: 15600000000,
-          percentage: 85
-        },
-        {
-          id: 'cat_002',
-          name: 'Thời trang',
-          productCount: 1890,
-          revenue: 8900000000,
-          percentage: 68
-        },
-        {
-          id: 'cat_003',
-          name: 'Gia dụng',
-          productCount: 1230,
-          revenue: 5400000000,
-          percentage: 52
-        },
-        {
-          id: 'cat_004',
-          name: 'Sách & Văn phòng phẩm',
-          productCount: 890,
-          revenue: 2100000000,
-          percentage: 28
-        },
-        {
-          id: 'cat_005',
-          name: 'Thể thao',
-          productCount: 567,
-          revenue: 1800000000,
-          percentage: 22
-        }
-      ]
-    }
-    
-    const loadSystemAlerts = async () => {
-      // Mock data
-      systemAlerts.value = [
-        {
-          id: 'alert_001',
-          type: 'warning',
-          icon: '⚠️',
-          title: 'Sản phẩm sắp hết hàng',
-          message: 'Có 15 sản phẩm có số lượng tồn kho dưới 10.',
-          createdAt: '2024-01-20T10:00:00Z'
-        },
-        {
-          id: 'alert_002',
-          type: 'info',
-          icon: 'ℹ️',
-          title: 'Cập nhật hệ thống',
-          message: 'Hệ thống sẽ được bảo trì vào 2h sáng ngày mai.',
-          createdAt: '2024-01-20T09:30:00Z'
-        },
-        {
-          id: 'alert_003',
-          type: 'error',
-          icon: '🚨',
-          title: 'Thanh toán thất bại',
-          message: 'Có 3 đơn hàng thanh toán thất bại cần xử lý.',
-          createdAt: '2024-01-20T08:45:00Z'
-        }
-      ]
-    }
-    
-    const initializeCharts = () => {
-      if (typeof Chart === 'undefined') {
-        console.warn('Chart.js not loaded')
-        return
+    const initRevenueChart = () => {
+      if (!revenueChart.value) return
+      
+      const ctx = revenueChart.value.getContext('2d')
+      
+      // Mock chart data
+      const chartData = {
+        labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+        datasets: [{
+          label: 'Doanh thu (VNĐ)',
+          data: [120000000, 190000000, 150000000, 220000000, 180000000, 240000000, 200000000],
+          borderColor: 'rgb(0, 212, 255)',
+          backgroundColor: 'rgba(0, 212, 255, 0.1)',
+          tension: 0.4,
+          fill: true
+        }]
       }
       
-      // Revenue Chart
-      if (revenueChart.value) {
-        const ctx = revenueChart.value.getContext('2d')
-        new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
-            datasets: [{
-              label: 'Doanh thu',
-              data: [120000000, 190000000, 300000000, 500000000, 200000000, 300000000, 450000000],
-              borderColor: '#00d4ff',
-              backgroundColor: 'rgba(0, 212, 255, 0.1)',
-              tension: 0.4,
-              fill: true
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  callback: function(value) {
-                    return new Intl.NumberFormat('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND',
-                      notation: 'compact'
-                    }).format(value)
-                  }
-                }
-              }
-            }
-          }
-        })
-      }
+      // Simple canvas drawing for demo
+      ctx.clearRect(0, 0, revenueChart.value.width, revenueChart.value.height)
+      ctx.fillStyle = 'rgba(0, 212, 255, 0.8)'
+      ctx.fillText('📈 Revenue Chart', 10, 20)
+      ctx.fillText('(Chart.js integration required)', 10, 40)
+    }
+    
+    const initOrdersChart = () => {
+      if (!ordersChart.value) return
       
-      // Order Status Chart
-      if (orderStatusChart.value) {
-        const ctx = orderStatusChart.value.getContext('2d')
-        new Chart(ctx, {
-          type: 'doughnut',
-          data: {
-            labels: ['Đã giao', 'Đang giao', 'Đã xác nhận', 'Chờ xử lý', 'Đã hủy'],
-            datasets: [{
-              data: [45, 25, 15, 10, 5],
-              backgroundColor: [
-                '#10b981',
-                '#3b82f6', 
-                '#f59e0b',
-                '#6b7280',
-                '#ef4444'
-              ]
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: 'bottom'
-              }
-            }
-          }
-        })
-      }
+      const ctx = ordersChart.value.getContext('2d')
+      
+      // Simple canvas drawing for demo
+      ctx.clearRect(0, 0, ordersChart.value.width, ordersChart.value.height)
+      ctx.fillStyle = 'rgba(0, 212, 255, 0.8)'
+      ctx.fillText('📊 Orders Chart', 10, 20)
+      ctx.fillText('(Chart.js integration required)', 10, 40)
     }
-    
-    const refreshData = () => {
-      loadDashboardData()
-    }
-    
-    const toggleUserStatus = async (user) => {
-      try {
-        // TODO: API call to toggle user status
-        user.status = user.status === 'active' ? 'blocked' : 'active'
-        alert(`Đã ${user.status === 'active' ? 'mở khóa' : 'khóa'} người dùng ${user.name}`)
-      } catch (error) {
-        console.error('Error toggling user status:', error)
-      }
-    }
-    
-    const dismissAlert = (alertId) => {
-      systemAlerts.value = systemAlerts.value.filter(alert => alert.id !== alertId)
-    }
-    
-    // Auto refresh every 5 minutes
-    let refreshInterval
     
     // Lifecycle
     onMounted(() => {
-      loadDashboardData()
-      refreshInterval = setInterval(() => {
-        loadDashboardData()
-      }, 5 * 60 * 1000) // 5 minutes
-    })
-    
-    onUnmounted(() => {
-      if (refreshInterval) {
-        clearInterval(refreshInterval)
-      }
+      refreshData()
     })
     
     return {
-      loading,
       selectedTimeRange,
-      selectedChartPeriod,
-      stats,
-      recentOrders,
-      topProducts,
-      recentUsers,
-      categoryPerformance,
-      systemAlerts,
+      revenueChartType,
+      showSupportModal,
       revenueChart,
-      orderStatusChart,
-      chartPeriods,
-      formatCurrency,
+      ordersChart,
+      loading,
+      stats,
+      topProducts,
+      recentOrders,
+      lowStockProducts,
+      systemMetrics,
       formatNumber,
-      formatDate,
-      getStatusText,
-      getRoleText,
-      loadDashboardData,
+      formatCurrency,
+      getTimeAgo,
+      getOrderStatusClass,
+      getOrderStatusIcon,
+      getOrderStatusText,
       refreshData,
-      toggleUserStatus,
-      dismissAlert
+      loadDashboardData,
+      updateRevenueChart,
+      restockProduct
     }
   }
 }
@@ -767,7 +610,6 @@ export default {
 .admin-dashboard {
   min-height: 100vh;
   padding: 2rem 0;
-  background: var(--space-gradient);
 }
 
 .dashboard-header {
@@ -775,12 +617,12 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 2rem;
-  gap: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .header-content h1 {
   font-size: 2.5rem;
-  font-weight: 700;
   color: var(--text-accent);
   margin-bottom: 0.5rem;
 }
@@ -796,13 +638,522 @@ export default {
   align-items: center;
 }
 
-.time-range-selector .form-select {
-  background: rgba(26, 26, 46, 0.8);
+.form-select {
+  padding: 0.75rem 1rem;
   border: 1px solid rgba(0, 212, 255, 0.3);
-  color: var(--text-primary);
-  padding: 0.5rem 1rem;
   border-radius: 8px;
-  min-width: 120px;
+  transition: all 0.3s ease;
+}
+
+.product-item:hover {
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.product-rank {
+  background: var(--text-accent);
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.product-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-info {
+  flex: 1;
+}
+
+.product-info h4 {
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+}
+
+.product-info p {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.product-trend {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.product-trend.positive {
+  color: var(--text-success);
+}
+
+.product-trend.negative {
+  color: var(--text-danger);
+}
+
+.activity-section {
+  margin-bottom: 3rem;
+}
+
+.activity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.activity-card {
+  padding: 1.5rem;
+}
+
+.activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.activity-header h3 {
+  color: var(--text-accent);
+  font-size: 1.1rem;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.activity-item:hover {
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.status-icon {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-icon.warning {
+  background: rgba(255, 193, 7, 0.2);
+  color: var(--text-warning);
+}
+
+.status-icon.info {
+  background: rgba(0, 212, 255, 0.2);
+  color: var(--text-accent);
+}
+
+.status-icon.primary {
+  background: rgba(0, 123, 255, 0.2);
+  color: #007bff;
+}
+
+.status-icon.success {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--text-success);
+}
+
+.status-icon.danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--text-danger);
+}
+
+.alert-icon {
+  color: var(--text-warning);
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-title {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.activity-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.activity-time {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.activity-status {
+  flex: none;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-badge.warning {
+  background: rgba(255, 193, 7, 0.2);
+  color: var(--text-warning);
+}
+
+.status-badge.info {
+  background: rgba(0, 212, 255, 0.2);
+  color: var(--text-accent);
+}
+
+.status-badge.primary {
+  background: rgba(0, 123, 255, 0.2);
+  color: #007bff;
+}
+
+.status-badge.success {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--text-success);
+}
+
+.status-badge.danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--text-danger);
+}
+
+.activity-progress {
+  margin-top: 0.5rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--text-success);
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.progress-fill.warning {
+  background: var(--text-warning);
+}
+
+.progress-fill.danger {
+  background: var(--text-danger);
+}
+
+.activity-action {
+  flex: none;
+}
+
+.btn-restock {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--text-accent);
+  border-radius: 6px;
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--text-accent);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+}
+
+.btn-restock:hover {
+  background: var(--text-accent);
+  color: white;
+}
+
+.system-status {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.status-indicator.active {
+  background: var(--text-success);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+.status-indicator.warning {
+  background: var(--text-warning);
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+}
+
+.status-indicator.danger {
+  background: var(--text-danger);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.status-value {
+  margin-left: auto;
+  color: var(--text-accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.status-metrics {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 212, 255, 0.2);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.metric {
+  text-align: center;
+}
+
+.metric-label {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+}
+
+.metric-value {
+  color: var(--text-accent);
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.modal-header h3 {
+  color: var(--text-accent);
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: color 0.3s ease;
+}
+
+.modal-close:hover {
+  color: var(--text-accent);
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.support-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.support-stat {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.support-stat h4 {
+  color: var(--text-accent);
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.support-stat p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.support-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary {
+  background: var(--text-accent);
+  border-color: var(--text-accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: rgba(0, 212, 255, 0.8);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+.btn-secondary:hover {
+  background: var(--text-accent);
+  color: white;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .header-actions {
+    justify-content: space-between;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .activity-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .support-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-dashboard {
+    padding: 1rem 0;
+  }
+  
+  .header-content h1 {
+    font-size: 2rem;
+  }
+  
+  .stat-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .activity-item {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  
+  .status-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+  background: rgba(26, 26, 46, 0.8);
+  color: var(--text-primary);
+  cursor: pointer;
 }
 
 .loading-container {
@@ -812,673 +1163,735 @@ export default {
 
 .cosmic-loader {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   margin: 0 auto 2rem;
 }
 
 .planet {
-  width: 40px;
-  height: 40px;
-  background: var(--aurora-gradient);
-  border-radius: 50%;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  animation: pulse 2s ease-in-out infinite;
+  font-size: 3rem;
+  animation: float 3s ease-in-out infinite;
 }
 
 .orbit {
   position: absolute;
   border: 2px solid rgba(0, 212, 255, 0.3);
   border-radius: 50%;
-  animation: rotate 3s linear infinite;
-}
-
-.orbit:nth-child(2) {
-  width: 60px;
-  height: 60px;
-  top: 10px;
-  left: 10px;
+  width: 100%;
+  height: 100%;
+  animation: spin 2s linear infinite;
 }
 
 .orbit-2 {
-  width: 80px;
-  height: 80px;
-  top: 0;
-  left: 0;
-  animation-duration: 4s;
+  width: 130%;
+  height: 130%;
+  top: -15%;
+  left: -15%;
+  animation-duration: 3s;
   animation-direction: reverse;
 }
 
-@keyframes pulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); }
-  50% { transform: translate(-50%, -50%) scale(1.1); }
+@keyframes float {
+  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+  50% { transform: translate(-50%, -50%) translateY(-10px); }
 }
 
-@keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.dashboard-content {
-  display: flex;
-  flex-direction: column;
-  gap: 3rem;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
 }
 
 .stat-card {
-  padding: 2rem;
+  padding: 1.5rem;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--aurora-gradient);
 }
 
 .stat-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
 }
 
 .stat-icon {
-  font-size: 3rem;
+  font-size: 2.5rem;
   opacity: 0.8;
 }
 
 .stat-content h3 {
-  font-size: 2.5rem;
-  font-weight: 700;
+  font-size: 2rem;
   color: var(--text-accent);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-weight: 700;
 }
 
 .stat-content p {
   color: var(--text-secondary);
-  margin-bottom: 1rem;
-  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
 }
 
 .stat-change {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
-.stat-change span {
-  font-weight: 600;
+.stat-change.positive {
+  color: var(--text-success);
+}
+
+.stat-change.negative {
+  color: var(--text-danger);
+}
+
+.quick-actions-section {
+  margin-bottom: 3rem;
+}
+
+.quick-actions-section h2 {
+  color: var(--text-accent);
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.quick-action-card {
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.quick-action-card:hover,
+.quick-action-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+  cursor: pointer;
+}
+
+.action-icon {
+  font-size: 2rem;
+  opacity: 0.8;
+}
+
+.action-content {
+  flex: 1;
+}
+
+.action-content h3 {
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  font-size: 1.1rem;
+}
+
+.action-content p {
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
-.stat-change.positive span {
-  color: #10b981;
-}
-
-.stat-change.negative span {
-  color: #ef4444;
-}
-
-.stat-change small {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
+.action-arrow {
+  color: var(--text-accent);
+  font-size: 1.2rem;
+  opacity: 0.7;
 }
 
 .charts-section {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  margin-bottom: 3rem;
 }
 
-.chart-row {
+.charts-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
-.chart-container {
-  padding: 2rem;
+.chart-card {
+  padding: 1.5rem;
 }
 
 .chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .chart-header h3 {
   color: var(--text-accent);
-  font-size: 1.3rem;
+  font-size: 1.2rem;
 }
 
-.chart-actions {
-  display: flex;
-  gap: 0.5rem;
+.view-all-link {
+  color: var(--text-accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
 }
 
-.period-btn {
-  padding: 0.5rem 1rem;
+.view-all-link:hover {
+  opacity: 1;
+}
+
+.chart-controls select {
+  padding: 0.5rem;
   border: 1px solid rgba(0, 212, 255, 0.3);
-  background: transparent;
-  color: var(--text-secondary);
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  border-radius: 6px;
+  background: rgba(26, 26, 46, 0.8);
+  color: var(--text-primary);
   font-size: 0.9rem;
 }
 
-.period-btn:hover,
-.period-btn.active {
-  border-color: var(--text-accent);
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--text-accent);
-}
-
-.chart-content {
-  height: 300px;
+.chart-container {
   position: relative;
+  height: 200px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.category-performance {
+.products-list {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
-.category-item {
+.product-item {
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: rgba(26, 26, 46, 0.3);
-  border-radius: 12px;
-  border: 1px solid rgba(0, 212, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
 
-.category-info {
-  flex: 1;
+.product-item:hover {
+  background: rgba(0, 212, 255, 0.1);
 }
 
-.category-info h4 {
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.category-stats {
+.product-rank {
+  background: var(--text-accent);
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   display: flex;
-  gap: 1rem;
-  color: var(--text-secondary);
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
   font-size: 0.9rem;
 }
 
-.category-progress {
+.product-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-info {
+  flex: 1;
+}
+
+.product-info h4 {
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+}
+
+.product-info p {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.product-trend {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.product-trend.positive {
+  color: var(--text-success);
+}
+
+.product-trend.negative {
+  color: var(--text-danger);
+}
+
+.activity-section {
+  margin-bottom: 3rem;
+}
+
+.activity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.activity-card {
+  padding: 1.5rem;
+}
+
+.activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.activity-header h3 {
+  color: var(--text-accent);
+  font-size: 1.1rem;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.activity-item {
   display: flex;
   align-items: center;
   gap: 1rem;
-  min-width: 150px;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.activity-item:hover {
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.status-icon {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-icon.warning {
+  background: rgba(255, 193, 7, 0.2);
+  color: var(--text-warning);
+}
+
+.status-icon.info {
+  background: rgba(0, 212, 255, 0.2);
+  color: var(--text-accent);
+}
+
+.status-icon.primary {
+  background: rgba(0, 123, 255, 0.2);
+  color: #007bff;
+}
+
+.status-icon.success {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--text-success);
+}
+
+.status-icon.danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--text-danger);
+}
+
+.alert-icon {
+  color: var(--text-warning);
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-title {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.activity-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.activity-time {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.activity-status {
+  flex: none;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-badge.warning {
+  background: rgba(255, 193, 7, 0.2);
+  color: var(--text-warning);
+}
+
+.status-badge.info {
+  background: rgba(0, 212, 255, 0.2);
+  color: var(--text-accent);
+}
+
+.status-badge.primary {
+  background: rgba(0, 123, 255, 0.2);
+  color: #007bff;
+}
+
+.status-badge.success {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--text-success);
+}
+
+.status-badge.danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--text-danger);
+}
+
+.activity-progress {
+  margin-top: 0.5rem;
 }
 
 .progress-bar {
-  flex: 1;
-  height: 8px;
-  background: rgba(0, 212, 255, 0.1);
-  border-radius: 4px;
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: var(--aurora-gradient);
-  transition: width 0.8s ease;
-}
-
-.percentage {
-  color: var(--text-accent);
-  font-weight: 600;
-  min-width: 40px;
-  text-align: right;
-}
-
-.tables-section {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.table-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-}
-
-.table-container {
-  padding: 2rem;
-  overflow: hidden;
-}
-
-.table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.table-header h3 {
-  color: var(--text-accent);
-  font-size: 1.3rem;
-}
-
-.table-content {
-  overflow-x: auto;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table th,
-.data-table td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
-}
-
-.data-table th {
-  color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 0.9rem;
-  background: rgba(26, 26, 46, 0.3);
-}
-
-.data-table td {
-  color: var(--text-primary);
-}
-
-.order-link,
-.product-name {
-  color: var(--text-accent);
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.order-link:hover,
-.product-name:hover {
-  text-decoration: underline;
-}
-
-.customer-info,
-.user-info,
-.product-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.customer-avatar,
-.user-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.product-image {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  object-fit: cover;
-}
-
-.product-price {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-.currency {
-  color: var(--text-accent);
-  font-weight: 600;
-}
-
-.sold-count {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.status-badge,
-.role-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  text-transform: uppercase;
-}
-
-.status-badge.pending {
-  background: rgba(107, 114, 128, 0.2);
-  color: #6b7280;
-}
-
-.status-badge.confirmed {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-}
-
-.status-badge.shipping {
-  background: rgba(59, 130, 246, 0.2);
-  color: #3b82f6;
-}
-
-.status-badge.delivered {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
-}
-
-.status-badge.cancelled {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-}
-
-.status-badge.active {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
-}
-
-.status-badge.blocked {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-}
-
-.role-badge.admin {
-  background: rgba(147, 51, 234, 0.2);
-  color: #9333ea;
-}
-
-.role-badge.seller {
-  background: rgba(59, 130, 246, 0.2);
-  color: #3b82f6;
-}
-
-.role-badge.user {
-  background: rgba(107, 114, 128, 0.2);
-  color: #6b7280;
-}
-
-.rating {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.rating-value {
-  color: var(--text-accent);
-  font-weight: 600;
-}
-
-.stars {
-  display: flex;
-  gap: 0.1rem;
-}
-
-.star {
-  font-size: 0.8rem;
-  opacity: 0.3;
-}
-
-.star.filled {
-  opacity: 1;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-sm {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.8rem;
-  border-radius: 6px;
-}
-
-.btn-warning {
-  background: #f59e0b;
-  color: white;
-  border: none;
-}
-
-.btn-warning:hover {
-  background: #d97706;
-}
-
-.btn-success {
-  background: #10b981;
-  color: white;
-  border: none;
-}
-
-.btn-success:hover {
-  background: #059669;
-}
-
-.alerts-section {
-  margin-top: 2rem;
-}
-
-.alert-container {
-  padding: 2rem;
-}
-
-.alert-container h3 {
-  color: var(--text-accent);
-  margin-bottom: 1.5rem;
-  font-size: 1.3rem;
-}
-
-.alerts-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.alert-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1.5rem;
-  border-radius: 12px;
-  border-left: 4px solid;
-  position: relative;
-}
-
-.alert-item.warning {
-  background: rgba(245, 158, 11, 0.1);
-  border-color: #f59e0b;
-}
-
-.alert-item.info {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: #3b82f6;
-}
-
-.alert-item.error {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: #ef4444;
-}
-
-.alert-icon {
-  font-size: 1.5rem;
-  flex: none;
-}
-
-.alert-content {
-  flex: 1;
-}
-
-.alert-content h4 {
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.alert-content p {
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
-}
-
-.alert-content small {
-  color: var(--text-secondary);
-  opacity: 0.7;
-}
-
-.alert-dismiss {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 1.2rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: var(--text-success);
+  border-radius: 3px;
   transition: all 0.3s ease;
 }
 
-.alert-dismiss:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+.progress-fill.warning {
+  background: var(--text-warning);
 }
 
-.no-alerts {
+.progress-fill.danger {
+  background: var(--text-danger);
+}
+
+.activity-action {
+  flex: none;
+}
+
+.btn-restock {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--text-accent);
+  border-radius: 6px;
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--text-accent);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+}
+
+.btn-restock:hover {
+  background: var(--text-accent);
+  color: white;
+}
+
+.system-status {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.status-indicator.active {
+  background: var(--text-success);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+.status-indicator.warning {
+  background: var(--text-warning);
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+}
+
+.status-indicator.danger {
+  background: var(--text-danger);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.status-value {
+  margin-left: auto;
+  color: var(--text-accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.status-metrics {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 212, 255, 0.2);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.metric {
   text-align: center;
-  padding: 2rem;
-  color: var(--text-secondary);
 }
 
-/* Responsive Design */
-@media (max-width: 1024px) {
-  .dashboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
+.metric-label {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+}
 
-  .header-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
+.metric-value {
+  color: var(--text-accent);
+  font-weight: 600;
+  font-size: 1.1rem;
+}
 
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  }
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(5px);
+}
 
-  .chart-row {
-    grid-template-columns: 1fr;
-  }
+.modal-content {
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
 
-  .table-row {
-    grid-template-columns: 1fr;
-  }
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.modal-header h3 {
+  color: var(--text-accent);
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: color 0.3s ease;
+}
+
+.modal-close:hover {
+  color: var(--text-accent);
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.support-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.support-stat {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.support-stat h4 {
+  color: var(--text-accent);
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.support-stat p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.support-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary {
+  background: var(--text-accent);
+  border-color: var(--text-accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: rgba(0, 212, 255, 0.8);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+.btn-secondary:hover {
+  background: var(--text-accent);
+  color: white;
+  transform: translateY(-2px);
 }
 
 @media (max-width: 768px) {
-  .admin-dashboard {
-    padding: 1rem 0;
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
   }
-
-  .dashboard-header h1 {
-    font-size: 2rem;
+  
+  .header-actions {
+    justify-content: space-between;
   }
-
+  
   .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  
+  .quick-actions-grid {
     grid-template-columns: 1fr;
   }
-
-  .stat-card {
-    padding: 1.5rem;
+  
+  .charts-grid {
+    grid-template-columns: 1fr;
   }
-
-  .chart-container,
-  .table-container,
-  .alert-container {
-    padding: 1.5rem;
+  
+  .activity-grid {
+    grid-template-columns: 1fr;
   }
-
-  .chart-header {
+  
+  .support-actions {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .table-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .data-table {
-    font-size: 0.9rem;
-  }
-
-  .data-table th,
-  .data-table td {
-    padding: 0.75rem 0.5rem;
-  }
-
-  .alert-item {
-    padding: 1rem;
   }
 }
 
 @media (max-width: 480px) {
+  .admin-dashboard {
+    padding: 1rem 0;
+  }
+  
+  .header-content h1 {
+    font-size: 2rem;
+  }
+  
   .stat-card {
     flex-direction: column;
     text-align: center;
-    gap: 1rem;
   }
-
-  .category-item {
+  
+  .activity-item {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
+    align-items: stretch;
+    text-align: center;
   }
-
-  .category-progress {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .customer-info,
-  .user-info,
-  .product-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .action-buttons {
-    flex-direction: column;
+  
+  .status-metrics {
+    grid-template-columns: 1fr;
   }
 }
 </style>
