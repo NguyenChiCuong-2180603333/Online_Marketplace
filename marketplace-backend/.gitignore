@@ -71,6 +71,7 @@ hs_err_pid*
 .env.production
 .env.development
 .env.test
+*.env
 
 # Application properties with secrets
 application-production.yml
