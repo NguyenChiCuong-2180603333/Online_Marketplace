@@ -25,7 +25,12 @@ public class ChatWebSocketController {
     @SendTo("/topic/chat")
     public ChatMessage sendMessage(@Payload ChatMessageRequest request, Principal principal) {
         String userId = principal.getName(); // Get user ID from principal
-        return chatService.sendMessage(request, userId);
+    
+        String conversationId = request.getConversationId();
+        String content = request.getContent();
+        String messageType = request.getMessageType() != null ? request.getMessageType() : "TEXT";
+    
+        return chatService.sendMessage(conversationId, userId, content, messageType);
     }
 
     // Join chat room

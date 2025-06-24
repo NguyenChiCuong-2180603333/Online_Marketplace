@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "🚀 Debug Spring Boot Backend",
+      "request": "launch",
+      "mainClass": "com.marketplace.MarketplaceBackendApplication",
+      "projectName": "marketplace-backend",
+      "args": "",
+      "envFile": "${workspaceFolder}/marketplace-backend/.env",
+      "vmArgs": "-Dspring.profiles.active=development",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "🎯 Launch Vue Frontend",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/marketplace-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}

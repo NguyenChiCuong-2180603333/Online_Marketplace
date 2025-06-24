@@ -1,53 +1,91 @@
 package com.marketplace.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.NotNull;
 
 public class ChatMessageRequest {
-    @NotBlank(message = "Chat room ID is required")
-    private String chatRoomId;
-
-    @NotBlank(message = "Message content is required")
-    @Size(max = 1000, message = "Message must not exceed 1000 characters")
+    
+    @NotNull(message = "Conversation ID không được null")
+    private String conversationId;
+    
+    @NotBlank(message = "Nội dung tin nhắn không được trống")
     private String content;
-
-    @Pattern(regexp = "TEXT|IMAGE|FILE|PRODUCT_LINK|ORDER_UPDATE",
-            message = "Message type must be TEXT, IMAGE, FILE, PRODUCT_LINK, or ORDER_UPDATE")
-    private String messageType = "TEXT";
-
-    private String attachmentUrl;
-    private String attachmentName;
-    private String relatedProductId;
-    private String relatedOrderId;
-
-    // Constructors
+    
+    private String messageType = "TEXT"; 
+    private String receiverId;
+    private String productId; 
+    private String metadata; 
+    
     public ChatMessageRequest() {}
-
-    public ChatMessageRequest(String chatRoomId, String content) {
-        this.chatRoomId = chatRoomId;
+    
+    public ChatMessageRequest(String conversationId, String content) {
+        this.conversationId = conversationId;
         this.content = content;
     }
-
-    // Getters and Setters
-    public String getChatRoomId() { return chatRoomId; }
-    public void setChatRoomId(String chatRoomId) { this.chatRoomId = chatRoomId; }
-
-    public String getContent() { return content; }
-    public void setContent(String content) { this.content = content; }
-
-    public String getMessageType() { return messageType; }
-    public void setMessageType(String messageType) { this.messageType = messageType; }
-
-    public String getAttachmentUrl() { return attachmentUrl; }
-    public void setAttachmentUrl(String attachmentUrl) { this.attachmentUrl = attachmentUrl; }
-
-    public String getAttachmentName() { return attachmentName; }
-    public void setAttachmentName(String attachmentName) { this.attachmentName = attachmentName; }
-
-    public String getRelatedProductId() { return relatedProductId; }
-    public void setRelatedProductId(String relatedProductId) { this.relatedProductId = relatedProductId; }
-
-    public String getRelatedOrderId() { return relatedOrderId; }
-    public void setRelatedOrderId(String relatedOrderId) { this.relatedOrderId = relatedOrderId; }
+    
+    public ChatMessageRequest(String conversationId, String content, String messageType) {
+        this.conversationId = conversationId;
+        this.content = content;
+        this.messageType = messageType;
+    }
+    
+    public String getConversationId() {
+        return conversationId;
+    }
+    
+    public void setConversationId(String conversationId) {
+        this.conversationId = conversationId;
+    }
+    
+    public String getContent() {
+        return content;
+    }
+    
+    public void setContent(String content) {
+        this.content = content;
+    }
+    
+    public String getMessageType() {
+        return messageType;
+    }
+    
+    public void setMessageType(String messageType) {
+        this.messageType = messageType;
+    }
+    
+    public String getReceiverId() {
+        return receiverId;
+    }
+    
+    public void setReceiverId(String receiverId) {
+        this.receiverId = receiverId;
+    }
+    
+    public String getProductId() {
+        return productId;
+    }
+    
+    public void setProductId(String productId) {
+        this.productId = productId;
+    }
+    
+    public String getMetadata() {
+        return metadata;
+    }
+    
+    public void setMetadata(String metadata) {
+        this.metadata = metadata;
+    }
+    
+    @Override
+    public String toString() {
+        return "ChatMessageRequest{" +
+                "conversationId='" + conversationId + '\'' +
+                ", content='" + content + '\'' +
+                ", messageType='" + messageType + '\'' +
+                ", receiverId='" + receiverId + '\'' +
+                ", productId='" + productId + '\'' +
+                ", metadata='" + metadata + '\'' +
+                '}';
+    }
 }

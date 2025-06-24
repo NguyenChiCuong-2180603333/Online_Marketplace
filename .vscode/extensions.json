@@ -1,0 +1,26 @@
+{
+  "recommendations": [
+    "vscjava.vscode-java-pack",
+    "vmware.vscode-spring-boot",
+    "vscjava.vscode-maven",
+    "Vue.volar",
+    "Vue.vscode-typescript-vue-plugin",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-eslint",
+    "eamodio.gitlens",
+    "ritwickdey.liveserver",
+    "humao.rest-client",
+    "ms-azuretools.vscode-docker",
+    "mongodb.mongodb-vscode",
+    "pkief.material-icon-theme",
+    "zhuangtongfa.material-theme",
+    "bradlc.vscode-tailwindcss",
+    "ms-vscode.vscode-json",
+    "redhat.vscode-yaml",
+    "mikestead.dotenv"
+  ],
+  "unwantedRecommendations": [
+    "ms-vscode.vscode-typescript",
+    "octref.vetur"
+  ]
+}
