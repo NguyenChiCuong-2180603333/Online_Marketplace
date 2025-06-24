@@ -1,253 +1,396 @@
 <template>
-  <div class="admin-orders">
-    <div class="container">
-      <div class="page-header">
-        <h1>📋 Quản lý đơn hàng</h1>
-        <p>Quản lý tất cả đơn hàng trong hệ thống</p>
+  <div class="admin-orders-page">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="header-content">
+        <h1 class="page-title">📋 Quản lý Đơn hàng</h1>
+        <p class="page-subtitle">Theo dõi và xử lý tất cả đơn hàng trong hệ thống</p>
       </div>
+      
+      <div class="header-actions">
+        <button @click="refreshOrders" class="refresh-btn" :disabled="loading">
+          {{ loading ? '⏳ Đang tải...' : '🔄 Làm mới' }}
+        </button>
+        <button @click="exportOrders" class="export-btn">
+          📊 Xuất Excel
+        </button>
+      </div>
+    </div>
 
-      <!-- Filter và Search -->
-      <div class="filter-section">
-        <div class="search-box">
-          <input 
-            v-model="searchQuery" 
-            type="text" 
-            placeholder="Tìm theo ID đơn hàng, email khách hàng..."
-            class="search-input"
-          >
-          <button @click="searchOrders" class="search-btn">🔍</button>
+    <!-- Stats Cards -->
+    <div class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card total">
+          <div class="stat-icon">📦</div>
+          <div class="stat-content">
+            <h3 class="stat-number">{{ orderStats.total }}</h3>
+            <p class="stat-label">Tổng đơn hàng</p>
+          </div>
         </div>
         
-        <div class="filters">
-          <select v-model="statusFilter" @change="filterOrders" class="filter-select">
-            <option value="">Tất cả trạng thái</option>
+        <div class="stat-card pending">
+          <div class="stat-icon">⏳</div>
+          <div class="stat-content">
+            <h3 class="stat-number">{{ orderStats.pending }}</h3>
+            <p class="stat-label">Chờ xử lý</p>
+          </div>
+        </div>
+        
+        <div class="stat-card processing">
+          <div class="stat-icon">🔄</div>
+          <div class="stat-content">
+            <h3 class="stat-number">{{ orderStats.processing }}</h3>
+            <p class="stat-label">Đang xử lý</p>
+          </div>
+        </div>
+        
+        <div class="stat-card shipped">
+          <div class="stat-icon">🚚</div>
+          <div class="stat-content">
+            <h3 class="stat-number">{{ orderStats.shipped }}</h3>
+            <p class="stat-label">Đang giao</p>
+          </div>
+        </div>
+        
+        <div class="stat-card delivered">
+          <div class="stat-icon">✅</div>
+          <div class="stat-content">
+            <h3 class="stat-number">{{ orderStats.delivered }}</h3>
+            <p class="stat-label">Đã giao</p>
+          </div>
+        </div>
+        
+        <div class="stat-card cancelled">
+          <div class="stat-icon">❌</div>
+          <div class="stat-content">
+            <h3 class="stat-number">{{ orderStats.cancelled }}</h3>
+            <p class="stat-label">Đã hủy</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+      <div class="filters-grid">
+        <!-- Status Filter -->
+        <div class="filter-group">
+          <label>Trạng thái:</label>
+          <select v-model="filters.status" @change="applyFilters">
+            <option value="">Tất cả</option>
             <option value="PENDING">Chờ xử lý</option>
             <option value="PROCESSING">Đang xử lý</option>
-            <option value="SHIPPED">Đã gửi</option>
+            <option value="SHIPPED">Đang giao</option>
             <option value="DELIVERED">Đã giao</option>
             <option value="CANCELLED">Đã hủy</option>
           </select>
-
-          <select v-model="dateFilter" @change="filterOrders" class="filter-select">
-            <option value="">Tất cả thời gian</option>
-            <option value="today">Hôm nay</option>
-            <option value="week">Tuần này</option>
-            <option value="month">Tháng này</option>
+        </div>
+        
+        <!-- Date Range Filter -->
+        <div class="filter-group">
+          <label>Từ ngày:</label>
+          <input 
+            v-model="filters.startDate" 
+            type="date" 
+            @change="applyFilters"
+          />
+        </div>
+        
+        <div class="filter-group">
+          <label>Đến ngày:</label>
+          <input 
+            v-model="filters.endDate" 
+            type="date" 
+            @change="applyFilters"
+          />
+        </div>
+        
+        <!-- Search -->
+        <div class="filter-group search-group">
+          <label>Tìm kiếm:</label>
+          <input 
+            v-model="filters.search" 
+            type="text" 
+            placeholder="Mã đơn hàng, tên khách hàng..."
+            @input="debounceSearch"
+          />
+        </div>
+        
+        <!-- Sort -->
+        <div class="filter-group">
+          <label>Sắp xếp:</label>
+          <select v-model="sortBy" @change="applySort">
+            <option value="newest">Mới nhất</option>
+            <option value="oldest">Cũ nhất</option>
+            <option value="totalAsc">Giá trị thấp → cao</option>
+            <option value="totalDesc">Giá trị cao → thấp</option>
           </select>
-
-          <button @click="exportOrders" class="export-btn">📊 Xuất Excel</button>
         </div>
-      </div>
-
-      <!-- Statistics -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon">📦</div>
-          <div class="stat-info">
-            <h3>{{ stats.total }}</h3>
-            <p>Tổng đơn hàng</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">⏳</div>
-          <div class="stat-info">
-            <h3>{{ stats.pending }}</h3>
-            <p>Chờ xử lý</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🚚</div>
-          <div class="stat-info">
-            <h3>{{ stats.processing }}</h3>
-            <p>Đang xử lý</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">💰</div>
-          <div class="stat-info">
-            <h3>{{ formatCurrency(stats.revenue) }}</h3>
-            <p>Doanh thu</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Orders Table -->
-      <div class="orders-table-container">
-        <div v-if="loading" class="loading">
-          <div class="spinner"></div>
-          <p>Đang tải đơn hàng...</p>
-        </div>
-
-        <div v-else-if="orders.length === 0" class="empty-state">
-          <div class="empty-icon">📦</div>
-          <h3>Không có đơn hàng nào</h3>
-          <p>Chưa có đơn hàng nào phù hợp với bộ lọc hiện tại</p>
-        </div>
-
-        <div v-else class="orders-table">
-          <table>
-            <thead>
-              <tr>
-                <th>ID Đơn hàng</th>
-                <th>Khách hàng</th>
-                <th>Sản phẩm</th>
-                <th>Tổng tiền</th>
-                <th>Trạng thái</th>
-                <th>Ngày tạo</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="order in paginatedOrders" :key="order.id" class="order-row">
-                <td>
-                  <div class="order-id">
-                    <strong>#{{ order.id.substring(0, 8) }}</strong>
-                    <button @click="copyOrderId(order.id)" class="copy-btn">📋</button>
-                  </div>
-                </td>
-                
-                <td>
-                  <div class="customer-info">
-                    <strong>{{ order.customerName }}</strong>
-                    <small>{{ order.customerEmail }}</small>
-                  </div>
-                </td>
-                
-                <td>
-                  <div class="order-items">
-                    <div v-for="item in order.items.slice(0, 2)" :key="item.id" class="item-preview">
-                      <img :src="item.image || '/placeholder.jpg'" :alt="item.name" class="item-image">
-                      <span>{{ item.name }} x{{ item.quantity }}</span>
-                    </div>
-                    <span v-if="order.items.length > 2" class="more-items">
-                      +{{ order.items.length - 2 }} sản phẩm khác
-                    </span>
-                  </div>
-                </td>
-                
-                <td>
-                  <div class="order-total">
-                    <strong>{{ formatCurrency(order.totalAmount) }}</strong>
-                  </div>
-                </td>
-                
-                <td>
-                  <select 
-                    v-model="order.status" 
-                    @change="updateOrderStatus(order.id, order.status)"
-                    class="status-select"
-                    :class="getStatusClass(order.status)"
-                  >
-                    <option value="PENDING">Chờ xử lý</option>
-                    <option value="PROCESSING">Đang xử lý</option>
-                    <option value="SHIPPED">Đã gửi</option>
-                    <option value="DELIVERED">Đã giao</option>
-                    <option value="CANCELLED">Đã hủy</option>
-                  </select>
-                </td>
-                
-                <td>
-                  <div class="order-date">
-                    <div>{{ formatDate(order.createdAt) }}</div>
-                    <small>{{ formatTime(order.createdAt) }}</small>
-                  </div>
-                </td>
-                
-                <td>
-                  <div class="action-buttons">
-                    <button @click="viewOrderDetail(order.id)" class="btn-view" title="Xem chi tiết">👁️</button>
-                    <button @click="printOrder(order.id)" class="btn-print" title="In đơn hàng">🖨️</button>
-                    <button @click="deleteOrder(order.id)" class="btn-delete" title="Xóa đơn hàng">🗑️</button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Pagination -->
-        <div v-if="totalPages > 1" class="pagination">
-          <button 
-            @click="currentPage = 1" 
-            :disabled="currentPage === 1"
-            class="page-btn"
-          >
-            ⏪
-          </button>
-          <button 
-            @click="currentPage--" 
-            :disabled="currentPage === 1"
-            class="page-btn"
-          >
-            ◀️
-          </button>
-          
-          <span class="page-info">
-            Trang {{ currentPage }} / {{ totalPages }}
-          </span>
-          
-          <button 
-            @click="currentPage++" 
-            :disabled="currentPage === totalPages"
-            class="page-btn"
-          >
-            ▶️
-          </button>
-          <button 
-            @click="currentPage = totalPages" 
-            :disabled="currentPage === totalPages"
-            class="page-btn"
-          >
-            ⏩
+        
+        <div class="filter-actions">
+          <button @click="clearFilters" class="clear-btn">
+            🗑️ Xóa bộ lọc
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Order Detail Modal -->
-    <div v-if="selectedOrder" class="modal-overlay" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>Chi tiết đơn hàng #{{ selectedOrder.id.substring(0, 8) }}</h2>
-          <button @click="closeModal" class="close-btn">✕</button>
+    <!-- Orders Table -->
+    <div class="orders-section">
+      <div class="table-container">
+        <div v-if="loading" class="loading-state">
+          <div class="loading-spinner">⏳ Đang tải đơn hàng...</div>
         </div>
         
-        <div class="modal-body">
-          <div class="order-info-grid">
-            <div class="info-section">
-              <h3>Thông tin khách hàng</h3>
-              <p><strong>Tên:</strong> {{ selectedOrder.customerName }}</p>
-              <p><strong>Email:</strong> {{ selectedOrder.customerEmail }}</p>
-              <p><strong>Địa chỉ giao hàng:</strong> {{ selectedOrder.shippingAddress }}</p>
-              <p><strong>Địa chỉ thanh toán:</strong> {{ selectedOrder.billingAddress }}</p>
+        <div v-else-if="error" class="error-state">
+          <div class="error-content">
+            <div class="error-icon">⚠️</div>
+            <h3>Có lỗi xảy ra</h3>
+            <p>{{ error }}</p>
+            <button @click="refreshOrders" class="retry-btn">Thử lại</button>
+          </div>
+        </div>
+        
+        <table v-else-if="paginatedOrders.length > 0" class="orders-table">
+          <thead>
+            <tr>
+              <th>Mã đơn hàng</th>
+              <th>Khách hàng</th>
+              <th>Sản phẩm</th>
+              <th>Tổng tiền</th>
+              <th>Trạng thái</th>
+              <th>Ngày đặt</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="order in paginatedOrders" :key="order.id" class="order-row">
+              <td>
+                <div class="order-id">
+                  <span class="order-code">#{{ order.id }}</span>
+                  <span v-if="order.isUrgent" class="urgent-badge">🔥 Khẩn cấp</span>
+                </div>
+              </td>
+              
+              <td>
+                <div class="customer-info">
+                  <div class="customer-name">{{ order.customerName }}</div>
+                  <div class="customer-email">{{ order.customerEmail }}</div>
+                  <div class="customer-phone">{{ order.customerPhone }}</div>
+                </div>
+              </td>
+              
+              <td>
+                <div class="products-summary">
+                  <div class="product-count">{{ order.itemCount }} sản phẩm</div>
+                  <div class="product-preview">
+                    {{ truncateText(order.productNames.join(', '), 40) }}
+                  </div>
+                </div>
+              </td>
+              
+              <td>
+                <div class="order-total">
+                  <span class="total-amount">{{ formatPrice(order.total) }}</span>
+                  <span v-if="order.discountAmount > 0" class="discount-info">
+                    (Giảm {{ formatPrice(order.discountAmount) }})
+                  </span>
+                </div>
+              </td>
+              
+              <td>
+                <select 
+                  v-model="order.status" 
+                  @change="updateOrderStatus(order)"
+                  class="status-select"
+                  :class="order.status.toLowerCase()"
+                >
+                  <option value="PENDING">Chờ xử lý</option>
+                  <option value="PROCESSING">Đang xử lý</option>
+                  <option value="SHIPPED">Đang giao</option>
+                  <option value="DELIVERED">Đã giao</option>
+                  <option value="CANCELLED">Đã hủy</option>
+                </select>
+              </td>
+              
+              <td>
+                <div class="order-date">
+                  <div class="date">{{ formatDate(order.createdAt) }}</div>
+                  <div class="time">{{ formatTime(order.createdAt) }}</div>
+                </div>
+              </td>
+              
+              <td>
+                <div class="action-buttons">
+                  <button 
+                    @click="viewOrderDetails(order)" 
+                    class="action-btn view-btn"
+                    title="Xem chi tiết"
+                  >
+                    👁️
+                  </button>
+                  
+                  <button 
+                    @click="printOrder(order)" 
+                    class="action-btn print-btn"
+                    title="In đơn hàng"
+                  >
+                    🖨️
+                  </button>
+                  
+                  <button 
+                    v-if="order.status === 'PENDING'"
+                    @click="cancelOrder(order)" 
+                    class="action-btn cancel-btn"
+                    title="Hủy đơn hàng"
+                  >
+                    ❌
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div v-else class="no-orders">
+          <div class="no-orders-content">
+            <div class="no-orders-icon">📭</div>
+            <h3>Không có đơn hàng nào</h3>
+            <p>Thử thay đổi bộ lọc hoặc kiểm tra lại từ khóa tìm kiếm</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="pagination">
+        <button 
+          @click="changePage(currentPage - 1)"
+          :disabled="currentPage === 1"
+          class="pagination-btn"
+        >
+          ⬅️ Trước
+        </button>
+        
+        <div class="pagination-info">
+          Trang {{ currentPage }} / {{ totalPages }} 
+          ({{ filteredOrders.length }} đơn hàng)
+        </div>
+        
+        <div class="pagination-numbers">
+          <button
+            v-for="page in visiblePages"
+            :key="page"
+            @click="changePage(page)"
+            class="pagination-btn"
+            :class="{ active: page === currentPage }"
+          >
+            {{ page }}
+          </button>
+        </div>
+        
+        <button 
+          @click="changePage(currentPage + 1)"
+          :disabled="currentPage === totalPages"
+          class="pagination-btn"
+        >
+          Sau ➡️
+        </button>
+      </div>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div v-if="showOrderModal" class="modal-overlay" @click="closeOrderModal">
+      <div class="modal-content order-modal" @click.stop>
+        <div class="modal-header">
+          <h2>Chi tiết đơn hàng #{{ selectedOrder?.id }}</h2>
+          <button @click="closeOrderModal" class="close-btn">✕</button>
+        </div>
+        
+        <div class="modal-body" v-if="selectedOrder">
+          <div class="order-details-grid">
+            <!-- Customer Information -->
+            <div class="detail-section">
+              <h3>👤 Thông tin khách hàng</h3>
+              <div class="detail-content">
+                <p><strong>Tên:</strong> {{ selectedOrder.customerName }}</p>
+                <p><strong>Email:</strong> {{ selectedOrder.customerEmail }}</p>
+                <p><strong>Điện thoại:</strong> {{ selectedOrder.customerPhone }}</p>
+              </div>
             </div>
             
-            <div class="info-section">
-              <h3>Thông tin đơn hàng</h3>
-              <p><strong>Trạng thái:</strong> 
-                <span :class="getStatusClass(selectedOrder.status)">
-                  {{ getStatusText(selectedOrder.status) }}
-                </span>
-              </p>
-              <p><strong>Ngày tạo:</strong> {{ formatDateTime(selectedOrder.createdAt) }}</p>
-              <p><strong>Tổng tiền:</strong> {{ formatCurrency(selectedOrder.totalAmount) }}</p>
+            <!-- Shipping Information -->
+            <div class="detail-section">
+              <h3>🚚 Địa chỉ giao hàng</h3>
+              <div class="detail-content">
+                <p>{{ selectedOrder.shippingAddress }}</p>
+              </div>
             </div>
-          </div>
-          
-          <div class="order-items-detail">
-            <h3>Sản phẩm</h3>
-            <div class="items-list">
-              <div v-for="item in selectedOrder.items" :key="item.id" class="item-detail">
-                <img :src="item.image || '/placeholder.jpg'" :alt="item.name" class="item-image-large">
-                <div class="item-info">
-                  <h4>{{ item.name }}</h4>
-                  <p>Số lượng: {{ item.quantity }}</p>
-                  <p>Giá: {{ formatCurrency(item.price) }}</p>
-                  <p>Thành tiền: {{ formatCurrency(item.price * item.quantity) }}</p>
+            
+            <!-- Order Items -->
+            <div class="detail-section full-width">
+              <h3>📦 Sản phẩm đã đặt</h3>
+              <div class="order-items">
+                <div v-for="item in selectedOrder.items" :key="item.id" class="order-item">
+                  <img :src="item.productImage" :alt="item.productName" class="item-image" />
+                  <div class="item-info">
+                    <h4>{{ item.productName }}</h4>
+                    <p>Số lượng: {{ item.quantity }}</p>
+                    <p>Giá: {{ formatPrice(item.price) }}</p>
+                  </div>
+                  <div class="item-total">
+                    {{ formatPrice(item.quantity * item.price) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Order Summary -->
+            <div class="detail-section">
+              <h3>💰 Tổng kết đơn hàng</h3>
+              <div class="order-summary">
+                <div class="summary-line">
+                  <span>Tạm tính:</span>
+                  <span>{{ formatPrice(selectedOrder.subtotal) }}</span>
+                </div>
+                <div class="summary-line">
+                  <span>Phí vận chuyển:</span>
+                  <span>{{ formatPrice(selectedOrder.shippingFee) }}</span>
+                </div>
+                <div v-if="selectedOrder.discountAmount > 0" class="summary-line discount">
+                  <span>Giảm giá:</span>
+                  <span>-{{ formatPrice(selectedOrder.discountAmount) }}</span>
+                </div>
+                <div class="summary-line total">
+                  <span>Tổng cộng:</span>
+                  <span>{{ formatPrice(selectedOrder.total) }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Order Timeline -->
+            <div class="detail-section">
+              <h3>📅 Lịch sử đơn hàng</h3>
+              <div class="order-timeline">
+                <div v-for="event in selectedOrder.timeline" :key="event.id" class="timeline-item">
+                  <div class="timeline-icon">{{ event.icon }}</div>
+                  <div class="timeline-content">
+                    <h4>{{ event.title }}</h4>
+                    <p>{{ event.description }}</p>
+                    <span class="timeline-date">{{ formatDateTime(event.createdAt) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button @click="printOrder(selectedOrder)" class="btn-secondary">
+            🖨️ In đơn hàng
+          </button>
+          <button @click="closeOrderModal" class="btn-primary">
+            Đóng
+          </button>
         </div>
       </div>
     </div>
@@ -255,504 +398,646 @@
 </template>
 
 <script>
-import axios from 'axios'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { adminAPI } from '@/services/api'
 
 export default {
   name: 'AdminOrders',
-  data() {
-    return {
-      orders: [],
-      filteredOrders: [],
-      loading: true,
-      searchQuery: '',
-      statusFilter: '',
-      dateFilter: '',
-      currentPage: 1,
-      itemsPerPage: 10,
-      selectedOrder: null,
-      stats: {
-        total: 0,
+  setup() {
+    const router = useRouter()
+    
+    // Reactive data
+    const orders = ref([])
+    const loading = ref(false)
+    const error = ref(null)
+    const selectedOrder = ref(null)
+    const showOrderModal = ref(false)
+    
+    // Stats
+    const orderStats = ref({
+      total: 0,
+      pending: 0,
+      processing: 0,
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0
+    })
+    
+    // Filters
+    const filters = ref({
+      status: '',
+      startDate: '',
+      endDate: '',
+      search: ''
+    })
+    
+    const sortBy = ref('newest')
+    
+    // Pagination
+    const currentPage = ref(1)
+    const itemsPerPage = 10
+    
+    // Debounce timer for search
+    let searchTimeout = null
+    
+    // Computed properties
+    const filteredOrders = computed(() => {
+      let filtered = [...orders.value]
+      
+      // Status filter
+      if (filters.value.status) {
+        filtered = filtered.filter(order => order.status === filters.value.status)
+      }
+      
+      // Date filter
+      if (filters.value.startDate) {
+        filtered = filtered.filter(order => 
+          new Date(order.createdAt) >= new Date(filters.value.startDate)
+        )
+      }
+      
+      if (filters.value.endDate) {
+        filtered = filtered.filter(order => 
+          new Date(order.createdAt) <= new Date(filters.value.endDate)
+        )
+      }
+      
+      // Search filter
+      if (filters.value.search) {
+        const searchTerm = filters.value.search.toLowerCase()
+        filtered = filtered.filter(order => 
+          order.id.toString().includes(searchTerm) ||
+          order.customerName.toLowerCase().includes(searchTerm) ||
+          order.customerEmail.toLowerCase().includes(searchTerm) ||
+          order.customerPhone.includes(searchTerm)
+        )
+      }
+      
+      return filtered
+    })
+    
+    const sortedOrders = computed(() => {
+      const sorted = [...filteredOrders.value]
+      
+      switch (sortBy.value) {
+        case 'oldest':
+          return sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        case 'totalAsc':
+          return sorted.sort((a, b) => a.total - b.total)
+        case 'totalDesc':
+          return sorted.sort((a, b) => b.total - a.total)
+        case 'newest':
+        default:
+          return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      }
+    })
+    
+    const paginatedOrders = computed(() => {
+      const start = (currentPage.value - 1) * itemsPerPage
+      return sortedOrders.value.slice(start, start + itemsPerPage)
+    })
+    
+    const totalPages = computed(() => 
+      Math.ceil(sortedOrders.value.length / itemsPerPage)
+    )
+    
+    const visiblePages = computed(() => {
+      const total = totalPages.value
+      const current = currentPage.value
+      const delta = 2
+      
+      let start = Math.max(1, current - delta)
+      let end = Math.min(total, current + delta)
+      
+      if (end - start < delta * 2) {
+        if (start === 1) {
+          end = Math.min(total, start + delta * 2)
+        } else {
+          start = Math.max(1, end - delta * 2)
+        }
+      }
+      
+      return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+    })
+    
+    // Methods
+    const loadOrders = async () => {
+      loading.value = true
+      error.value = null
+      
+      try {
+        const response = await adminAPI.getOrders()
+        orders.value = response.data.orders || response.data
+        calculateStats()
+      } catch (err) {
+        error.value = 'Không thể tải danh sách đơn hàng'
+        console.error('Error loading orders:', err)
+      } finally {
+        loading.value = false
+      }
+    }
+    
+    const calculateStats = () => {
+      const stats = {
+        total: orders.value.length,
         pending: 0,
         processing: 0,
-        revenue: 0
+        shipped: 0,
+        delivered: 0,
+        cancelled: 0
+      }
+      
+      orders.value.forEach(order => {
+        const status = order.status.toLowerCase()
+        if (stats.hasOwnProperty(status)) {
+          stats[status]++
+        }
+      })
+      
+      orderStats.value = stats
+    }
+    
+    const updateOrderStatus = async (order) => {
+      try {
+        await adminAPI.updateOrderStatus(order.id, order.status)
+        calculateStats()
+        // Show success message
+      } catch (err) {
+        console.error('Error updating order status:', err)
+        // Revert status change
+        await loadOrders()
       }
     }
-  },
-  computed: {
-    paginatedOrders() {
-      const start = (this.currentPage - 1) * this.itemsPerPage
-      const end = start + this.itemsPerPage
-      return this.filteredOrders.slice(start, end)
-    },
-    totalPages() {
-      return Math.ceil(this.filteredOrders.length / this.itemsPerPage)
-    }
-  },
-  async mounted() {
-    await this.loadOrders()
-    this.calculateStats()
-  },
-  methods: {
-    async loadOrders() {
-      try {
-        this.loading = true
-        const response = await axios.get('/api/admin/orders', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-        
-        this.orders = response.data.map(order => ({
-          ...order,
-          customerName: order.customerName || 'N/A',
-          customerEmail: order.customerEmail || order.userEmail
-        }))
-        
-        this.filteredOrders = [...this.orders]
-      } catch (error) {
-        console.error('Lỗi khi tải đơn hàng:', error)
-        this.$toast.error('Không thể tải danh sách đơn hàng')
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async updateOrderStatus(orderId, newStatus) {
-      try {
-        await axios.put(`/api/orders/${orderId}/status`, 
-          { status: newStatus },
+    
+    const viewOrderDetails = (order) => {
+      selectedOrder.value = {
+        ...order,
+        timeline: [
           {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            id: 1,
+            icon: '📝',
+            title: 'Đơn hàng được tạo',
+            description: 'Khách hàng đã đặt hàng thành công',
+            createdAt: order.createdAt
+          },
+          {
+            id: 2,
+            icon: '💳',
+            title: 'Thanh toán thành công',
+            description: 'Đã nhận được thanh toán từ khách hàng',
+            createdAt: order.createdAt
           }
-        )
-        
-        this.$toast.success('Cập nhật trạng thái đơn hàng thành công')
-        this.calculateStats()
-      } catch (error) {
-        console.error('Lỗi khi cập nhật trạng thái:', error)
-        this.$toast.error('Không thể cập nhật trạng thái đơn hàng')
+        ]
       }
-    },
-
-    filterOrders() {
-      let filtered = [...this.orders]
-
-      if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(order => 
-          order.id.toLowerCase().includes(query) ||
-          order.customerEmail.toLowerCase().includes(query) ||
-          order.customerName.toLowerCase().includes(query)
-        )
+      showOrderModal.value = true
+    }
+    
+    const closeOrderModal = () => {
+      showOrderModal.value = false
+      selectedOrder.value = null
+    }
+    
+    const cancelOrder = async (order) => {
+      if (confirm(`Bạn có chắc chắn muốn hủy đơn hàng #${order.id}?`)) {
+        order.status = 'CANCELLED'
+        await updateOrderStatus(order)
       }
-
-      if (this.statusFilter) {
-        filtered = filtered.filter(order => order.status === this.statusFilter)
+    }
+    
+    const printOrder = (order) => {
+      // Print order logic
+      window.print()
+    }
+    
+    const exportOrders = () => {
+      // Export orders to Excel logic
+      console.log('Exporting orders...')
+    }
+    
+    const refreshOrders = () => {
+      loadOrders()
+    }
+    
+    const applyFilters = () => {
+      currentPage.value = 1
+    }
+    
+    const applySort = () => {
+      currentPage.value = 1
+    }
+    
+    const clearFilters = () => {
+      filters.value = {
+        status: '',
+        startDate: '',
+        endDate: '',
+        search: ''
       }
-
-      if (this.dateFilter) {
-        const now = new Date()
-        filtered = filtered.filter(order => {
-          const orderDate = new Date(order.createdAt)
-          switch (this.dateFilter) {
-            case 'today':
-              return orderDate.toDateString() === now.toDateString()
-            case 'week':
-              const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
-              return orderDate >= weekAgo
-            case 'month':
-              const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000)
-              return orderDate >= monthAgo
-            default:
-              return true
-          }
-        })
-      }
-
-      this.filteredOrders = filtered
-      this.currentPage = 1
-    },
-
-    searchOrders() {
-      this.filterOrders()
-    },
-
-    calculateStats() {
-      this.stats.total = this.orders.length
-      this.stats.pending = this.orders.filter(o => o.status === 'PENDING').length
-      this.stats.processing = this.orders.filter(o => o.status === 'PROCESSING').length
-      this.stats.revenue = this.orders.reduce((sum, order) => sum + order.totalAmount, 0)
-    },
-
-    viewOrderDetail(orderId) {
-      this.selectedOrder = this.orders.find(order => order.id === orderId)
-    },
-
-    closeModal() {
-      this.selectedOrder = null
-    },
-
-    async deleteOrder(orderId) {
-      if (!confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) return
-
-      try {
-        await axios.delete(`/api/admin/orders/${orderId}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-        
-        this.orders = this.orders.filter(order => order.id !== orderId)
-        this.filterOrders()
-        this.calculateStats()
-        this.$toast.success('Đã xóa đơn hàng thành công')
-      } catch (error) {
-        console.error('Lỗi khi xóa đơn hàng:', error)
-        this.$toast.error('Không thể xóa đơn hàng')
-      }
-    },
-
-    copyOrderId(orderId) {
-      navigator.clipboard.writeText(orderId)
-      this.$toast.success('Đã copy ID đơn hàng')
-    },
-
-    printOrder(orderId) {
-      window.open(`/admin/orders/${orderId}/print`, '_blank')
-    },
-
-    exportOrders() {
-      // Implement Excel export
-      this.$toast.info('Tính năng xuất Excel đang được phát triển')
-    },
-
-    getStatusClass(status) {
-      const statusClasses = {
-        'PENDING': 'status-pending',
-        'PROCESSING': 'status-processing', 
-        'SHIPPED': 'status-shipped',
-        'DELIVERED': 'status-delivered',
-        'CANCELLED': 'status-cancelled'
-      }
-      return statusClasses[status] || 'status-default'
-    },
-
-    getStatusText(status) {
-      const statusTexts = {
-        'PENDING': 'Chờ xử lý',
-        'PROCESSING': 'Đang xử lý',
-        'SHIPPED': 'Đã gửi',
-        'DELIVERED': 'Đã giao',
-        'CANCELLED': 'Đã hủy'
-      }
-      return statusTexts[status] || status
-    },
-
-    formatCurrency(amount) {
+      sortBy.value = 'newest'
+      currentPage.value = 1
+    }
+    
+    const debounceSearch = () => {
+      clearTimeout(searchTimeout)
+      searchTimeout = setTimeout(() => {
+        applyFilters()
+      }, 500)
+    }
+    
+    const changePage = (page) => {
+      currentPage.value = page
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    
+    const formatPrice = (price) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
         currency: 'VND'
-      }).format(amount)
-    },
-
-    formatDate(dateString) {
-      return new Date(dateString).toLocaleDateString('vi-VN')
-    },
-
-    formatTime(dateString) {
-      return new Date(dateString).toLocaleTimeString('vi-VN')
-    },
-
-    formatDateTime(dateString) {
-      return new Date(dateString).toLocaleString('vi-VN')
+      }).format(price)
+    }
+    
+    const formatDate = (date) => {
+      return new Date(date).toLocaleDateString('vi-VN')
+    }
+    
+    const formatTime = (date) => {
+      return new Date(date).toLocaleTimeString('vi-VN', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })
+    }
+    
+    const formatDateTime = (date) => {
+      return new Date(date).toLocaleString('vi-VN')
+    }
+    
+    const truncateText = (text, limit) => {
+      if (!text) return ''
+      return text.length > limit ? text.substring(0, limit) + '...' : text
+    }
+    
+    // Mock data for development
+    const loadMockData = () => {
+      orders.value = [
+        {
+          id: 12345,
+          customerName: 'Nguyễn Văn A',
+          customerEmail: 'customer@example.com',
+          customerPhone: '0123456789',
+          itemCount: 3,
+          productNames: ['iPhone 15 Pro', 'AirPods Pro', 'MacBook Air'],
+          total: 75000000,
+          discountAmount: 2000000,
+          status: 'PENDING',
+          createdAt: '2024-12-22T10:30:00',
+          isUrgent: true,
+          shippingAddress: '123 Đường ABC, Quận 1, TP.HCM',
+          subtotal: 72000000,
+          shippingFee: 50000,
+          items: [
+            {
+              id: 1,
+              productName: 'iPhone 15 Pro',
+              productImage: '/placeholder-product.jpg',
+              quantity: 1,
+              price: 30000000
+            }
+          ]
+        }
+        // Add more mock orders...
+      ]
+      calculateStats()
+    }
+    
+    // Lifecycle
+    onMounted(() => {
+      // Load real data or mock data for development
+      loadMockData() // Remove this and uncomment loadOrders() for production
+      // loadOrders()
+    })
+    
+    return {
+      orders,
+      loading,
+      error,
+      orderStats,
+      filters,
+      sortBy,
+      currentPage,
+      filteredOrders,
+      paginatedOrders,
+      totalPages,
+      visiblePages,
+      selectedOrder,
+      showOrderModal,
+      loadOrders,
+      updateOrderStatus,
+      viewOrderDetails,
+      closeOrderModal,
+      cancelOrder,
+      printOrder,
+      exportOrders,
+      refreshOrders,
+      applyFilters,
+      applySort,
+      clearFilters,
+      debounceSearch,
+      changePage,
+      formatPrice,
+      formatDate,
+      formatTime,
+      formatDateTime,
+      truncateText
     }
   }
 }
 </script>
 
 <style scoped>
-.admin-orders {
-  padding: 20px;
-  background: #f8f9fa;
+.admin-orders-page {
+  padding: 24px;
+  background: var(--bg-primary);
   min-height: 100vh;
 }
 
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
 .page-header {
-  margin-bottom: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  gap: 24px;
 }
 
-.page-header h1 {
-  font-size: 2.5rem;
-  color: #2c3e50;
-  margin-bottom: 5px;
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
 }
 
-.page-header p {
-  color: #7f8c8d;
+.page-subtitle {
+  color: var(--text-secondary);
   font-size: 1.1rem;
 }
 
-.filter-section {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  margin-bottom: 30px;
+.header-actions {
   display: flex;
-  gap: 20px;
-  align-items: center;
-  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.search-box {
-  display: flex;
-  flex: 1;
-  min-width: 300px;
-}
-
-.search-input {
-  flex: 1;
-  padding: 12px 16px;
-  border: 2px solid #e1e5e9;
-  border-radius: 8px 0 0 8px;
-  font-size: 16px;
-  outline: none;
-  transition: border-color 0.3s;
-}
-
-.search-input:focus {
-  border-color: #3498db;
-}
-
-.search-btn {
-  padding: 12px 20px;
-  background: #3498db;
-  color: white;
+.refresh-btn,
+.export-btn {
+  padding: 10px 20px;
   border: none;
-  border-radius: 0 8px 8px 0;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background 0.3s;
-}
-
-.search-btn:hover {
-  background: #2980b9;
-}
-
-.filters {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.filter-select {
-  padding: 10px 15px;
-  border: 2px solid #e1e5e9;
   border-radius: 8px;
-  font-size: 14px;
-  outline: none;
-  background: white;
   cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn {
+  background: var(--accent-blue);
+  color: white;
 }
 
 .export-btn {
-  padding: 10px 20px;
-  background: #27ae60;
+  background: var(--accent-green);
   color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background 0.3s;
 }
 
+.refresh-btn:hover,
 .export-btn:hover {
-  background: #219a52;
+  transform: translateY(-2px);
+}
+
+.stats-section {
+  margin-bottom: 32px;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 20px;
-  margin-bottom: 30px;
 }
 
 .stat-card {
-  background: white;
-  padding: 25px;
+  background: var(--bg-secondary);
+  padding: 24px;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.1);
 }
 
 .stat-icon {
-  font-size: 3rem;
-  opacity: 0.8;
-}
-
-.stat-info h3 {
   font-size: 2rem;
-  margin: 0 0 5px 0;
-  color: #2c3e50;
 }
 
-.stat-info p {
-  margin: 0;
-  color: #7f8c8d;
-  font-size: 1rem;
+.stat-number {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 4px;
 }
 
-.orders-table-container {
-  background: white;
+.stat-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.stat-card.total .stat-number { color: var(--accent-blue); }
+.stat-card.pending .stat-number { color: var(--accent-orange); }
+.stat-card.processing .stat-number { color: var(--accent-blue); }
+.stat-card.shipped .stat-number { color: var(--accent-purple); }
+.stat-card.delivered .stat-number { color: var(--accent-green); }
+.stat-card.cancelled .stat-number { color: var(--accent-red); }
+
+.filters-section {
+  background: var(--bg-secondary);
+  padding: 24px;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  margin-bottom: 24px;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  align-items: end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.filter-group input,
+.filter-group select {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.search-group {
+  grid-column: span 2;
+}
+
+.clear-btn {
+  padding: 10px 16px;
+  background: var(--accent-red);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  height: fit-content;
+}
+
+.orders-section {
+  background: var(--bg-secondary);
+  border-radius: 12px;
   overflow: hidden;
 }
 
-.loading {
-  text-align: center;
-  padding: 60px 20px;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-}
-
-.empty-icon {
-  font-size: 4rem;
-  margin-bottom: 20px;
-  opacity: 0.5;
-}
-
-.orders-table {
+.table-container {
   overflow-x: auto;
 }
 
-.orders-table table {
+.orders-table {
   width: 100%;
   border-collapse: collapse;
 }
 
 .orders-table th {
-  background: #f8f9fa;
-  padding: 15px 12px;
+  background: var(--bg-primary);
+  padding: 16px;
   text-align: left;
   font-weight: 600;
-  color: #2c3e50;
-  border-bottom: 2px solid #e1e5e9;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
 }
 
-.orders-table td {
-  padding: 15px 12px;
-  border-bottom: 1px solid #f1f3f4;
-  vertical-align: top;
+.order-row {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
 }
 
 .order-row:hover {
-  background: #f8f9fa;
+  background: var(--bg-primary);
+}
+
+.orders-table td {
+  padding: 16px;
+  vertical-align: top;
 }
 
 .order-id {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.copy-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  opacity: 0.6;
-  transition: opacity 0.3s;
+.order-code {
+  font-weight: 600;
+  color: var(--accent-blue);
 }
 
-.copy-btn:hover {
-  opacity: 1;
-  background: #f1f3f4;
+.urgent-badge {
+  font-size: 0.8rem;
+  color: var(--accent-red);
 }
 
-.customer-info strong {
-  display: block;
-  margin-bottom: 2px;
+.customer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.customer-info small {
-  color: #7f8c8d;
+.customer-name {
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
-.order-items {
+.customer-email,
+.customer-phone {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.products-summary {
   max-width: 200px;
 }
 
-.item-preview {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 5px;
+.product-count {
+  font-weight: 500;
+  margin-bottom: 4px;
 }
 
-.item-image {
-  width: 30px;
-  height: 30px;
-  object-fit: cover;
-  border-radius: 4px;
+.product-preview {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
 }
 
-.more-items {
-  font-size: 12px;
-  color: #7f8c8d;
-  font-style: italic;
+.order-total {
+  text-align: right;
+}
+
+.total-amount {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.discount-info {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--accent-green);
+  margin-top: 4px;
 }
 
 .status-select {
   padding: 6px 10px;
-  border: 1px solid #e1e5e9;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.8rem;
   cursor: pointer;
-  outline: none;
 }
 
-.status-pending { background: #fff3cd; color: #856404; border-color: #ffeaa7; }
-.status-processing { background: #d4edda; color: #155724; border-color: #c3e6cb; }
-.status-shipped { background: #cce5ff; color: #004085; border-color: #b8daff; }
-.status-delivered { background: #d1ecf1; color: #0c5460; border-color: #bee5eb; }
-.status-cancelled { background: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+.status-select.pending { border-color: var(--accent-orange); }
+.status-select.processing { border-color: var(--accent-blue); }
+.status-select.shipped { border-color: var(--accent-purple); }
+.status-select.delivered { border-color: var(--accent-green); }
+.status-select.cancelled { border-color: var(--accent-red); }
 
-.order-date div {
+.order-date {
+  text-align: center;
+}
+
+.date {
   font-weight: 500;
+  margin-bottom: 2px;
 }
 
-.order-date small {
-  color: #7f8c8d;
+.time {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
 .action-buttons {
@@ -760,97 +1045,95 @@ export default {
   gap: 8px;
 }
 
-.action-buttons button {
-  padding: 8px;
+.action-btn {
+  padding: 6px 10px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
 }
 
-.btn-view {
-  background: #3498db;
+.view-btn {
+  background: var(--accent-blue);
   color: white;
 }
 
-.btn-view:hover {
-  background: #2980b9;
-}
-
-.btn-print {
-  background: #f39c12;
+.print-btn {
+  background: var(--accent-green);
   color: white;
 }
 
-.btn-print:hover {
-  background: #e67e22;
-}
-
-.btn-delete {
-  background: #e74c3c;
+.cancel-btn {
+  background: var(--accent-red);
   color: white;
 }
 
-.btn-delete:hover {
-  background: #c0392b;
+.action-btn:hover {
+  transform: scale(1.05);
+}
+
+.loading-state,
+.error-state,
+.no-orders {
+  padding: 60px 0;
+  text-align: center;
+}
+
+.error-content h3,
+.no-orders-content h3 {
+  margin-bottom: 8px;
+  color: var(--text-primary);
 }
 
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-top: 1px solid #e1e5e9;
+  gap: 12px;
+  padding: 24px;
+  background: var(--bg-primary);
 }
 
-.page-btn {
+.pagination-btn {
   padding: 8px 12px;
-  border: 1px solid #e1e5e9;
-  background: white;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
 }
 
-.page-btn:hover:not(:disabled) {
-  background: #3498db;
+.pagination-btn:hover:not(:disabled) {
+  background: var(--accent-blue);
   color: white;
-  border-color: #3498db;
 }
 
-.page-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.pagination-btn.active {
+  background: var(--accent-blue);
+  color: white;
 }
 
-.page-info {
-  margin: 0 15px;
-  font-weight: 500;
-  color: #2c3e50;
-}
-
-/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
+  padding: 20px;
 }
 
 .modal-content {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 12px;
-  max-width: 800px;
-  width: 90%;
+  max-width: 900px;
+  width: 100%;
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -859,168 +1142,216 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 25px;
-  border-bottom: 1px solid #e1e5e9;
+  padding: 24px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modal-header h2 {
+  color: var(--text-primary);
   margin: 0;
-  color: #2c3e50;
 }
 
 .close-btn {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 1.5rem;
+  color: var(--text-secondary);
   cursor: pointer;
-  padding: 5px;
-  color: #7f8c8d;
-  transition: color 0.3s;
-}
-
-.close-btn:hover {
-  color: #2c3e50;
+  padding: 4px;
 }
 
 .modal-body {
-  padding: 25px;
+  padding: 24px;
 }
 
-.order-info-grid {
+.order-details-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  margin-bottom: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
 }
 
-.info-section h3 {
-  margin: 0 0 15px 0;
-  color: #2c3e50;
-  font-size: 1.2rem;
-  border-bottom: 2px solid #3498db;
-  padding-bottom: 8px;
-}
-
-.info-section p {
-  margin: 8px 0;
-  line-height: 1.5;
-}
-
-.order-items-detail h3 {
-  margin: 0 0 20px 0;
-  color: #2c3e50;
-  font-size: 1.2rem;
-  border-bottom: 2px solid #3498db;
-  padding-bottom: 8px;
-}
-
-.items-list {
-  display: grid;
-  gap: 15px;
-}
-
-.item-detail {
-  display: flex;
-  gap: 15px;
-  padding: 15px;
-  background: #f8f9fa;
+.detail-section {
+  background: var(--bg-primary);
+  padding: 20px;
   border-radius: 8px;
 }
 
-.item-image-large {
-  width: 80px;
-  height: 80px;
+.detail-section.full-width {
+  grid-column: 1 / -1;
+}
+
+.detail-section h3 {
+  margin-bottom: 16px;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.order-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.order-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.item-image {
+  width: 60px;
+  height: 60px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 8px;
+}
+
+.item-info {
+  flex: 1;
 }
 
 .item-info h4 {
-  margin: 0 0 8px 0;
-  color: #2c3e50;
+  margin-bottom: 4px;
+  color: var(--text-primary);
 }
 
 .item-info p {
-  margin: 4px 0;
-  color: #7f8c8d;
+  margin: 2px 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-  .order-info-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
+.item-total {
+  font-weight: 600;
+  color: var(--accent-blue);
+}
+
+.order-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-line.discount {
+  color: var(--accent-green);
+}
+
+.summary-line.total {
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+  color: var(--accent-blue);
+}
+
+.order-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 12px;
+}
+
+.timeline-icon {
+  font-size: 1.2rem;
+  width: 24px;
+  text-align: center;
+}
+
+.timeline-content h4 {
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.timeline-content p {
+  margin-bottom: 4px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.timeline-date {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.btn-secondary {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 @media (max-width: 768px) {
-  .admin-orders {
-    padding: 10px;
+  .admin-orders-page {
+    padding: 16px;
   }
   
-  .filter-section {
+  .page-header {
     flex-direction: column;
     align-items: stretch;
   }
   
-  .search-box {
-    min-width: auto;
-  }
-  
-  .filters {
-    flex-wrap: wrap;
-  }
-  
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  
+  .filters-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .search-group {
+    grid-column: span 1;
   }
   
   .orders-table {
-    font-size: 14px;
-  }
-  
-  .orders-table th,
-  .orders-table td {
-    padding: 10px 8px;
-  }
-  
-  .order-items {
-    max-width: 150px;
-  }
-  
-  .action-buttons {
-    flex-direction: column;
-    gap: 4px;
+    font-size: 0.8rem;
   }
   
   .modal-content {
-    width: 95%;
     margin: 10px;
   }
   
-  .modal-body {
-    padding: 15px;
-  }
-  
-  .item-detail {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .stats-grid {
+  .order-details-grid {
     grid-template-columns: 1fr;
   }
   
-  .stat-card {
-    padding: 15px;
-  }
-  
-  .stat-icon {
-    font-size: 2rem;
-  }
-  
-  .stat-info h3 {
-    font-size: 1.5rem;
+  .detail-section.full-width {
+    grid-column: 1;
   }
 }
+</style>

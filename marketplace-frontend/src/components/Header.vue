@@ -15,35 +15,17 @@
           </router-link>
         </div>
 
-        <!-- Search Bar -->
+        <!-- Search Bar - New SearchBox Component -->
         <div class="search-section">
-          <div class="search-container">
-            <div class="search-input-wrapper">
-              <input
-                v-model="searchQuery"
-                @keyup.enter="performSearch"
-                type="text"
-                placeholder="Tìm kiếm sản phẩm, thương hiệu..."
-                class="search-input"
-              />
-              <button @click="performSearch" class="search-btn">
-                🔍
-              </button>
-            </div>
-            
-            <!-- Search Suggestions -->
-            <div v-if="showSuggestions && suggestions.length" class="search-suggestions">
-              <div
-                v-for="suggestion in suggestions"
-                :key="suggestion.id"
-                @click="selectSuggestion(suggestion)"
-                class="suggestion-item"
-              >
-                <span class="suggestion-icon">{{ suggestion.type === 'product' ? '📦' : '🏷️' }}</span>
-                <span class="suggestion-text">{{ suggestion.name }}</span>
-              </div>
-            </div>
-          </div>
+          <SearchBox 
+            placeholder="Tìm kiếm sản phẩm, thương hiệu..."
+            :show-voice-search="true"
+            :max-suggestions="6"
+            @search="handleSearch"
+            @select-product="handleSelectProduct"
+            @select-category="handleSelectCategory"
+            ref="searchBoxRef"
+          />
         </div>
 
         <!-- Navigation Links -->
@@ -67,6 +49,9 @@
               <span class="nav-icon cart-icon">🛒</span>
               <span v-if="cartStore.totalItems" class="cart-badge">{{ cartStore.totalItems }}</span>
             </router-link>
+            
+            <!-- Points Display - NEW INTEGRATION -->
+            <PointsDisplay />
             
             <!-- Notifications -->
             <div class="notification-dropdown">
@@ -143,6 +128,13 @@
                     <span>Đơn hàng của tôi</span>
                   </router-link>
                   
+                  <!-- Loyalty Link - NEW INTEGRATION -->
+                  <router-link to="/loyalty" class="dropdown-link loyalty-link">
+                    <span class="link-icon">⭐</span>
+                    <span>Điểm thưởng</span>
+                    <div class="loyalty-points-badge">{{ loyaltyStore.formattedPoints }}</div>
+                  </router-link>
+                  
                   <router-link to="/wishlist" class="dropdown-link">
                     <span class="link-icon">❤️</span>
                     <span>Yêu thích</span>
@@ -199,16 +191,15 @@
     <!-- Mobile Menu -->
     <div v-if="showMobileMenu" class="mobile-menu">
       <div class="mobile-search">
-        <div class="search-input-wrapper">
-          <input
-            v-model="searchQuery"
-            @keyup.enter="performSearchMobile"
-            type="text"
-            placeholder="Tìm kiếm..."
-            class="search-input"
-          />
-          <button @click="performSearchMobile" class="search-btn">🔍</button>
-        </div>
+        <!-- Mobile SearchBox -->
+        <SearchBox 
+          placeholder="Tìm kiếm sản phẩm..."
+          :show-voice-search="false"
+          :max-suggestions="4"
+          @search="handleMobileSearch"
+          @select-product="handleMobileSelectProduct"
+          @select-category="handleMobileSelectCategory"
+        />
       </div>
       
       <div class="mobile-nav-links">
@@ -223,6 +214,18 @@
           <router-link to="/cart" class="mobile-nav-link" @click="closeMobileMenu">
             🛒 Giỏ hàng <span v-if="cartStore.totalItems" class="mobile-badge">{{ cartStore.totalItems }}</span>
           </router-link>
+          
+          <!-- Mobile Points Display - NEW INTEGRATION -->
+          <router-link to="/loyalty" class="mobile-nav-link loyalty-mobile" @click="closeMobileMenu">
+            <span class="mobile-loyalty-content">
+              ⭐ Điểm thưởng 
+              <span class="mobile-points-badge">{{ loyaltyStore.formattedPoints }}</span>
+              <span class="mobile-tier-badge" :style="{ color: loyaltyStore.tierColor }">
+                {{ loyaltyStore.userPoints.tier }}
+              </span>
+            </span>
+          </router-link>
+          
           <router-link to="/profile" class="mobile-nav-link" @click="closeMobileMenu">
             👤 Hồ sơ
           </router-link>
@@ -251,28 +254,36 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
+import { useLoyaltyStore } from '@/stores/loyalty' // NEW IMPORT
+import SearchBox from '@/components/SearchBox.vue'
+import PointsDisplay from '@/components/PointsDisplay.vue' // NEW IMPORT
 
 export default {
   name: 'Header',
+  components: {
+    SearchBox,
+    PointsDisplay // NEW COMPONENT
+  },
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
     const cartStore = useCartStore()
+    const loyaltyStore = useLoyaltyStore() // NEW STORE
+    
+    // Refs
+    const searchBoxRef = ref(null)
     
     // Reactive data
-    const searchQuery = ref('')
-    const showSuggestions = ref(false)
-    const suggestions = ref([])
     const showNotifications = ref(false)
     const showUserMenu = ref(false)
     const showMobileMenu = ref(false)
     const unreadNotifications = ref(3)
     
-    // Sample notifications
+    // Sample notifications - Updated with loyalty notifications
     const notifications = ref([
       {
         id: 1,
@@ -283,46 +294,60 @@ export default {
       },
       {
         id: 2,
+        icon: '⭐',
+        message: 'Bạn vừa nhận được 50 điểm thưởng từ đánh giá sản phẩm!',
+        createdAt: '2024-12-22T09:45:00',
+        read: false
+      },
+      {
+        id: 3,
         icon: '💰',
         message: 'Giảm giá 50% cho tất cả sản phẩm điện tử',
         createdAt: '2024-12-22T09:15:00',
         read: false
       },
       {
-        id: 3,
+        id: 4,
         icon: '🎉',
-        message: 'Chúc mừng! Bạn đã trở thành thành viên VIP',
+        message: 'Chúc mừng! Bạn đã thăng hạng lên Silver',
         createdAt: '2024-12-21T14:20:00',
         read: true
       }
     ])
     
-    // Methods
-    const performSearch = () => {
-      if (searchQuery.value.trim()) {
-        router.push({
-          path: '/products',
-          query: { search: searchQuery.value.trim() }
-        })
-        showSuggestions.value = false
-      }
+    // SearchBox Event Handlers
+    const handleSearch = (query) => {
+      router.push({
+        path: '/products',
+        query: { q: query }
+      })
     }
     
-    const performSearchMobile = () => {
-      performSearch()
+    const handleSelectProduct = (product) => {
+      router.push(`/products/${product.id}`)
+    }
+    
+    const handleSelectCategory = (category) => {
+      router.push(`/categories?category=${category.id}`)
+    }
+    
+    // Mobile Search Handlers
+    const handleMobileSearch = (query) => {
+      handleSearch(query)
       closeMobileMenu()
     }
     
-    const selectSuggestion = (suggestion) => {
-      if (suggestion.type === 'product') {
-        router.push(`/products/${suggestion.id}`)
-      } else {
-        router.push(`/categories/${suggestion.id}`)
-      }
-      showSuggestions.value = false
-      searchQuery.value = ''
+    const handleMobileSelectProduct = (product) => {
+      handleSelectProduct(product)
+      closeMobileMenu()
     }
     
+    const handleMobileSelectCategory = (category) => {
+      handleSelectCategory(category)
+      closeMobileMenu()
+    }
+    
+    // Existing Methods
     const toggleNotifications = () => {
       showNotifications.value = !showNotifications.value
       showUserMenu.value = false
@@ -368,6 +393,8 @@ export default {
     const logout = async () => {
       try {
         await authStore.logout()
+        // Reset loyalty data on logout
+        loyaltyStore.resetLoyalty()
         router.push('/')
         showUserMenu.value = false
         showMobileMenu.value = false
@@ -384,58 +411,80 @@ export default {
       if (!event.target.closest('.user-dropdown')) {
         showUserMenu.value = false
       }
-      if (!event.target.closest('.search-container')) {
-        showSuggestions.value = false
+    }
+    
+    // Focus search shortcut (Ctrl/Cmd + K)
+    const handleKeyboardShortcut = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+        event.preventDefault()
+        searchBoxRef.value?.focus()
+      }
+      
+      // Escape to close mobile menu
+      if (event.key === 'Escape' && showMobileMenu.value) {
+        closeMobileMenu()
       }
     }
     
-    // Search suggestions (mock)
-    const loadSuggestions = async () => {
-      if (searchQuery.value.length >= 2) {
-        // Mock suggestions
-        suggestions.value = [
-          { id: 1, name: 'iPhone 15 Pro Max', type: 'product' },
-          { id: 2, name: 'Samsung Galaxy S24', type: 'product' },
-          { id: 3, name: 'Điện thoại', type: 'category' }
-        ].filter(item => 
-          item.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-        )
-        showSuggestions.value = suggestions.value.length > 0
+    // NEW: Initialize loyalty data when user logs in
+    const initializeLoyaltyData = async () => {
+      if (authStore.isAuthenticated) {
+        await loyaltyStore.initializeLoyalty()
+      }
+    }
+    
+    // NEW: Watch for authentication changes
+    watchEffect(() => {
+      if (authStore.isAuthenticated) {
+        initializeLoyaltyData()
+        cartStore.loadCart()
       } else {
-        showSuggestions.value = false
+        loyaltyStore.resetLoyalty()
       }
-    }
-    
-    // Watchers
-    watch(searchQuery, loadSuggestions)
+    })
     
     // Lifecycle
     onMounted(() => {
       document.addEventListener('click', handleClickOutside)
-      // Load cart data if authenticated
+      document.addEventListener('keydown', handleKeyboardShortcut)
+      
+      // Initialize data if user is already authenticated
       if (authStore.isAuthenticated) {
+        initializeLoyaltyData()
         cartStore.loadCart()
       }
     })
     
     onUnmounted(() => {
       document.removeEventListener('click', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyboardShortcut)
     })
     
     return {
+      // Stores
       authStore,
       cartStore,
-      searchQuery,
-      showSuggestions,
-      suggestions,
+      loyaltyStore, // NEW STORE EXPOSE
+      
+      // Refs
+      searchBoxRef,
+      
+      // Data
       showNotifications,
       showUserMenu,
       showMobileMenu,
       unreadNotifications,
       notifications,
-      performSearch,
-      performSearchMobile,
-      selectSuggestion,
+      
+      // SearchBox handlers
+      handleSearch,
+      handleSelectProduct,
+      handleSelectCategory,
+      handleMobileSearch,
+      handleMobileSelectProduct,
+      handleMobileSelectCategory,
+      
+      // Other methods
       toggleNotifications,
       toggleUserMenu,
       toggleMobileMenu,
@@ -511,108 +560,46 @@ export default {
   letter-spacing: 1px;
 }
 
-/* Search Section */
+/* Search Section - Updated for SearchBox component */
 .search-section {
   flex: 1;
   max-width: 500px;
   position: relative;
 }
 
-.search-container {
-  position: relative;
+/* SearchBox component will handle its own styling, just ensure proper container */
+.search-section :deep(.search-box-container) {
+  width: 100%;
 }
 
-.search-input-wrapper {
-  display: flex;
-  position: relative;
-}
-
-.search-input {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  padding-right: 3rem;
+/* Customize SearchBox for header integration */
+.search-section :deep(.search-input-wrapper) {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 25px;
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
 }
 
-.search-input:focus {
-  outline: none;
+.search-section :deep(.search-input-wrapper:focus-within) {
   border-color: var(--text-accent);
   background: rgba(255, 255, 255, 0.15);
   box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
 }
 
-.search-input::placeholder {
+.search-section :deep(.search-input) {
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  padding: 0.75rem 1rem;
+}
+
+.search-section :deep(.search-input::placeholder) {
   color: var(--text-secondary);
 }
 
-.search-btn {
-  position: absolute;
-  right: 0.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--aurora-gradient);
-  border: none;
-  border-radius: 50%;
-  width: 2rem;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.search-btn:hover {
-  transform: translateY(-50%) scale(1.1);
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
-}
-
-/* Search Suggestions */
-.search-suggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
+.search-section :deep(.search-dropdown) {
   background: rgba(26, 26, 46, 0.95);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 12px;
-  margin-top: 0.5rem;
-  max-height: 300px;
-  overflow-y: auto;
-  z-index: 100;
-}
-
-.suggestion-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.suggestion-item:last-child {
-  border-bottom: none;
-}
-
-.suggestion-item:hover {
-  background: rgba(0, 212, 255, 0.1);
-}
-
-.suggestion-icon {
-  font-size: 1.1rem;
-}
-
-.suggestion-text {
-  color: var(--text-primary);
-  font-size: 0.9rem;
 }
 
 /* Navigation Links */
@@ -718,6 +705,52 @@ export default {
 .dropdown-arrow {
   font-size: 0.7rem;
   transition: transform 0.3s ease;
+}
+
+/* NEW: Loyalty-specific styles in Header */
+.loyalty-link {
+  position: relative;
+}
+
+.loyalty-points-badge {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #1a1a2e;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: 10px;
+  margin-left: auto;
+  box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+}
+
+/* NEW: Mobile Loyalty Styles */
+.loyalty-mobile {
+  border-left: 3px solid #FFD700 !important;
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent) !important;
+}
+
+.mobile-loyalty-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.mobile-points-badge {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #1a1a2e;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: 8px;
+  margin-left: 0.5rem;
+}
+
+.mobile-tier-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  opacity: 0.8;
+  margin-left: 0.25rem;
 }
 
 /* Dropdown Menus */
@@ -958,6 +991,17 @@ export default {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Mobile SearchBox customization */
+.mobile-search :deep(.search-box-container) {
+  width: 100%;
+}
+
+.mobile-search :deep(.search-input-wrapper) {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 12px;
+}
+
 .mobile-nav-links {
   padding: 1rem 0;
 }
@@ -1016,6 +1060,23 @@ export default {
   z-index: 998;
 }
 
+/* NEW: PointsDisplay integration in header */
+.user-section :deep(.points-display) {
+  /* Ensure PointsDisplay fits well in header */
+  margin: 0;
+}
+
+.user-section :deep(.points-container) {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.user-section :deep(.points-container:hover) {
+  background: rgba(0, 212, 255, 0.1);
+  transform: translateY(-1px);
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .container {
@@ -1031,6 +1092,11 @@ export default {
   }
   
   .user-name {
+    display: none;
+  }
+  
+  /* Hide points text on smaller screens, keep only icon */
+  .user-section :deep(.points-info .text-sm) {
     display: none;
   }
 }
@@ -1108,7 +1174,6 @@ export default {
 /* Accessibility */
 .nav-link:focus,
 .dropdown-link:focus,
-.search-input:focus,
 .mobile-nav-link:focus {
   outline: 2px solid var(--text-accent);
   outline-offset: 2px;
@@ -1120,12 +1185,7 @@ export default {
     background: rgba(16, 16, 24, 0.95);
   }
   
-  .search-input {
-    background: rgba(255, 255, 255, 0.05);
-  }
-  
   .dropdown-menu,
-  .search-suggestions,
   .mobile-menu {
     background: rgba(16, 16, 24, 0.95);
   }
@@ -1150,3 +1210,26 @@ export default {
     display: none;
   }
 }
+
+/* SearchBox keyboard shortcut hint */
+.search-section::after {
+  content: "Ctrl+K";
+  position: absolute;
+  right: 3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .search-section::after {
+    display: none;
+  }
+}
+</style>

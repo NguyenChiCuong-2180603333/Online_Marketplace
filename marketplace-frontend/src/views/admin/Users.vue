@@ -1,363 +1,516 @@
 <template>
-  <div class="admin-users">
-    <div class="container">
-      <!-- Page Header -->
-      <div class="page-header">
-        <div class="header-info">
-          <h1>👥 Quản lý người dùng</h1>
-          <p>Quản lý tất cả người dùng trong hệ thống</p>
-        </div>
-        <div class="header-actions">
-          <button @click="exportUsers" class="btn-export">
-            📊 Xuất Excel
-          </button>
-          <button @click="refreshUsers" class="btn-refresh" :disabled="loading">
-            <span v-if="loading">🔄 Đang tải...</span>
-            <span v-else>🔄 Làm mới</span>
-          </button>
-        </div>
+  <div class="admin-users-page">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="header-content">
+        <h1 class="page-title">👥 Quản lý Người dùng</h1>
+        <p class="page-subtitle">Quản lý tài khoản và quyền hạn của tất cả người dùng</p>
       </div>
-
-      <!-- Filter và Search -->
-      <div class="filter-section space-card">
-        <div class="search-box">
-          <input 
-            v-model="searchQuery" 
-            type="text" 
-            placeholder="🔍 Tìm theo tên, email..."
-            class="search-input"
-            @input="handleSearch"
-          >
-          <button @click="clearSearch" v-if="searchQuery" class="clear-search">✕</button>
-        </div>
-        
-        <div class="filters">
-          <select v-model="statusFilter" @change="handleFilterChange" class="filter-select">
-            <option value="">Tất cả trạng thái</option>
-            <option value="active">Đang hoạt động</option>
-            <option value="inactive">Đã khóa</option>
-          </select>
-
-          <select v-model="roleFilter" @change="handleFilterChange" class="filter-select">
-            <option value="">Tất cả vai trò</option>
-            <option value="USER">Người dùng</option>
-            <option value="ADMIN">Quản trị viên</option>
-          </select>
-
-          <select v-model="dateFilter" @change="handleFilterChange" class="filter-select">
-            <option value="">Tất cả thời gian</option>
-            <option value="today">Hôm nay</option>
-            <option value="week">Tuần này</option>
-            <option value="month">Tháng này</option>
-            <option value="year">Năm này</option>
-          </select>
-
-          <button @click="clearAllFilters" class="btn-clear">
-            🗑️ Xóa bộ lọc
-          </button>
-        </div>
+      
+      <div class="header-actions">
+        <button @click="refreshUsers" class="refresh-btn" :disabled="loading">
+          {{ loading ? '⏳ Đang tải...' : '🔄 Làm mới' }}
+        </button>
+        <button @click="exportUsers" class="export-btn">
+          📊 Xuất Excel
+        </button>
+        <button @click="showCreateUserModal = true" class="create-btn">
+          ➕ Thêm người dùng
+        </button>
       </div>
+    </div>
 
-      <!-- Statistics Cards -->
+    <!-- Stats Cards -->
+    <div class="stats-section">
       <div class="stats-grid">
-        <div class="stat-card space-card">
+        <div class="stat-card total">
           <div class="stat-icon">👥</div>
           <div class="stat-content">
-            <h3>{{ formatNumber(userStats.total) }}</h3>
-            <p>Tổng người dùng</p>
-            <div class="stat-change positive">
-              <span>↗ +{{ userStats.newThisMonth }}</span>
-              <small>người dùng mới tháng này</small>
-            </div>
+            <h3 class="stat-number">{{ userStats.total }}</h3>
+            <p class="stat-label">Tổng người dùng</p>
+            <span class="stat-change positive">+{{ userStats.newThisMonth }} tháng này</span>
           </div>
         </div>
-
-        <div class="stat-card space-card">
+        
+        <div class="stat-card active">
           <div class="stat-icon">✅</div>
           <div class="stat-content">
-            <h3>{{ formatNumber(userStats.active) }}</h3>
-            <p>Đang hoạt động</p>
-            <div class="stat-percentage">
-              {{ Math.round((userStats.active / userStats.total) * 100) }}% tổng số
-            </div>
+            <h3 class="stat-number">{{ userStats.active }}</h3>
+            <p class="stat-label">Đang hoạt động</p>
+            <span class="stat-percentage">{{ getPercentage(userStats.active, userStats.total) }}%</span>
           </div>
         </div>
-
-        <div class="stat-card space-card">
+        
+        <div class="stat-card blocked">
           <div class="stat-icon">🚫</div>
           <div class="stat-content">
-            <h3>{{ formatNumber(userStats.blocked) }}</h3>
-            <p>Đã bị khóa</p>
-            <div class="stat-percentage">
-              {{ Math.round((userStats.blocked / userStats.total) * 100) }}% tổng số
-            </div>
+            <h3 class="stat-number">{{ userStats.blocked }}</h3>
+            <p class="stat-label">Bị khóa</p>
+            <span class="stat-percentage">{{ getPercentage(userStats.blocked, userStats.total) }}%</span>
           </div>
         </div>
-
-        <div class="stat-card space-card">
+        
+        <div class="stat-card admins">
           <div class="stat-icon">👑</div>
           <div class="stat-content">
-            <h3>{{ adminCount }}</h3>
-            <p>Quản trị viên</p>
-            <div class="stat-note">
-              Có quyền admin
-            </div>
+            <h3 class="stat-number">{{ userStats.admins }}</h3>
+            <p class="stat-label">Quản trị viên</p>
           </div>
         </div>
-      </div>
-
-      <!-- Users Table -->
-      <div class="users-table-container space-card">
-        <!-- Loading State -->
-        <div v-if="loading" class="loading-state">
-          <div class="cosmic-loader">
-            <div class="orbit"></div>
-            <div class="planet">👥</div>
+        
+        <div class="stat-card vip">
+          <div class="stat-icon">💎</div>
+          <div class="stat-content">
+            <h3 class="stat-number">{{ userStats.vip }}</h3>
+            <p class="stat-label">VIP</p>
+            <span class="stat-percentage">{{ getPercentage(userStats.vip, userStats.total) }}%</span>
           </div>
-          <p>Đang tải danh sách người dùng...</p>
         </div>
-
-        <!-- Error State -->
-        <div v-else-if="error" class="error-state">
-          <div class="error-icon">❌</div>
-          <h3>Có lỗi xảy ra</h3>
-          <p>{{ error }}</p>
-          <button @click="loadUsers" class="btn-retry">🔄 Thử lại</button>
-        </div>
-
-        <!-- Empty State -->
-        <div v-else-if="filteredUsers.length === 0" class="empty-state">
-          <div class="empty-icon">👥</div>
-          <h3>Không tìm thấy người dùng</h3>
-          <p>Không có người dùng nào phù hợp với bộ lọc hiện tại</p>
-          <button @click="clearAllFilters" class="btn-clear-filters">🔄 Xóa bộ lọc</button>
-        </div>
-
-        <!-- Users Table -->
-        <div v-else class="users-table">
-          <div class="table-header">
-            <h3>Danh sách người dùng ({{ filteredUsers.length }})</h3>
-            <div class="table-actions">
-              <button @click="selectAll" class="btn-select-all">
-                {{ selectedUsers.length === filteredUsers.length ? '❌ Bỏ chọn tất cả' : '✅ Chọn tất cả' }}
-              </button>
-              <button 
-                v-if="selectedUsers.length > 0" 
-                @click="bulkAction('block')" 
-                class="btn-bulk-action"
-              >
-                🚫 Khóa ({{ selectedUsers.length }})
-              </button>
-            </div>
-          </div>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th class="checkbox-column">
-                    <input 
-                      type="checkbox" 
-                      :checked="selectedUsers.length === filteredUsers.length"
-                      @change="selectAll"
-                    >
-                  </th>
-                  <th>Thông tin người dùng</th>
-                  <th>Vai trò</th>
-                  <th>Trạng thái</th>
-                  <th>Ngày tham gia</th>
-                  <th>Hoạt động cuối</th>
-                  <th>Thống kê</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr 
-                  v-for="user in paginatedUsers" 
-                  :key="user.id" 
-                  class="user-row"
-                  :class="{ 
-                    'selected': selectedUsers.includes(user.id),
-                    'blocked': !user.enabled 
-                  }"
-                >
-                  <td class="checkbox-column">
-                    <input 
-                      type="checkbox" 
-                      :value="user.id"
-                      v-model="selectedUsers"
-                    >
-                  </td>
-                  
-                  <td class="user-info">
-                    <div class="user-avatar">
-                      <img 
-                        :src="user.avatar || '/default-avatar.png'" 
-                        :alt="user.firstName"
-                        @error="handleImageError"
-                      >
-                      <div v-if="user.isVip" class="vip-badge">👑</div>
-                    </div>
-                    <div class="user-details">
-                      <div class="user-name">
-                        {{ user.firstName }} {{ user.lastName }}
-                        <span v-if="user.isVerified" class="verified-badge">✓</span>
-                      </div>
-                      <div class="user-email">{{ user.email }}</div>
-                      <div v-if="user.phone" class="user-phone">📞 {{ user.phone }}</div>
-                    </div>
-                  </td>
-
-                  <td class="user-role">
-                    <span class="role-badge" :class="user.role.toLowerCase()">
-                      {{ user.role === 'ADMIN' ? '👑 Admin' : '👤 User' }}
-                    </span>
-                  </td>
-
-                  <td class="user-status">
-                    <span class="status-badge" :class="user.enabled ? 'active' : 'inactive'">
-                      {{ user.enabled ? '✅ Hoạt động' : '🚫 Đã khóa' }}
-                    </span>
-                  </td>
-
-                  <td class="user-joined">
-                    <div class="date">{{ formatDate(user.createdAt) }}</div>
-                    <div class="time-ago">{{ getTimeAgo(user.createdAt) }}</div>
-                  </td>
-
-                  <td class="user-last-active">
-                    <div class="date">{{ formatDate(user.lastActiveAt) }}</div>
-                    <div class="time-ago">{{ getTimeAgo(user.lastActiveAt) }}</div>
-                  </td>
-
-                  <td class="user-stats">
-                    <div class="stat-item">
-                      <span class="stat-label">Đơn hàng:</span>
-                      <span class="stat-value">{{ user.totalOrders || 0 }}</span>
-                    </div>
-                    <div class="stat-item">
-                      <span class="stat-label">Chi tiêu:</span>
-                      <span class="stat-value">{{ formatCurrency(user.totalSpent || 0) }}</span>
-                    </div>
-                  </td>
-
-                  <td class="user-actions">
-                    <div class="action-buttons">
-                      <button 
-                        @click="viewUserDetail(user)"
-                        class="btn-action btn-view"
-                        title="Xem chi tiết"
-                      >
-                        👁️
-                      </button>
-                      
-                      <button 
-                        @click="toggleUserStatus(user)"
-                        class="btn-action"
-                        :class="user.enabled ? 'btn-block' : 'btn-unblock'"
-                        :title="user.enabled ? 'Khóa tài khoản' : 'Kích hoạt tài khoản'"
-                        :disabled="user.actionLoading"
-                      >
-                        <span v-if="user.actionLoading">⏳</span>
-                        <span v-else>{{ user.enabled ? '🚫' : '✅' }}</span>
-                      </button>
-                      
-                      <button 
-                        @click="sendMessage(user)"
-                        class="btn-action btn-message"
-                        title="Gửi tin nhắn"
-                      >
-                        💬
-                      </button>
-                      
-                      <div class="dropdown">
-                        <button class="btn-action btn-more" @click="toggleDropdown(user.id)">
-                          ⋯
-                        </button>
-                        <div v-if="activeDropdown === user.id" class="dropdown-menu">
-                          <button @click="resetPassword(user)">🔑 Reset mật khẩu</button>
-                          <button @click="viewLoginHistory(user)">📊 Lịch sử đăng nhập</button>
-                          <button @click="exportUserData(user)">📥 Xuất dữ liệu</button>
-                          <hr>
-                          <button @click="deleteUser(user)" class="danger">🗑️ Xóa tài khoản</button>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Pagination -->
-          <div class="pagination-container">
-            <div class="pagination-info">
-              Hiển thị {{ startIndex }}-{{ endIndex }} của {{ filteredUsers.length }} người dùng
-            </div>
-            <div class="pagination">
-              <button 
-                @click="goToPage(currentPage - 1)"
-                :disabled="currentPage === 1"
-                class="page-btn"
-              >
-                ←
-              </button>
-              
-              <button
-                v-for="page in visiblePages"
-                :key="page"
-                @click="goToPage(page)"
-                :class="['page-btn', { active: page === currentPage, ellipsis: page === '...' }]"
-                :disabled="page === '...'"
-              >
-                {{ page }}
-              </button>
-              
-              <button 
-                @click="goToPage(currentPage + 1)"
-                :disabled="currentPage === totalPages"
-                class="page-btn"
-              >
-                →
-              </button>
-            </div>
+        
+        <div class="stat-card verified">
+          <div class="stat-icon">✅</div>
+          <div class="stat-content">
+            <h3 class="stat-number">{{ userStats.verified }}</h3>
+            <p class="stat-label">Đã xác thực</p>
+            <span class="stat-percentage">{{ getPercentage(userStats.verified, userStats.total) }}%</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- User Detail Modal -->
-    <div v-if="showUserDetail" class="modal-overlay" @click="closeUserDetail">
-      <div class="modal-content user-detail-modal" @click.stop>
-        <div class="modal-header">
-          <h3>👤 Chi tiết người dùng</h3>
-          <button @click="closeUserDetail" class="modal-close">✕</button>
+    <!-- Filters Section -->
+    <div class="filters-section">
+      <div class="filters-grid">
+        <!-- Status Filter -->
+        <div class="filter-group">
+          <label>Trạng thái:</label>
+          <select v-model="filters.status" @change="applyFilters">
+            <option value="">Tất cả</option>
+            <option value="active">Hoạt động</option>
+            <option value="blocked">Bị khóa</option>
+            <option value="pending">Chờ xác thực</option>
+          </select>
         </div>
-        <div class="modal-body">
-          <div v-if="selectedUser" class="user-detail-content">
-            <!-- User profile info, orders, etc. -->
+        
+        <!-- Role Filter -->
+        <div class="filter-group">
+          <label>Vai trò:</label>
+          <select v-model="filters.role" @change="applyFilters">
+            <option value="">Tất cả</option>
+            <option value="USER">Người dùng</option>
+            <option value="ADMIN">Quản trị viên</option>
+            <option value="SELLER">Người bán</option>
+          </select>
+        </div>
+        
+        <!-- VIP Filter -->
+        <div class="filter-group">
+          <label>Loại tài khoản:</label>
+          <select v-model="filters.accountType" @change="applyFilters">
+            <option value="">Tất cả</option>
+            <option value="vip">VIP</option>
+            <option value="regular">Thường</option>
+          </select>
+        </div>
+        
+        <!-- Date Range Filter -->
+        <div class="filter-group">
+          <label>Ngày tham gia từ:</label>
+          <input 
+            v-model="filters.startDate" 
+            type="date" 
+            @change="applyFilters"
+          />
+        </div>
+        
+        <div class="filter-group">
+          <label>Đến:</label>
+          <input 
+            v-model="filters.endDate" 
+            type="date" 
+            @change="applyFilters"
+          />
+        </div>
+        
+        <!-- Search -->
+        <div class="filter-group search-group">
+          <label>Tìm kiếm:</label>
+          <input 
+            v-model="filters.search" 
+            type="text" 
+            placeholder="Tên, email, điện thoại..."
+            @input="debounceSearch"
+          />
+        </div>
+        
+        <!-- Sort -->
+        <div class="filter-group">
+          <label>Sắp xếp:</label>
+          <select v-model="sortBy" @change="applySort">
+            <option value="newest">Mới nhất</option>
+            <option value="oldest">Cũ nhất</option>
+            <option value="nameAsc">Tên A → Z</option>
+            <option value="nameDesc">Tên Z → A</option>
+            <option value="mostActive">Hoạt động nhiều</option>
+          </select>
+        </div>
+        
+        <div class="filter-actions">
+          <button @click="clearFilters" class="clear-btn">
+            🗑️ Xóa bộ lọc
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="users-section">
+      <div class="table-container">
+        <div v-if="loading" class="loading-state">
+          <div class="loading-spinner">⏳ Đang tải người dùng...</div>
+        </div>
+        
+        <div v-else-if="error" class="error-state">
+          <div class="error-content">
+            <div class="error-icon">⚠️</div>
+            <h3>Có lỗi xảy ra</h3>
+            <p>{{ error }}</p>
+            <button @click="refreshUsers" class="retry-btn">Thử lại</button>
+          </div>
+        </div>
+        
+        <table v-else-if="paginatedUsers.length > 0" class="users-table">
+          <thead>
+            <tr>
+              <th>Người dùng</th>
+              <th>Email & Điện thoại</th>
+              <th>Vai trò</th>
+              <th>Trạng thái</th>
+              <th>Hoạt động</th>
+              <th>Ngày tham gia</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="user in paginatedUsers" :key="user.id" class="user-row">
+              <td>
+                <div class="user-info">
+                  <div class="user-avatar">
+                    <img :src="user.avatar || '/default-avatar.jpg'" :alt="user.name" />
+                    <div v-if="user.isOnline" class="online-indicator"></div>
+                  </div>
+                  <div class="user-details">
+                    <h4 class="user-name">
+                      {{ user.name }}
+                      <span v-if="user.isVip" class="vip-badge">👑 VIP</span>
+                      <span v-if="user.isVerified" class="verified-badge">✅</span>
+                    </h4>
+                    <p class="user-id">ID: {{ user.id }}</p>
+                  </div>
+                </div>
+              </td>
+              
+              <td>
+                <div class="contact-info">
+                  <div class="email">📧 {{ user.email }}</div>
+                  <div class="phone">📱 {{ user.phone || 'Chưa cập nhật' }}</div>
+                </div>
+              </td>
+              
+              <td>
+                <select 
+                  v-model="user.role" 
+                  @change="updateUserRole(user)"
+                  class="role-select"
+                  :class="user.role.toLowerCase()"
+                >
+                  <option value="USER">Người dùng</option>
+                  <option value="SELLER">Người bán</option>
+                  <option value="ADMIN">Quản trị viên</option>
+                </select>
+              </td>
+              
+              <td>
+                <div class="status-container">
+                  <span class="status-badge" :class="user.status.toLowerCase()">
+                    {{ getStatusText(user.status) }}
+                  </span>
+                  <div class="status-actions">
+                    <button 
+                      v-if="user.status === 'active'"
+                      @click="toggleUserStatus(user)"
+                      class="status-btn block-btn"
+                      title="Khóa tài khoản"
+                    >
+                      🚫
+                    </button>
+                    <button 
+                      v-else
+                      @click="toggleUserStatus(user)"
+                      class="status-btn unblock-btn"
+                      title="Mở khóa tài khoản"
+                    >
+                      ✅
+                    </button>
+                  </div>
+                </div>
+              </td>
+              
+              <td>
+                <div class="activity-info">
+                  <div class="orders-count">📋 {{ user.totalOrders }} đơn hàng</div>
+                  <div class="total-spent">💰 {{ formatPrice(user.totalSpent) }}</div>
+                  <div class="last-login">🕒 {{ formatDateTime(user.lastLogin) }}</div>
+                </div>
+              </td>
+              
+              <td>
+                <div class="join-date">
+                  <div class="date">{{ formatDate(user.createdAt) }}</div>
+                  <div class="time">{{ formatTime(user.createdAt) }}</div>
+                </div>
+              </td>
+              
+              <td>
+                <div class="action-buttons">
+                  <button 
+                    @click="viewUserDetails(user)" 
+                    class="action-btn view-btn"
+                    title="Xem chi tiết"
+                  >
+                    👁️
+                  </button>
+                  
+                  <button 
+                    @click="editUser(user)" 
+                    class="action-btn edit-btn"
+                    title="Chỉnh sửa"
+                  >
+                    ✏️
+                  </button>
+                  
+                  <button 
+                    @click="toggleVipStatus(user)" 
+                    class="action-btn vip-btn"
+                    :class="{ active: user.isVip }"
+                    :title="user.isVip ? 'Hủy VIP' : 'Nâng cấp VIP'"
+                  >
+                    👑
+                  </button>
+                  
+                  <button 
+                    @click="deleteUser(user)" 
+                    class="action-btn delete-btn"
+                    title="Xóa tài khoản"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div v-else class="no-users">
+          <div class="no-users-content">
+            <div class="no-users-icon">👥</div>
+            <h3>Không tìm thấy người dùng nào</h3>
+            <p>Thử thay đổi bộ lọc hoặc kiểm tra lại từ khóa tìm kiếm</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="pagination">
+        <button 
+          @click="changePage(currentPage - 1)"
+          :disabled="currentPage === 1"
+          class="pagination-btn"
+        >
+          ⬅️ Trước
+        </button>
+        
+        <div class="pagination-info">
+          Trang {{ currentPage }} / {{ totalPages }} 
+          ({{ filteredUsers.length }} người dùng)
+        </div>
+        
+        <div class="pagination-numbers">
+          <button
+            v-for="page in visiblePages"
+            :key="page"
+            @click="changePage(page)"
+            class="pagination-btn"
+            :class="{ active: page === currentPage }"
+          >
+            {{ page }}
+          </button>
+        </div>
+        
+        <button 
+          @click="changePage(currentPage + 1)"
+          :disabled="currentPage === totalPages"
+          class="pagination-btn"
+        >
+          Sau ➡️
+        </button>
+      </div>
+    </div>
+
+    <!-- User Details Modal -->
+    <div v-if="showUserModal" class="modal-overlay" @click="closeUserModal">
+      <div class="modal-content user-modal" @click.stop>
+        <div class="modal-header">
+          <h2>Chi tiết người dùng</h2>
+          <button @click="closeUserModal" class="close-btn">✕</button>
+        </div>
+        
+        <div class="modal-body" v-if="selectedUser">
+          <div class="user-details-grid">
+            <!-- Profile Information -->
             <div class="detail-section">
-              <h4>Thông tin cá nhân</h4>
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <label>Tên đầy đủ:</label>
-                  <span>{{ selectedUser.firstName }} {{ selectedUser.lastName }}</span>
+              <h3>👤 Thông tin cá nhân</h3>
+              <div class="profile-details">
+                <div class="profile-avatar">
+                  <img :src="selectedUser.avatar || '/default-avatar.jpg'" :alt="selectedUser.name" />
+                  <div class="avatar-badges">
+                    <span v-if="selectedUser.isVip" class="badge vip">👑 VIP</span>
+                    <span v-if="selectedUser.isVerified" class="badge verified">✅ Xác thực</span>
+                  </div>
                 </div>
-                <div class="detail-item">
-                  <label>Email:</label>
-                  <span>{{ selectedUser.email }}</span>
+                <div class="profile-info">
+                  <p><strong>Tên:</strong> {{ selectedUser.name }}</p>
+                  <p><strong>Email:</strong> {{ selectedUser.email }}</p>
+                  <p><strong>Điện thoại:</strong> {{ selectedUser.phone || 'Chưa cập nhật' }}</p>
+                  <p><strong>Địa chỉ:</strong> {{ selectedUser.address || 'Chưa cập nhật' }}</p>
+                  <p><strong>Ngày sinh:</strong> {{ selectedUser.birthday || 'Chưa cập nhật' }}</p>
                 </div>
-                <div class="detail-item">
-                  <label>Số điện thoại:</label>
-                  <span>{{ selectedUser.phone || 'Chưa cập nhật' }}</span>
+              </div>
+            </div>
+            
+            <!-- Account Stats -->
+            <div class="detail-section">
+              <h3>📊 Thống kê tài khoản</h3>
+              <div class="stats-list">
+                <div class="stat-item">
+                  <span class="stat-label">Tổng đơn hàng:</span>
+                  <span class="stat-value">{{ selectedUser.totalOrders }}</span>
                 </div>
-                <div class="detail-item">
-                  <label>Ngày sinh:</label>
-                  <span>{{ selectedUser.birthday || 'Chưa cập nhật' }}</span>
+                <div class="stat-item">
+                  <span class="stat-label">Tổng chi tiêu:</span>
+                  <span class="stat-value">{{ formatPrice(selectedUser.totalSpent) }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Đánh giá:</span>
+                  <span class="stat-value">{{ selectedUser.reviewCount }} đánh giá</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Điểm loyalty:</span>
+                  <span class="stat-value">{{ selectedUser.loyaltyPoints }} điểm</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Activity Timeline -->
+            <div class="detail-section full-width">
+              <h3>📅 Hoạt động gần đây</h3>
+              <div class="activity-timeline">
+                <div v-for="activity in selectedUser.recentActivities" :key="activity.id" class="activity-item">
+                  <div class="activity-icon">{{ activity.icon }}</div>
+                  <div class="activity-content">
+                    <h4>{{ activity.title }}</h4>
+                    <p>{{ activity.description }}</p>
+                    <span class="activity-date">{{ formatDateTime(activity.createdAt) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button @click="editUser(selectedUser)" class="btn-secondary">
+            ✏️ Chỉnh sửa
+          </button>
+          <button @click="closeUserModal" class="btn-primary">
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create/Edit User Modal -->
+    <div v-if="showCreateUserModal || showEditUserModal" class="modal-overlay" @click="closeCreateUserModal">
+      <div class="modal-content create-user-modal" @click.stop>
+        <div class="modal-header">
+          <h2>{{ showEditUserModal ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới' }}</h2>
+          <button @click="closeCreateUserModal" class="close-btn">✕</button>
+        </div>
+        
+        <div class="modal-body">
+          <form @submit.prevent="saveUser" class="user-form">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Họ tên *</label>
+                <input v-model="userForm.name" type="text" required />
+              </div>
+              
+              <div class="form-group">
+                <label>Email *</label>
+                <input v-model="userForm.email" type="email" required />
+              </div>
+              
+              <div class="form-group">
+                <label>Điện thoại</label>
+                <input v-model="userForm.phone" type="tel" />
+              </div>
+              
+              <div class="form-group">
+                <label>Vai trò *</label>
+                <select v-model="userForm.role" required>
+                  <option value="USER">Người dùng</option>
+                  <option value="SELLER">Người bán</option>
+                  <option value="ADMIN">Quản trị viên</option>
+                </select>
+              </div>
+              
+              <div v-if="!showEditUserModal" class="form-group">
+                <label>Mật khẩu *</label>
+                <input v-model="userForm.password" type="password" required />
+              </div>
+              
+              <div class="form-group">
+                <label>Địa chỉ</label>
+                <textarea v-model="userForm.address" rows="3"></textarea>
+              </div>
+            </div>
+            
+            <div class="form-checkboxes">
+              <label class="checkbox-label">
+                <input v-model="userForm.isVip" type="checkbox" />
+                <span>Tài khoản VIP</span>
+              </label>
+              
+              <label class="checkbox-label">
+                <input v-model="userForm.isVerified" type="checkbox" />
+                <span>Đã xác thực</span>
+              </label>
+              
+              <label class="checkbox-label">
+                <input v-model="userForm.isActive" type="checkbox" />
+                <span>Kích hoạt tài khoản</span>
+              </label>
+            </div>
+          </form>
+        </div>
+        
+        <div class="modal-footer">
+          <button @click="closeCreateUserModal" class="btn-secondary">
+            Hủy
+          </button>
+          <button @click="saveUser" class="btn-primary" :disabled="saving">
+            {{ saving ? '⏳ Đang lưu...' : (showEditUserModal ? 'Cập nhật' : 'Tạo tài khoản') }}
+          </button>
         </div>
       </div>
     </div>
@@ -365,964 +518,896 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useAdminStore } from '@/stores/admin'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { adminAPI } from '@/services/api'
 
 export default {
   name: 'AdminUsers',
   setup() {
-    const adminStore = useAdminStore()
+    const router = useRouter()
     
     // Reactive data
-    const searchQuery = ref('')
-    const statusFilter = ref('')
-    const roleFilter = ref('')
-    const dateFilter = ref('')
-    const selectedUsers = ref([])
-    const activeDropdown = ref(null)
-    const showUserDetail = ref(false)
+    const users = ref([])
+    const loading = ref(false)
+    const error = ref(null)
     const selectedUser = ref(null)
+    const showUserModal = ref(false)
+    const showCreateUserModal = ref(false)
+    const showEditUserModal = ref(false)
+    const saving = ref(false)
+    
+    // Stats
+    const userStats = ref({
+      total: 0,
+      active: 0,
+      blocked: 0,
+      admins: 0,
+      vip: 0,
+      verified: 0,
+      newThisMonth: 0
+    })
+    
+    // Filters
+    const filters = ref({
+      status: '',
+      role: '',
+      accountType: '',
+      startDate: '',
+      endDate: '',
+      search: ''
+    })
+    
+    const sortBy = ref('newest')
+    
+    // Pagination
     const currentPage = ref(1)
-    const itemsPerPage = 20
+    const itemsPerPage = 10
+    
+    // User form
+    const userForm = ref({
+      name: '',
+      email: '',
+      phone: '',
+      role: 'USER',
+      password: '',
+      address: '',
+      isVip: false,
+      isVerified: false,
+      isActive: true
+    })
+    
+    // Debounce timer for search
+    let searchTimeout = null
     
     // Computed properties
-    const loading = computed(() => adminStore.loading.users)
-    const error = computed(() => adminStore.errors.users)
-    const userStats = computed(() => adminStore.userStats)
-    const users = computed(() => adminStore.users)
-    
     const filteredUsers = computed(() => {
       let filtered = [...users.value]
       
-      // Apply search filter
-      if (searchQuery.value) {
-        const search = searchQuery.value.toLowerCase()
-        filtered = filtered.filter(user =>
-          user.firstName.toLowerCase().includes(search) ||
-          user.lastName.toLowerCase().includes(search) ||
-          user.email.toLowerCase().includes(search)
-        )
+      // Status filter
+      if (filters.value.status) {
+        filtered = filtered.filter(user => user.status === filters.value.status)
       }
       
-      // Apply status filter
-      if (statusFilter.value) {
-        filtered = filtered.filter(user => 
-          statusFilter.value === 'active' ? user.enabled : !user.enabled
-        )
+      // Role filter
+      if (filters.value.role) {
+        filtered = filtered.filter(user => user.role === filters.value.role)
       }
       
-      // Apply role filter
-      if (roleFilter.value) {
-        filtered = filtered.filter(user => user.role === roleFilter.value)
-      }
-      
-      // Apply date filter
-      if (dateFilter.value) {
-        const now = new Date()
-        const filterDate = new Date()
-        
-        switch (dateFilter.value) {
-          case 'today':
-            filterDate.setDate(now.getDate())
-            break
-          case 'week':
-            filterDate.setDate(now.getDate() - 7)
-            break
-          case 'month':
-            filterDate.setMonth(now.getMonth() - 1)
-            break
-          case 'year':
-            filterDate.setFullYear(now.getFullYear() - 1)
-            break
+      // Account type filter
+      if (filters.value.accountType) {
+        if (filters.value.accountType === 'vip') {
+          filtered = filtered.filter(user => user.isVip)
+        } else if (filters.value.accountType === 'regular') {
+          filtered = filtered.filter(user => !user.isVip)
         }
-        
+      }
+      
+      // Date filter
+      if (filters.value.startDate) {
         filtered = filtered.filter(user => 
-          new Date(user.createdAt) >= filterDate
+          new Date(user.createdAt) >= new Date(filters.value.startDate)
+        )
+      }
+      
+      if (filters.value.endDate) {
+        filtered = filtered.filter(user => 
+          new Date(user.createdAt) <= new Date(filters.value.endDate)
+        )
+      }
+      
+      // Search filter
+      if (filters.value.search) {
+        const searchTerm = filters.value.search.toLowerCase()
+        filtered = filtered.filter(user => 
+          user.name.toLowerCase().includes(searchTerm) ||
+          user.email.toLowerCase().includes(searchTerm) ||
+          (user.phone && user.phone.includes(searchTerm))
         )
       }
       
       return filtered
     })
     
-    const adminCount = computed(() => 
-      users.value.filter(user => user.role === 'ADMIN').length
-    )
-    
-    const totalPages = computed(() => 
-      Math.ceil(filteredUsers.value.length / itemsPerPage)
-    )
+    const sortedUsers = computed(() => {
+      const sorted = [...filteredUsers.value]
+      
+      switch (sortBy.value) {
+        case 'oldest':
+          return sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        case 'nameAsc':
+          return sorted.sort((a, b) => a.name.localeCompare(b.name))
+        case 'nameDesc':
+          return sorted.sort((a, b) => b.name.localeCompare(a.name))
+        case 'mostActive':
+          return sorted.sort((a, b) => b.totalOrders - a.totalOrders)
+        case 'newest':
+        default:
+          return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      }
+    })
     
     const paginatedUsers = computed(() => {
       const start = (currentPage.value - 1) * itemsPerPage
-      const end = start + itemsPerPage
-      return filteredUsers.value.slice(start, end)
+      return sortedUsers.value.slice(start, start + itemsPerPage)
     })
     
-    const startIndex = computed(() => 
-      (currentPage.value - 1) * itemsPerPage + 1
-    )
-    
-    const endIndex = computed(() => 
-      Math.min(currentPage.value * itemsPerPage, filteredUsers.value.length)
+    const totalPages = computed(() => 
+      Math.ceil(sortedUsers.value.length / itemsPerPage)
     )
     
     const visiblePages = computed(() => {
-      const pages = []
       const total = totalPages.value
       const current = currentPage.value
+      const delta = 2
       
-      if (total <= 7) {
-        for (let i = 1; i <= total; i++) {
-          pages.push(i)
-        }
-      } else {
-        if (current <= 4) {
-          for (let i = 1; i <= 5; i++) pages.push(i)
-          pages.push('...')
-          pages.push(total)
-        } else if (current >= total - 3) {
-          pages.push(1)
-          pages.push('...')
-          for (let i = total - 4; i <= total; i++) pages.push(i)
+      let start = Math.max(1, current - delta)
+      let end = Math.min(total, current + delta)
+      
+      if (end - start < delta * 2) {
+        if (start === 1) {
+          end = Math.min(total, start + delta * 2)
         } else {
-          pages.push(1)
-          pages.push('...')
-          for (let i = current - 1; i <= current + 1; i++) pages.push(i)
-          pages.push('...')
-          pages.push(total)
+          start = Math.max(1, end - delta * 2)
         }
       }
       
-      return pages
+      return Array.from({ length: end - start + 1 }, (_, i) => start + i)
     })
     
     // Methods
-    const formatNumber = (num) => {
-      return new Intl.NumberFormat('vi-VN').format(num)
-    }
-    
-    const formatCurrency = (amount) => {
-      return new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND'
-      }).format(amount)
-    }
-    
-    const formatDate = (dateString) => {
-      if (!dateString) return 'Chưa cập nhật'
-      return new Date(dateString).toLocaleDateString('vi-VN')
-    }
-    
-    const getTimeAgo = (dateString) => {
-      if (!dateString) return ''
-      
-      const now = new Date()
-      const date = new Date(dateString)
-      const diffMs = now - date
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-      
-      if (diffDays === 0) return 'Hôm nay'
-      if (diffDays === 1) return 'Hôm qua'
-      if (diffDays < 7) return `${diffDays} ngày trước`
-      if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`
-      if (diffDays < 365) return `${Math.floor(diffDays / 30)} tháng trước`
-      return `${Math.floor(diffDays / 365)} năm trước`
-    }
-    
-    const handleImageError = (event) => {
-      event.target.src = '/default-avatar.png'
-    }
-    
-    const handleSearch = () => {
-      currentPage.value = 1
-      adminStore.setUserFilter('search', searchQuery.value)
-    }
-    
-    const handleFilterChange = () => {
-      currentPage.value = 1
-      adminStore.setUserFilter('status', statusFilter.value)
-      adminStore.setUserFilter('role', roleFilter.value)
-      adminStore.setUserFilter('dateRange', dateFilter.value)
-    }
-    
-    const clearSearch = () => {
-      searchQuery.value = ''
-      handleSearch()
-    }
-    
-    const clearAllFilters = () => {
-      searchQuery.value = ''
-      statusFilter.value = ''
-      roleFilter.value = ''
-      dateFilter.value = ''
-      currentPage.value = 1
-      adminStore.resetUserFilters()
-    }
-    
-    const selectAll = () => {
-      if (selectedUsers.value.length === filteredUsers.value.length) {
-        selectedUsers.value = []
-      } else {
-        selectedUsers.value = filteredUsers.value.map(user => user.id)
-      }
-    }
-    
-    const bulkAction = async (action) => {
-      if (selectedUsers.value.length === 0) return
-      
-      const confirmMsg = action === 'block' 
-        ? `Bạn có chắc muốn khóa ${selectedUsers.value.length} người dùng?`
-        : `Bạn có chắc muốn thực hiện hành động này với ${selectedUsers.value.length} người dùng?`
-      
-      if (!confirm(confirmMsg)) return
+    const loadUsers = async () => {
+      loading.value = true
+      error.value = null
       
       try {
-        for (const userId of selectedUsers.value) {
-          if (action === 'block') {
-            await adminStore.toggleUserStatus(userId)
-          }
-        }
-        
-        selectedUsers.value = []
-        alert('Thực hiện thành công!')
-      } catch (error) {
-        alert('Có lỗi xảy ra: ' + error.message)
+        const response = await adminAPI.getUsers()
+        users.value = response.data.users || response.data
+        calculateStats()
+      } catch (err) {
+        error.value = 'Không thể tải danh sách người dùng'
+        console.error('Error loading users:', err)
+      } finally {
+        loading.value = false
       }
+    }
+    
+    const calculateStats = () => {
+      const stats = {
+        total: users.value.length,
+        active: 0,
+        blocked: 0,
+        admins: 0,
+        vip: 0,
+        verified: 0,
+        newThisMonth: 0
+      }
+      
+      const oneMonthAgo = new Date()
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+      
+      users.value.forEach(user => {
+        if (user.status === 'active') stats.active++
+        if (user.status === 'blocked') stats.blocked++
+        if (user.role === 'ADMIN') stats.admins++
+        if (user.isVip) stats.vip++
+        if (user.isVerified) stats.verified++
+        if (new Date(user.createdAt) > oneMonthAgo) stats.newThisMonth++
+      })
+      
+      userStats.value = stats
     }
     
     const toggleUserStatus = async (user) => {
-      if (user.role === 'ADMIN' && user.enabled) {
-        alert('Không thể khóa tài khoản admin!')
-        return
+      const newStatus = user.status === 'active' ? 'blocked' : 'active'
+      const action = newStatus === 'blocked' ? 'khóa' : 'mở khóa'
+      
+      if (confirm(`Bạn có chắc chắn muốn ${action} tài khoản của ${user.name}?`)) {
+        try {
+          await adminAPI.toggleUserStatus(user.id)
+          user.status = newStatus
+          calculateStats()
+        } catch (err) {
+          console.error('Error toggling user status:', err)
+        }
       }
-      
-      const action = user.enabled ? 'khóa' : 'kích hoạt'
-      if (!confirm(`Bạn có chắc muốn ${action} tài khoản ${user.email}?`)) return
-      
+    }
+    
+    const updateUserRole = async (user) => {
       try {
-        user.actionLoading = true
-        await adminStore.toggleUserStatus(user.id)
-        alert(`${action} tài khoản thành công!`)
-      } catch (error) {
-        alert('Có lỗi xảy ra: ' + error.message)
-      } finally {
-        user.actionLoading = false
+        // API call to update user role
+        console.log('Updating user role:', user.id, user.role)
+      } catch (err) {
+        console.error('Error updating user role:', err)
+        await loadUsers()
       }
     }
     
-    const viewUserDetail = (user) => {
-      selectedUser.value = user
-      showUserDetail.value = true
+    const toggleVipStatus = async (user) => {
+      user.isVip = !user.isVip
+      calculateStats()
+      // API call would go here
     }
     
-    const closeUserDetail = () => {
-      showUserDetail.value = false
+    const viewUserDetails = (user) => {
+      selectedUser.value = {
+        ...user,
+        recentActivities: [
+          {
+            id: 1,
+            icon: '🛒',
+            title: 'Đặt hàng thành công',
+            description: 'Đã đặt đơn hàng #12345 với tổng giá trị 2.500.000đ',
+            createdAt: '2024-12-22T10:30:00'
+          },
+          {
+            id: 2,
+            icon: '⭐',
+            title: 'Đánh giá sản phẩm',
+            description: 'Đã đánh giá 5 sao cho sản phẩm iPhone 15 Pro',
+            createdAt: '2024-12-21T15:20:00'
+          }
+        ]
+      }
+      showUserModal.value = true
+    }
+    
+    const closeUserModal = () => {
+      showUserModal.value = false
       selectedUser.value = null
     }
     
-    const toggleDropdown = (userId) => {
-      activeDropdown.value = activeDropdown.value === userId ? null : userId
-    }
-    
-    const sendMessage = (user) => {
-      // TODO: Implement messaging
-      alert(`Gửi tin nhắn đến ${user.email}`)
-    }
-    
-    const resetPassword = (user) => {
-      if (!confirm(`Reset mật khẩu cho ${user.email}?`)) return
-      // TODO: Implement password reset
-      alert('Đã gửi email reset mật khẩu!')
-    }
-    
-    const viewLoginHistory = (user) => {
-      // TODO: Implement login history view
-      alert(`Xem lịch sử đăng nhập của ${user.email}`)
-    }
-    
-    const exportUserData = (user) => {
-      // TODO: Implement user data export
-      alert(`Xuất dữ liệu của ${user.email}`)
-    }
-    
-    const deleteUser = (user) => {
-      if (user.role === 'ADMIN') {
-        alert('Không thể xóa tài khoản admin!')
-        return
+    const editUser = (user) => {
+      userForm.value = {
+        ...user,
+        password: '' // Don't include password in edit form
       }
-      
-      if (!confirm(`CẢNH BÁO: Bạn có chắc muốn xóa vĩnh viễn tài khoản ${user.email}? Hành động này không thể hoàn tác!`)) return
-      
-      // TODO: Implement user deletion
-      alert('Chức năng đang được phát triển')
+      showEditUserModal.value = true
+      showUserModal.value = false
     }
     
-    const refreshUsers = () => {
-      adminStore.loadUsers()
+    const deleteUser = async (user) => {
+      if (confirm(`Bạn có chắc chắn muốn xóa tài khoản của ${user.name}? Hành động này không thể hoàn tác.`)) {
+        try {
+          // API call to delete user
+          users.value = users.value.filter(u => u.id !== user.id)
+          calculateStats()
+        } catch (err) {
+          console.error('Error deleting user:', err)
+        }
+      }
+    }
+    
+    const closeCreateUserModal = () => {
+      showCreateUserModal.value = false
+      showEditUserModal.value = false
+      resetUserForm()
+    }
+    
+    const resetUserForm = () => {
+      userForm.value = {
+        name: '',
+        email: '',
+        phone: '',
+        role: 'USER',
+        password: '',
+        address: '',
+        isVip: false,
+        isVerified: false,
+        isActive: true
+      }
+    }
+    
+    const saveUser = async () => {
+      saving.value = true
+      try {
+        if (showEditUserModal.value) {
+          // Update existing user
+          console.log('Updating user:', userForm.value)
+        } else {
+          // Create new user
+          console.log('Creating user:', userForm.value)
+        }
+        closeCreateUserModal()
+        await loadUsers()
+      } catch (err) {
+        console.error('Error saving user:', err)
+      } finally {
+        saving.value = false
+      }
     }
     
     const exportUsers = () => {
-      // TODO: Implement Excel export
-      alert('Xuất Excel đang được phát triển')
+      // Export users to Excel logic
+      console.log('Exporting users...')
     }
     
-    const goToPage = (page) => {
-      if (page >= 1 && page <= totalPages.value) {
-        currentPage.value = page
+    const refreshUsers = () => {
+      loadUsers()
+    }
+    
+    const applyFilters = () => {
+      currentPage.value = 1
+    }
+    
+    const applySort = () => {
+      currentPage.value = 1
+    }
+    
+    const clearFilters = () => {
+      filters.value = {
+        status: '',
+        role: '',
+        accountType: '',
+        startDate: '',
+        endDate: '',
+        search: ''
       }
+      sortBy.value = 'newest'
+      currentPage.value = 1
+    }
+    
+    const debounceSearch = () => {
+      clearTimeout(searchTimeout)
+      searchTimeout = setTimeout(() => {
+        applyFilters()
+      }, 500)
+    }
+    
+    const changePage = (page) => {
+      currentPage.value = page
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    
+    const getStatusText = (status) => {
+      const statusTexts = {
+        active: 'Hoạt động',
+        blocked: 'Bị khóa',
+        pending: 'Chờ xác thực'
+      }
+      return statusTexts[status] || status
+    }
+    
+    const getPercentage = (value, total) => {
+      return total > 0 ? Math.round((value / total) * 100) : 0
+    }
+    
+    const formatPrice = (price) => {
+      return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+      }).format(price)
+    }
+    
+    const formatDate = (date) => {
+      return new Date(date).toLocaleDateString('vi-VN')
+    }
+    
+    const formatTime = (date) => {
+      return new Date(date).toLocaleTimeString('vi-VN', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })
+    }
+    
+    const formatDateTime = (date) => {
+      return new Date(date).toLocaleString('vi-VN')
+    }
+    
+    // Mock data for development
+    const loadMockData = () => {
+      users.value = [
+        {
+          id: 1,
+          name: 'Nguyễn Văn A',
+          email: 'user1@example.com',
+          phone: '0123456789',
+          role: 'USER',
+          status: 'active',
+          isVip: true,
+          isVerified: true,
+          isOnline: true,
+          avatar: '/default-avatar.jpg',
+          totalOrders: 15,
+          totalSpent: 25000000,
+          reviewCount: 8,
+          loyaltyPoints: 1250,
+          lastLogin: '2024-12-22T10:30:00',
+          createdAt: '2024-01-15T08:00:00',
+          address: '123 Đường ABC, Quận 1, TP.HCM'
+        },
+        {
+          id: 2,
+          name: 'Trần Thị B',
+          email: 'user2@example.com',
+          phone: '0987654321',
+          role: 'SELLER',
+          status: 'active',
+          isVip: false,
+          isVerified: true,
+          isOnline: false,
+          avatar: '/default-avatar.jpg',
+          totalOrders: 3,
+          totalSpent: 5000000,
+          reviewCount: 2,
+          loyaltyPoints: 350,
+          lastLogin: '2024-12-21T16:45:00',
+          createdAt: '2024-03-20T10:15:00'
+        }
+        // Add more mock users...
+      ]
+      calculateStats()
     }
     
     // Lifecycle
     onMounted(() => {
-      adminStore.loadUsers()
+      // Load real data or mock data for development
+      loadMockData() // Remove this and uncomment loadUsers() for production
+      // loadUsers()
     })
-    
-    // Watch for clicks outside dropdown
-    const handleClickOutside = (event) => {
-      if (!event.target.closest('.dropdown')) {
-        activeDropdown.value = null
-      }
-    }
-    
-    onMounted(() => {
-      document.addEventListener('click', handleClickOutside)
-    })
-    
-    // Cleanup
-    const cleanup = () => {
-      document.removeEventListener('click', handleClickOutside)
-    }
     
     return {
-      // Data
-      searchQuery,
-      statusFilter,
-      roleFilter,
-      dateFilter,
-      selectedUsers,
-      activeDropdown,
-      showUserDetail,
-      selectedUser,
-      currentPage,
-      
-      // Computed
+      users,
       loading,
       error,
       userStats,
-      users,
+      filters,
+      sortBy,
+      currentPage,
       filteredUsers,
-      adminCount,
-      totalPages,
       paginatedUsers,
-      startIndex,
-      endIndex,
+      totalPages,
       visiblePages,
-      
-      // Methods
-      formatNumber,
-      formatCurrency,
-      formatDate,
-      getTimeAgo,
-      handleImageError,
-      handleSearch,
-      handleFilterChange,
-      clearSearch,
-      clearAllFilters,
-      selectAll,
-      bulkAction,
+      selectedUser,
+      showUserModal,
+      showCreateUserModal,
+      showEditUserModal,
+      userForm,
+      saving,
+      loadUsers,
       toggleUserStatus,
-      viewUserDetail,
-      closeUserDetail,
-      toggleDropdown,
-      sendMessage,
-      resetPassword,
-      viewLoginHistory,
-      exportUserData,
+      updateUserRole,
+      toggleVipStatus,
+      viewUserDetails,
+      closeUserModal,
+      editUser,
       deleteUser,
-      refreshUsers,
+      closeCreateUserModal,
+      saveUser,
       exportUsers,
-      goToPage,
-      cleanup
+      refreshUsers,
+      applyFilters,
+      applySort,
+      clearFilters,
+      debounceSearch,
+      changePage,
+      getStatusText,
+      getPercentage,
+      formatPrice,
+      formatDate,
+      formatTime,
+      formatDateTime
     }
-  },
-  
-  beforeUnmount() {
-    this.cleanup()
   }
 }
 </script>
 
 <style scoped>
-.admin-users {
+.admin-users-page {
+  padding: 24px;
+  background: var(--bg-primary);
   min-height: 100vh;
-  padding: 2rem 0;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-  gap: 1rem;
+  margin-bottom: 32px;
+  gap: 24px;
 }
 
-.header-info h1 {
+.page-title {
   font-size: 2rem;
-  color: var(--text-accent);
-  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
 }
 
-.header-info p {
+.page-subtitle {
   color: var(--text-secondary);
-  font-size: 1rem;
+  font-size: 1.1rem;
 }
 
 .header-actions {
   display: flex;
-  gap: 1rem;
+  gap: 12px;
 }
 
-.btn-export,
-.btn-refresh {
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  border: 1px solid var(--text-accent);
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--text-accent);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-export:hover,
-.btn-refresh:hover {
-  background: var(--text-accent);
-  color: white;
-}
-
-.filter-section {
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.search-box {
-  flex: 1;
-  position: relative;
-  min-width: 300px;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 8px;
-  background: rgba(26, 26, 46, 0.8);
-  color: var(--text-primary);
-  font-size: 1rem;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--text-accent);
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
-}
-
-.clear-search {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
+.refresh-btn,
+.export-btn,
+.create-btn {
+  padding: 10px 20px;
   border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 0.25rem;
-}
-
-.filters {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.filter-select {
-  padding: 0.75rem 1rem;
-  border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 8px;
-  background: rgba(26, 26, 46, 0.8);
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.btn-clear {
-  padding: 0.75rem 1rem;
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  border-radius: 8px;
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-clear:hover {
-  background: rgba(239, 68, 68, 0.2);
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.stat-icon {
-  font-size: 2.5rem;
-  opacity: 0.8;
-}
-
-.stat-content h3 {
-  font-size: 2rem;
-  color: var(--text-accent);
-  margin-bottom: 0.25rem;
-}
-
-.stat-content p {
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
-}
-
-.stat-change {
-  font-size: 0.8rem;
-  color: var(--text-success);
-}
-
-.stat-change.positive {
-  color: var(--text-success);
-}
-
-.stat-change.negative {
-  color: var(--text-danger);
-}
-
-.stat-percentage,
-.stat-note {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
-
-.users-table-container {
-  padding: 1.5rem;
-}
-
-.loading-state,
-.error-state,
-.empty-state {
-  text-align: center;
-  padding: 3rem;
-}
-
-.cosmic-loader {
-  position: relative;
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 1rem;
-}
-
-.orbit {
-  position: absolute;
-  border: 2px solid rgba(0, 212, 255, 0.3);
-  border-radius: 50%;
-  width: 100%;
-  height: 100%;
-  animation: spin 2s linear infinite;
-}
-
-.planet {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 2rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.error-icon,
-.empty-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.btn-retry,
-.btn-clear-filters {
-  padding: 0.75rem 1.5rem;
-  border: 1px solid var(--text-accent);
-  border-radius: 8px;
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--text-accent);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.table-header h3 {
-  color: var(--text-accent);
-}
-
-.table-actions {
-  display: flex;
-  gap: 1rem;
-}
-
-.btn-select-all,
-.btn-bulk-action {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--text-accent);
-  border-radius: 6px;
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--text-accent);
   cursor: pointer;
   font-size: 0.9rem;
   transition: all 0.3s ease;
 }
 
-.btn-bulk-action {
-  border-color: var(--text-danger);
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--text-danger);
+.refresh-btn {
+  background: var(--accent-blue);
+  color: white;
 }
 
-.table-wrapper {
-  overflow-x: auto;
+.export-btn {
+  background: var(--accent-green);
+  color: white;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 1rem;
+.create-btn {
+  background: var(--accent-purple);
+  color: white;
 }
 
-th,
-td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+.stats-section {
+  margin-bottom: 32px;
 }
 
-th {
-  background: rgba(0, 212, 255, 0.05);
-  color: var(--text-accent);
-  font-weight: 600;
-  position: sticky;
-  top: 0;
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
 }
 
-.checkbox-column {
-  width: 50px;
-  text-align: center;
-}
-
-.user-row {
+.stat-card {
+  background: var(--bg-secondary);
+  padding: 24px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
   transition: all 0.3s ease;
 }
 
-.user-row:hover {
-  background: rgba(0, 212, 255, 0.05);
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.1);
 }
 
-.user-row.selected {
-  background: rgba(0, 212, 255, 0.1);
+.stat-icon {
+  font-size: 2rem;
 }
 
-.user-row.blocked {
-  opacity: 0.6;
+.stat-number {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.stat-change.positive {
+  color: var(--accent-green);
+  font-size: 0.8rem;
+}
+
+.stat-percentage {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 12px;
 }
 
 .user-avatar {
   position: relative;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  overflow: hidden;
+  width: 48px;
+  height: 48px;
 }
 
 .user-avatar img {
   width: 100%;
   height: 100%;
+  border-radius: 50%;
   object-fit: cover;
 }
 
-.vip-badge {
+.online-indicator {
   position: absolute;
-  top: -5px;
-  right: -5px;
-  background: var(--text-warning);
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--accent-green);
+  border: 2px solid var(--bg-secondary);
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-}
-
-.user-details {
-  flex: 1;
 }
 
 .user-name {
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 4px;
 }
 
+.vip-badge,
 .verified-badge {
-  color: var(--text-success);
-  margin-left: 0.25rem;
+  font-size: 0.7rem;
 }
 
-.user-email {
+.user-id {
   color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.email,
+.phone {
   font-size: 0.9rem;
-  margin-bottom: 0.25rem;
-}
-
-.user-phone {
   color: var(--text-secondary);
+}
+
+.role-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-size: 0.8rem;
+  cursor: pointer;
 }
 
-.role-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
+.role-select.user { border-color: var(--accent-blue); }
+.role-select.seller { border-color: var(--accent-orange); }
+.role-select.admin { border-color: var(--accent-red); }
 
-.role-badge.admin {
-  background: rgba(255, 193, 7, 0.2);
-  color: var(--text-warning);
-}
-
-.role-badge.user {
-  background: rgba(0, 212, 255, 0.2);
-  color: var(--text-accent);
+.status-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 500;
+  text-align: center;
 }
 
 .status-badge.active {
-  background: rgba(16, 185, 129, 0.2);
-  color: var(--text-success);
+  background: rgba(76, 175, 80, 0.2);
+  color: var(--accent-green);
 }
 
-.status-badge.inactive {
-  background: rgba(239, 68, 68, 0.2);
-  color: var(--text-danger);
+.status-badge.blocked {
+  background: rgba(244, 67, 54, 0.2);
+  color: var(--accent-red);
+}
+
+.status-badge.pending {
+  background: rgba(255, 152, 0, 0.2);
+  color: var(--accent-orange);
+}
+
+.status-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.status-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.block-btn {
+  background: var(--accent-red);
+  color: white;
+}
+
+.unblock-btn {
+  background: var(--accent-green);
+  color: white;
+}
+
+.activity-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.orders-count {
+  color: var(--accent-blue);
+}
+
+.total-spent {
+  color: var(--accent-green);
+}
+
+.last-login {
+  color: var(--text-secondary);
+}
+
+.join-date {
+  text-align: center;
 }
 
 .date {
-  color: var(--text-primary);
   font-weight: 500;
+  margin-bottom: 2px;
 }
 
-.time-ago {
-  color: var(--text-secondary);
+.time {
   font-size: 0.8rem;
-}
-
-.user-stats {
-  font-size: 0.8rem;
-}
-
-.stat-item {
-  margin-bottom: 0.25rem;
-}
-
-.stat-label {
   color: var(--text-secondary);
-}
-
-.stat-value {
-  color: var(--text-primary);
-  font-weight: 500;
 }
 
 .action-buttons {
   display: flex;
-  gap: 0.5rem;
-  align-items: center;
+  gap: 4px;
 }
 
-.btn-action {
-  padding: 0.5rem;
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 6px;
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--text-accent);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
-}
-
-.btn-action:hover {
-  background: var(--text-accent);
-  color: white;
-}
-
-.btn-block {
-  border-color: var(--text-danger);
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--text-danger);
-}
-
-.btn-block:hover {
-  background: var(--text-danger);
-  color: white;
-}
-
-.btn-unblock {
-  border-color: var(--text-success);
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--text-success);
-}
-
-.btn-unblock:hover {
-  background: var(--text-success);
-  color: white;
-}
-
-.dropdown {
-  position: relative;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background: rgba(26, 26, 46, 0.95);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 8px;
-  padding: 0.5rem;
-  min-width: 180px;
-  z-index: 1000;
-  backdrop-filter: blur(10px);
-}
-
-.dropdown-menu button {
-  display: block;
-  width: 100%;
-  padding: 0.5rem;
-  background: none;
+.action-btn {
+  padding: 6px 8px;
   border: none;
-  color: var(--text-secondary);
-  text-align: left;
-  cursor: pointer;
   border-radius: 4px;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
-}
-
-.dropdown-menu button:hover {
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--text-accent);
-}
-
-.dropdown-menu button.danger {
-  color: var(--text-danger);
-}
-
-.dropdown-menu button.danger:hover {
-  background: rgba(239, 68, 68, 0.1);
-}
-
-.dropdown-menu hr {
-  border: none;
-  border-top: 1px solid rgba(0, 212, 255, 0.2);
-  margin: 0.5rem 0;
-}
-
-.pagination-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.pagination-info {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.pagination {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.page-btn {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 6px;
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--text-accent);
   cursor: pointer;
-  transition: all 0.3s ease;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
 }
 
-.page-btn:hover:not(:disabled) {
-  background: var(--text-accent);
+.view-btn {
+  background: var(--accent-blue);
   color: white;
 }
 
-.page-btn.active {
-  background: var(--text-accent);
+.edit-btn {
+  background: var(--accent-orange);
   color: white;
 }
 
-.page-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.vip-btn {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
 }
 
-.page-btn.ellipsis {
+.vip-btn.active {
+  background: var(--accent-yellow);
+  color: #8B4513;
+}
+
+.delete-btn {
+  background: var(--accent-red);
+  color: white;
+}
+
+.filters-section {
+  background: var(--bg-secondary);
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  align-items: end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.filter-group input,
+.filter-group select {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.search-group {
+  grid-column: span 2;
+}
+
+.clear-btn {
+  padding: 10px 16px;
+  background: var(--accent-red);
+  color: white;
   border: none;
-  background: none;
-  cursor: default;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  height: fit-content;
+}
+
+.users-section {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.users-table th {
+  background: var(--bg-primary);
+  padding: 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.user-row {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
+}
+
+.user-row:hover {
+  background: var(--bg-primary);
+}
+
+.users-table td {
+  padding: 16px;
+  vertical-align: top;
 }
 
 .modal-overlay {
@@ -1331,21 +1416,20 @@ th {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
-  backdrop-filter: blur(5px);
+  z-index: 1000;
+  padding: 20px;
 }
 
 .modal-content {
-  background: rgba(26, 26, 46, 0.95);
-  border: 1px solid rgba(0, 212, 255, 0.3);
+  background: var(--bg-secondary);
   border-radius: 12px;
-  max-width: 600px;
-  width: 90%;
-  max-height: 80vh;
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
   overflow-y: auto;
 }
 
@@ -1353,96 +1437,311 @@ th {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  padding: 24px;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.modal-header h3 {
-  color: var(--text-accent);
+.modal-header h2 {
+  color: var(--text-primary);
   margin: 0;
 }
 
-.modal-close {
+.close-btn {
   background: none;
   border: none;
-  color: var(--text-secondary);
   font-size: 1.5rem;
+  color: var(--text-secondary);
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 4px;
 }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 24px;
+}
+
+.user-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
 }
 
 .detail-section {
-  margin-bottom: 2rem;
+  background: var(--bg-primary);
+  padding: 20px;
+  border-radius: 8px;
 }
 
-.detail-section h4 {
-  color: var(--text-accent);
-  margin-bottom: 1rem;
+.detail-section.full-width {
+  grid-column: 1 / -1;
 }
 
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
+.detail-section h3 {
+  margin-bottom: 16px;
+  color: var(--text-primary);
+  font-size: 1.1rem;
 }
 
-.detail-item {
+.profile-details {
+  display: flex;
+  gap: 16px;
+}
+
+.profile-avatar {
+  position: relative;
+}
+
+.profile-avatar img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-badges {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 4px;
+  margin-top: 8px;
 }
 
-.detail-item label {
+.badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.badge.vip {
+  background: var(--accent-yellow);
+  color: #8B4513;
+}
+
+.badge.verified {
+  background: var(--accent-green);
+  color: white;
+}
+
+.profile-info {
+  flex: 1;
+}
+
+.profile-info p {
+  margin: 8px 0;
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  font-weight: 500;
 }
 
-.detail-item span {
+.stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.stat-label {
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  font-weight: 500;
   color: var(--text-primary);
 }
 
+.activity-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.activity-item {
+  display: flex;
+  gap: 12px;
+}
+
+.activity-icon {
+  font-size: 1.2rem;
+  width: 24px;
+  text-align: center;
+}
+
+.activity-content h4 {
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.activity-content p {
+  margin-bottom: 4px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.activity-date {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.user-form {
+  width: 100%;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.form-checkboxes {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.btn-secondary {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  background: var(--bg-primary);
+}
+
+.pagination-btn {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.pagination-btn.active {
+  background: var(--accent-blue);
+  color: white;
+}
+
 @media (max-width: 768px) {
+  .admin-users-page {
+    padding: 16px;
+  }
+  
   .page-header {
     flex-direction: column;
     align-items: stretch;
   }
   
-  .filter-section {
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .filters {
-    justify-content: stretch;
-  }
-  
-  .filter-select {
-    flex: 1;
-  }
-  
   .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  
+  .filters-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .search-group {
+    grid-column: span 1;
+  }
+  
+  .users-table {
+    font-size: 0.8rem;
+  }
+  
+  .modal-content {
+    margin: 10px;
+  }
+  
+  .user-details-grid {
     grid-template-columns: 1fr;
   }
   
-  .table-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: stretch;
+  .detail-section.full-width {
+    grid-column: 1;
   }
   
-  .table-actions {
-    justify-content: stretch;
+  .form-grid {
+    grid-template-columns: 1fr;
   }
   
-  .pagination-container {
+  .form-checkboxes {
     flex-direction: column;
-    gap: 1rem;
-    text-align: center;
+    gap: 12px;
   }
 }
 </style>

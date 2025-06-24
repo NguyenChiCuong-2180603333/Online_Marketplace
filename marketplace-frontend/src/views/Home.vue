@@ -1,37 +1,81 @@
 <template>
-  <div class="home-page">
+  <div class="home">
     <!-- Hero Section -->
-    <section class="hero">
+    <section class="hero-section">
       <div class="container">
         <div class="hero-content">
+          <!-- Hero Text -->
           <div class="hero-text">
             <h1 class="hero-title">
-              🌌 Chào mừng đến với <br>
-              <span class="text-gradient">Cosmic Marketplace</span>
+              🌌 Khám phá
+              <span class="gradient-text">Vũ trụ Mua sắm</span>
+              với AI
             </h1>
             <p class="hero-subtitle">
-              Khám phá vũ trụ mua sắm với hàng nghìn sản phẩm tuyệt vời từ khắp thiên hà.
-              Trải nghiệm mua sắm như chưa từng có!
+              Trải nghiệm mua sắm thông minh với đề xuất được cá nhân hóa bằng trí tuệ nhân tạo. 
+              Khám phá hàng ngàn sản phẩm chất lượng từ khắp nơi trên thế giới.
             </p>
-            <div class="hero-actions">
-              <router-link to="/products" class="btn btn-primary btn-large">
-                🚀 Khám phá ngay
-              </router-link>
-              <router-link to="/categories" class="btn btn-secondary btn-large">
-                📂 Danh mục
-              </router-link>
+            
+            <!-- Hero Search -->
+            <div class="hero-search">
+              <div class="search-container">
+                <input
+                  v-model="heroSearchQuery"
+                  @keyup.enter="performHeroSearch"
+                  type="text"
+                  placeholder="Tìm kiếm sản phẩm mơ ước của bạn..."
+                  class="hero-search-input"
+                />
+                <button @click="performHeroSearch" class="hero-search-btn">
+                  🔍 Tìm kiếm
+                </button>
+              </div>
+              
+              <!-- Quick search suggestions -->
+              <div class="quick-suggestions" v-if="quickSuggestions.length > 0">
+                <span class="suggestions-label">Gợi ý:</span>
+                <div class="suggestions-list">
+                  <button
+                    v-for="suggestion in quickSuggestions"
+                    :key="suggestion"
+                    @click="searchSuggestion(suggestion)"
+                    class="suggestion-tag"
+                  >
+                    {{ suggestion }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hero Stats -->
+            <div class="hero-stats">
+              <div class="stat-item">
+                <span class="stat-number">{{ formatNumber(totalProducts) }}</span>
+                <span class="stat-label">Sản phẩm</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-number">{{ formatNumber(totalUsers) }}</span>
+                <span class="stat-label">Khách hàng</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-number">{{ formatNumber(totalOrders) }}</span>
+                <span class="stat-label">Đơn hàng</span>
+              </div>
             </div>
           </div>
+
+          <!-- Hero Visual -->
           <div class="hero-visual">
-            <div class="floating-elements">
-              <div class="planet planet-1">🪐</div>
-              <div class="planet planet-2">🌍</div>
-              <div class="planet planet-3">🌙</div>
-              <div class="stars">
-                <span class="star star-1">⭐</span>
-                <span class="star star-2">✨</span>
-                <span class="star star-3">🌟</span>
-                <span class="star star-4">💫</span>
+            <div class="cosmic-animation">
+              <div class="planet main-planet">🌍</div>
+              <div class="orbit orbit-1">
+                <div class="satellite">🛰️</div>
+              </div>
+              <div class="orbit orbit-2">
+                <div class="satellite">🚀</div>
+              </div>
+              <div class="orbit orbit-3">
+                <div class="satellite">⭐</div>
               </div>
             </div>
           </div>
@@ -39,84 +83,153 @@
       </div>
     </section>
 
-    <!-- Stats Section -->
-    <section class="stats-section">
+    <!-- AI Recommendations Section -->
+    <section class="recommendations-section" v-if="authStore.isAuthenticated">
       <div class="container">
-        <div class="stats-grid">
-          <div class="stat-card space-card">
-            <div class="stat-icon">🏪</div>
-            <div class="stat-number">{{ stats.totalProducts.toLocaleString() }}</div>
-            <div class="stat-label">Sản phẩm</div>
-          </div>
-          <div class="stat-card space-card">
-            <div class="stat-icon">👥</div>
-            <div class="stat-number">{{ stats.totalUsers.toLocaleString() }}</div>
-            <div class="stat-label">Người dùng</div>
-          </div>
-          <div class="stat-card space-card">
-            <div class="stat-icon">📦</div>
-            <div class="stat-number">{{ stats.totalOrders.toLocaleString() }}</div>
-            <div class="stat-label">Đơn hàng</div>
-          </div>
-          <div class="stat-card space-card">
-            <div class="stat-icon">⭐</div>
-            <div class="stat-number">{{ stats.averageRating }}</div>
-            <div class="stat-label">Đánh giá TB</div>
-          </div>
-        </div>
+        <RecommendedProducts
+          :limit="12"
+          :enable-load-more="true"
+          :auto-refresh-interval="30"
+          container-class="home-recommendations"
+          @product-click="handleRecommendationClick"
+          @add-to-cart="handleAddToCart"
+          @add-to-wishlist="handleAddToWishlist"
+        />
       </div>
     </section>
 
-    <!-- Featured Products -->
+    <!-- Trending Section for Non-authenticated Users -->
+    <section class="trending-section" v-else>
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="trending-icon">🔥</span>
+            Sản phẩm Hot nhất
+          </h2>
+          <p class="section-subtitle">
+            Những sản phẩm được yêu thích nhất hiện tại
+          </p>
+        </div>
+        
+        <TrendingProducts
+          :limit="12"
+          @product-click="handleProductClick"
+          @add-to-cart="handleAddToCart"
+        />
+      </div>
+    </section>
+
+    <!-- Featured Products Section -->
     <section class="featured-section">
       <div class="container">
         <div class="section-header">
-          <h2>🌟 Sản phẩm nổi bật</h2>
-          <p>Những sản phẩm được yêu thích nhất trong vũ trụ</p>
-          <router-link to="/products?filter=featured" class="view-all">Xem tất cả →</router-link>
+          <h2 class="section-title">
+            <span class="featured-icon">⭐</span>
+            Sản phẩm nổi bật
+          </h2>
+          <p class="section-subtitle">
+            Được tuyển chọn đặc biệt bởi đội ngũ chuyên gia
+          </p>
         </div>
-        
-        <div class="products-slider" v-if="featuredProducts.length">
-          <div class="products-grid">
-            <div 
-              v-for="product in featuredProducts" 
-              :key="product.id" 
-              class="product-card space-card"
-              @click="viewProduct(product.id)"
-            >
-              <div class="product-image">
-                <img :src="product.images?.[0] || '/placeholder-product.jpg'" :alt="product.name" />
-                <div class="product-badges">
-                  <span v-if="product.isNew" class="badge badge-new">Mới</span>
-                  <span v-if="product.isBestSeller" class="badge badge-hot">Hot</span>
-                  <span v-if="product.discount" class="badge badge-sale">-{{ product.discount }}%</span>
-                </div>
-              </div>
-              <div class="product-info">
-                <h3 class="product-name">{{ product.name }}</h3>
-                <div class="product-price">
-                  <span class="current-price">{{ formatCurrency(product.price) }}</span>
-                  <span v-if="product.originalPrice" class="original-price">
-                    {{ formatCurrency(product.originalPrice) }}
-                  </span>
-                </div>
-                <div class="product-rating">
-                  <div class="stars">
-                    <span v-for="i in 5" :key="i" class="star" :class="[i <= product.rating ? 'filled' : '']">⭐</span>
-                  </div>
-                  <span class="rating-count">({{ product.reviewCount }})</span>
-                </div>
-                <button @click.stop="addToCart(product)" class="btn btn-primary btn-sm">
-                  🛒 Thêm vào giỏ
-                </button>
+
+        <!-- Loading State -->
+        <div v-if="loadingFeatured" class="loading-container">
+          <div class="loading-grid">
+            <div v-for="n in 8" :key="n" class="loading-card">
+              <div class="loading-image"></div>
+              <div class="loading-content">
+                <div class="loading-title"></div>
+                <div class="loading-price"></div>
+                <div class="loading-rating"></div>
               </div>
             </div>
           </div>
         </div>
 
-        <div v-else class="loading-products">
-          <div class="loading-spinner">🔄</div>
-          <p>Đang tải sản phẩm...</p>
+        <!-- Featured Products Grid -->
+        <div v-else class="products-grid">
+          <div
+            v-for="product in featuredProducts"
+            :key="product.id"
+            class="product-card"
+            @click="handleProductClick(product)"
+          >
+            <!-- Product badges -->
+            <div class="product-badges">
+              <span v-if="product.isNew" class="badge badge-new">Mới</span>
+              <span v-if="product.isHot" class="badge badge-hot">Hot</span>
+              <span v-if="product.discount > 0" class="badge badge-sale">
+                -{{ product.discount }}%
+              </span>
+            </div>
+
+            <!-- Product image -->
+            <div class="product-image-container">
+              <img
+                :src="product.imageUrl || '/api/placeholder/product'"
+                :alt="product.name"
+                class="product-image"
+                @error="handleImageError"
+                loading="lazy"
+              />
+              
+              <!-- Quick actions overlay -->
+              <div class="quick-actions">
+                <button
+                  @click.stop="toggleWishlist(product)"
+                  class="quick-action-btn"
+                  :class="{ 'active': isInWishlist(product.id) }"
+                  title="Yêu thích"
+                >
+                  {{ isInWishlist(product.id) ? '❤️' : '🤍' }}
+                </button>
+                
+                <button
+                  @click.stop="handleAddToCart(product)"
+                  class="quick-action-btn"
+                  title="Thêm vào giỏ hàng"
+                >
+                  🛒
+                </button>
+              </div>
+            </div>
+
+            <!-- Product info -->
+            <div class="product-info">
+              <div class="product-category">{{ product.category }}</div>
+              <h3 class="product-name">{{ truncate(product.name, 50) }}</h3>
+              
+              <div class="product-price">
+                <span class="current-price">{{ formatPrice(product.price) }}</span>
+                <span v-if="product.originalPrice && product.originalPrice > product.price" 
+                      class="original-price">
+                  {{ formatPrice(product.originalPrice) }}
+                </span>
+              </div>
+              
+              <div class="product-rating" v-if="product.rating">
+                <div class="stars">
+                  <span v-for="star in 5" :key="star" 
+                        class="star"
+                        :class="{ 'filled': star <= product.rating }">
+                    ⭐
+                  </span>
+                </div>
+                <span class="rating-count">({{ product.reviewCount || 0 }})</span>
+              </div>
+              
+              <button @click.stop="handleAddToCart(product)" class="btn btn-primary btn-sm">
+                🛒 Thêm vào giỏ
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- View All Button -->
+        <div class="section-footer">
+          <router-link to="/products" class="btn btn-outline btn-lg">
+            Xem tất cả sản phẩm →
+          </router-link>
         </div>
       </div>
     </section>
@@ -125,22 +238,27 @@
     <section class="categories-section">
       <div class="container">
         <div class="section-header">
-          <h2>🗂️ Danh mục phổ biến</h2>
-          <p>Khám phá các danh mục sản phẩm đa dạng</p>
+          <h2 class="section-title">
+            <span class="categories-icon">🏪</span>
+            Danh mục phổ biến
+          </h2>
+          <p class="section-subtitle">
+            Khám phá các danh mục sản phẩm đa dạng
+          </p>
         </div>
-        
+
         <div class="categories-grid">
-          <div 
-            v-for="category in popularCategories" 
+          <div
+            v-for="category in popularCategories"
             :key="category.id"
-            class="category-card space-card"
-            @click="viewCategory(category.slug)"
+            class="category-card"
+            @click="navigateToCategory(category)"
           >
             <div class="category-icon">{{ category.icon }}</div>
             <h3>{{ category.name }}</h3>
             <p>{{ category.productCount }} sản phẩm</p>
             <div class="category-overlay">
-              <span class="view-category">Xem danh mục</span>
+              <span class="view-category">Khám phá ngay</span>
             </div>
           </div>
         </div>
@@ -151,30 +269,35 @@
     <section class="features-section">
       <div class="container">
         <div class="section-header">
-          <h2>✨ Tại sao chọn Cosmic Marketplace?</h2>
-          <p>Những ưu điểm vượt trội mà chúng tôi mang lại</p>
+          <h2 class="section-title">
+            <span class="features-icon">✨</span>
+            Tại sao chọn chúng tôi?
+          </h2>
         </div>
-        
+
         <div class="features-grid">
-          <div class="feature-card space-card">
-            <div class="feature-icon">🚀</div>
-            <h3>Giao hàng siêu tốc</h3>
-            <p>Giao hàng nhanh như ánh sáng, đảm bảo sản phẩm đến tay bạn an toàn</p>
+          <div class="feature-card">
+            <div class="feature-icon">🤖</div>
+            <h3>AI Thông minh</h3>
+            <p>Đề xuất sản phẩm được cá nhân hóa dựa trên sở thích và hành vi mua sắm của bạn</p>
           </div>
-          <div class="feature-card space-card">
+          
+          <div class="feature-card">
+            <div class="feature-icon">🚚</div>
+            <h3>Giao hàng nhanh</h3>
+            <p>Giao hàng miễn phí toàn quốc cho đơn hàng từ 500.000đ trong vòng 1-3 ngày</p>
+          </div>
+          
+          <div class="feature-card">
             <div class="feature-icon">🛡️</div>
-            <h3>Bảo mật tuyệt đối</h3>
-            <p>Hệ thống bảo mật cấp ngân hàng, thông tin cá nhân được bảo vệ tối đa</p>
+            <h3>Bảo hành đáng tin cậy</h3>
+            <p>Chính sách đổi trả linh hoạt và bảo hành chính hãng cho tất cả sản phẩm</p>
           </div>
-          <div class="feature-card space-card">
-            <div class="feature-icon">💫</div>
-            <h3>Trải nghiệm độc đáo</h3>
-            <p>Giao diện hiện đại, dễ sử dụng với công nghệ AI hỗ trợ mua sắm thông minh</p>
-          </div>
-          <div class="feature-card space-card">
-            <div class="feature-icon">🎁</div>
-            <h3>Ưu đãi hấp dẫn</h3>
-            <p>Chương trình loyalty với điểm thưởng, khuyến mãi và quà tặng liên tục</p>
+          
+          <div class="feature-card">
+            <div class="feature-icon">💬</div>
+            <h3>Hỗ trợ 24/7</h3>
+            <p>Đội ngũ chăm sóc khách hàng chuyên nghiệp, hỗ trợ bạn mọi lúc mọi nơi</p>
           </div>
         </div>
       </div>
@@ -183,27 +306,22 @@
     <!-- Newsletter Section -->
     <section class="newsletter-section">
       <div class="container">
-        <div class="newsletter-content space-card">
-          <div class="newsletter-text">
-            <h2>📧 Đăng ký nhận tin</h2>
-            <p>Nhận thông báo về sản phẩm mới, ưu đãi đặc biệt và tin tức từ Cosmic Marketplace</p>
-          </div>
-          <div class="newsletter-form">
-            <form @submit.prevent="subscribeNewsletter">
-              <div class="input-group">
-                <input 
-                  v-model="newsletterEmail" 
-                  type="email" 
-                  placeholder="Nhập email của bạn..."
-                  class="form-input"
-                  required
-                />
-                <button type="submit" class="btn btn-primary" :disabled="subscribing">
-                  {{ subscribing ? '📤 Đang gửi...' : '📤 Đăng ký' }}
-                </button>
-              </div>
-            </form>
-          </div>
+        <div class="newsletter-content">
+          <h2>🌟 Đăng ký nhận thông tin ưu đãi</h2>
+          <p>Nhận thông báo về sản phẩm mới và các chương trình khuyến mãi hấp dẫn</p>
+          
+          <form @submit.prevent="subscribeNewsletter" class="newsletter-form">
+            <input
+              v-model="newsletterEmail"
+              type="email"
+              placeholder="Nhập email của bạn"
+              class="newsletter-input"
+              required
+            />
+            <button type="submit" class="newsletter-btn" :disabled="subscribing">
+              {{ subscribing ? 'Đang đăng ký...' : 'Đăng ký' }}
+            </button>
+          </form>
         </div>
       </div>
     </section>
@@ -211,183 +329,273 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useCartStore } from '@/stores/cart'
-import { productAPI, categoryAPI } from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
+import { useUserStore } from '@/stores/user'
+import { productAPI } from '@/services/api'
+import RecommendedProducts from '@/components/RecommendedProducts.vue'
+import TrendingProducts from '@/components/TrendingProducts.vue'
+import recommendationService from '@/services/recommendationService'
 
 export default {
   name: 'Home',
+  components: {
+    RecommendedProducts,
+    TrendingProducts
+  },
+  
   setup() {
     const router = useRouter()
-    const cartStore = useCartStore()
+    const authStore = useAuthStore()
+    const userStore = useUserStore()
     
-    // Reactive data
-    const featuredProducts = ref([])
-    const popularCategories = ref([])
+    // Reactive state
+    const heroSearchQuery = ref('')
     const newsletterEmail = ref('')
     const subscribing = ref(false)
-    const loading = ref(true)
+    const loadingFeatured = ref(false)
+    const featuredProducts = ref([])
     
-    // Stats data
-    const stats = ref({
-      totalProducts: 12847,
-      totalUsers: 48291,
-      totalOrders: 156739,
-      averageRating: 4.8
-    })
+    // Mock data for demo
+    const totalProducts = ref(12547)
+    const totalUsers = ref(45230)
+    const totalOrders = ref(98765)
     
-    // Methods
-    const formatCurrency = (amount) => {
-      return new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND'
-      }).format(amount)
-    }
+    const quickSuggestions = ref([
+      'iPhone 15', 'MacBook Air', 'AirPods Pro', 'iPad', 'Apple Watch'
+    ])
     
-    const viewProduct = (productId) => {
-      router.push(`/products/${productId}`)
-    }
+    const popularCategories = ref([
+      { id: 1, name: 'Điện tử', icon: '📱', productCount: 1234 },
+      { id: 2, name: 'Thời trang', icon: '👗', productCount: 2156 },
+      { id: 3, name: 'Nhà cửa', icon: '🏠', productCount: 987 },
+      { id: 4, name: 'Thể thao', icon: '⚽', productCount: 654 },
+      { id: 5, name: 'Sách', icon: '📚', productCount: 876 },
+      { id: 6, name: 'Làm đẹp', icon: '💄', productCount: 543 }
+    ])
     
-    const viewCategory = (categorySlug) => {
-      router.push(`/products?category=${categorySlug}`)
-    }
-    
-    const addToCart = async (product) => {
+    // Load featured products
+    const loadFeaturedProducts = async () => {
+      loadingFeatured.value = true
+      
       try {
-        await cartStore.addItem(product.id, 1)
-        // Show success notification
-        alert('Đã thêm sản phẩm vào giỏ hàng!')
+        const response = await productAPI.getFeatured()
+        featuredProducts.value = response.data || []
+        
+        // Track featured products loaded
+        recommendationService.trackInteraction(null, 'FEATURED_PRODUCTS_LOADED', {
+          count: featuredProducts.value.length,
+          source: 'home_page'
+        })
+        
       } catch (error) {
-        console.error('Error adding to cart:', error)
-        alert('Có lỗi xảy ra khi thêm vào giỏ hàng')
+        console.error('Error loading featured products:', error)
+        featuredProducts.value = []
+      } finally {
+        loadingFeatured.value = false
       }
     }
     
-    const subscribeNewsletter = async () => {
-      if (!newsletterEmail.value) return
+    // Handle hero search
+    const performHeroSearch = () => {
+      if (heroSearchQuery.value.trim()) {
+        // Track search
+        recommendationService.trackSearch(heroSearchQuery.value.trim(), 0)
+        
+        // Navigate to search results
+        router.push({
+          name: 'Products',
+          query: { search: heroSearchQuery.value.trim() }
+        })
+      }
+    }
+    
+    // Handle search suggestion click
+    const searchSuggestion = (suggestion) => {
+      heroSearchQuery.value = suggestion
+      performHeroSearch()
+    }
+    
+    // Handle recommendation click
+    const handleRecommendationClick = (data) => {
+      const { product, index } = data
       
-      subscribing.value = true
+      // Additional tracking for recommendations from home page
+      recommendationService.trackInteraction(product.id, 'RECOMMENDATION_CLICK', {
+        source: 'home_page',
+        position: index,
+        section: 'personal_recommendations'
+      })
+    }
+    
+    // Handle product click
+    const handleProductClick = (product) => {
+      // Track product view
+      recommendationService.trackView(product.id, 'featured_products')
+      
+      // Navigate to product detail
+      router.push(`/products/${product.id}`)
+    }
+    
+    // Handle add to cart
+    const handleAddToCart = async (product) => {
       try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        alert('Đăng ký nhận tin thành công!')
-        newsletterEmail.value = ''
+        // Track add to cart
+        await recommendationService.trackAddToCart(product.id, 1)
+        
+        // TODO: Add actual cart logic here
+        console.log('Added to cart:', product.name)
+        
+        // Show success notification
+        // TODO: Add notification system
+        
       } catch (error) {
-        console.error('Newsletter subscription error:', error)
-        alert('Có lỗi xảy ra khi đăng ký')
+        console.error('Error adding to cart:', error)
+      }
+    }
+    
+    // Handle add to wishlist
+    const handleAddToWishlist = async (product) => {
+      try {
+        // Track wishlist action
+        await recommendationService.trackInteraction(product.id, 'ADD_TO_WISHLIST', {
+          source: 'home_page'
+        })
+        
+        // TODO: Add actual wishlist logic here
+        console.log('Added to wishlist:', product.name)
+        
+      } catch (error) {
+        console.error('Error adding to wishlist:', error)
+      }
+    }
+    
+    // Toggle wishlist
+    const toggleWishlist = async (product) => {
+      await handleAddToWishlist(product)
+    }
+    
+    // Navigate to category
+    const navigateToCategory = (category) => {
+      // Track category click
+      recommendationService.trackInteraction(null, 'CATEGORY_CLICK', {
+        categoryId: category.id,
+        categoryName: category.name,
+        source: 'home_page'
+      })
+      
+      router.push(`/categories/${category.id}`)
+    }
+    
+    // Newsletter subscription
+    const subscribeNewsletter = async () => {
+      subscribing.value = true
+      
+      try {
+        // TODO: Add actual newsletter subscription logic
+        await new Promise(resolve => setTimeout(resolve, 1000)) // Mock delay
+        
+        // Track newsletter subscription
+        recommendationService.trackInteraction(null, 'NEWSLETTER_SUBSCRIBE', {
+          email: newsletterEmail.value,
+          source: 'home_page'
+        })
+        
+        // Reset form
+        newsletterEmail.value = ''
+        
+        // Show success message
+        alert('Đăng ký thành công! Cảm ơn bạn đã quan tâm.')
+        
+      } catch (error) {
+        console.error('Error subscribing to newsletter:', error)
+        alert('Có lỗi xảy ra. Vui lòng thử lại sau.')
       } finally {
         subscribing.value = false
       }
     }
     
-    const loadFeaturedProducts = async () => {
-      try {
-        // Mock data - replace with real API call
-        featuredProducts.value = [
-          {
-            id: 1,
-            name: 'Smartphone Galaxy Cosmic',
-            price: 15990000,
-            originalPrice: 18990000,
-            discount: 15,
-            rating: 4.8,
-            reviewCount: 342,
-            images: ['/placeholder-product.jpg'],
-            isNew: true,
-            isBestSeller: true
-          },
-          {
-            id: 2,
-            name: 'Laptop Gaming Nebula',
-            price: 25990000,
-            rating: 4.7,
-            reviewCount: 189,
-            images: ['/placeholder-product.jpg'],
-            isNew: false,
-            isBestSeller: true
-          },
-          {
-            id: 3,
-            name: 'Tai nghe Wireless Stellar',
-            price: 2990000,
-            originalPrice: 3990000,
-            discount: 25,
-            rating: 4.9,
-            reviewCount: 567,
-            images: ['/placeholder-product.jpg'],
-            isNew: true,
-            isBestSeller: false
-          },
-          {
-            id: 4,
-            name: 'Đồng hồ thông minh Aurora',
-            price: 5990000,
-            rating: 4.6,
-            reviewCount: 234,
-            images: ['/placeholder-product.jpg'],
-            isNew: false,
-            isBestSeller: false
-          }
-        ]
-      } catch (error) {
-        console.error('Error loading featured products:', error)
-      }
+    // Helper functions
+    const formatPrice = (price) => {
+      return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+      }).format(price)
     }
     
-    const loadPopularCategories = async () => {
-      try {
-        // Mock data - replace with real API call
-        popularCategories.value = [
-          { id: 1, name: 'Điện tử', slug: 'electronics', icon: '📱', productCount: 1247 },
-          { id: 2, name: 'Thời trang', slug: 'fashion', icon: '👗', productCount: 892 },
-          { id: 3, name: 'Gia đình', slug: 'home', icon: '🏠', productCount: 654 },
-          { id: 4, name: 'Sách', slug: 'books', icon: '📚', productCount: 423 },
-          { id: 5, name: 'Thể thao', slug: 'sports', icon: '⚽', productCount: 567 },
-          { id: 6, name: 'Làm đẹp', slug: 'beauty', icon: '💄', productCount: 389 }
-        ]
-      } catch (error) {
-        console.error('Error loading categories:', error)
-      }
+    const formatNumber = (number) => {
+      return new Intl.NumberFormat('vi-VN').format(number)
+    }
+    
+    const truncate = (text, length) => {
+      if (!text) return ''
+      return text.length > length ? text.slice(0, length) + '...' : text
+    }
+    
+    const handleImageError = (event) => {
+      event.target.src = '/api/placeholder/product'
+    }
+    
+    const isInWishlist = (productId) => {
+      return userStore.wishlist?.some(item => item.id === productId) || false
     }
     
     // Lifecycle
-    onMounted(async () => {
-      try {
-        await Promise.all([
-          loadFeaturedProducts(),
-          loadPopularCategories()
-        ])
-      } finally {
-        loading.value = false
-      }
+    onMounted(() => {
+      loadFeaturedProducts()
+      
+      // Track home page view
+      recommendationService.trackInteraction(null, 'HOME_PAGE_VIEW', {
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent
+      })
     })
     
     return {
-      featuredProducts,
-      popularCategories,
+      // Stores
+      authStore,
+      userStore,
+      
+      // State
+      heroSearchQuery,
       newsletterEmail,
       subscribing,
-      loading,
-      stats,
-      formatCurrency,
-      viewProduct,
-      viewCategory,
-      addToCart,
-      subscribeNewsletter
+      loadingFeatured,
+      featuredProducts,
+      totalProducts,
+      totalUsers,
+      totalOrders,
+      quickSuggestions,
+      popularCategories,
+      
+      // Methods
+      performHeroSearch,
+      searchSuggestion,
+      handleRecommendationClick,
+      handleProductClick,
+      handleAddToCart,
+      handleAddToWishlist,
+      toggleWishlist,
+      navigateToCategory,
+      subscribeNewsletter,
+      
+      // Helpers
+      formatPrice,
+      formatNumber,
+      truncate,
+      handleImageError,
+      isInWishlist
     }
   }
 }
 </script>
 
 <style scoped>
-.home-page {
-  min-height: 100vh;
-}
-
 /* Hero Section */
-.hero {
-  padding: 100px 0;
+.hero-section {
+  background: var(--space-gradient);
+  padding: 4rem 0 6rem;
   position: relative;
   overflow: hidden;
 }
@@ -395,21 +603,25 @@ export default {
 .hero-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 60px;
+  gap: 4rem;
   align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
+  min-height: 500px;
+}
+
+.hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
 .hero-title {
   font-size: 3.5rem;
   font-weight: 700;
-  line-height: 1.2;
-  margin-bottom: 24px;
+  line-height: 1.1;
   color: var(--text-primary);
 }
 
-.text-gradient {
+.gradient-text {
   background: var(--aurora-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -417,225 +629,299 @@ export default {
 }
 
 .hero-subtitle {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   color: var(--text-secondary);
   line-height: 1.6;
-  margin-bottom: 40px;
 }
 
-.hero-actions {
+.hero-search {
   display: flex;
-  gap: 20px;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.search-container {
+  display: flex;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 25px;
+  padding: 0.5rem;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.hero-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1rem;
+  padding: 0.75rem 1.5rem;
+}
+
+.hero-search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.hero-search-input:focus {
+  outline: none;
+}
+
+.hero-search-btn {
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hero-search-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+}
+
+.quick-suggestions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 
-.btn-large {
-  padding: 16px 32px;
-  font-size: 1.1rem;
-  border-radius: 50px;
+.suggestions-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.suggestions-list {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.suggestion-tag {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.suggestion-tag:hover {
+  background: var(--text-accent);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.hero-stats {
+  display: flex;
+  gap: 2rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-accent);
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
 }
 
 /* Hero Visual */
 .hero-visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   position: relative;
-  height: 400px;
+}
+
+.cosmic-animation {
+  position: relative;
+  width: 300px;
+  height: 300px;
+}
+
+.main-planet {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 4rem;
+  animation: rotate 20s linear infinite;
+}
+
+.orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.orbit-1 {
+  width: 120px;
+  height: 120px;
+  animation: rotate 10s linear infinite;
+}
+
+.orbit-2 {
+  width: 180px;
+  height: 180px;
+  animation: rotate 15s linear infinite reverse;
+}
+
+.orbit-3 {
+  width: 240px;
+  height: 240px;
+  animation: rotate 25s linear infinite;
+}
+
+.satellite {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.5rem;
+}
+
+@keyframes rotate {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Sections */
+.recommendations-section,
+.trending-section,
+.featured-section,
+.categories-section,
+.features-section {
+  padding: 4rem 0;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.section-title {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.floating-elements {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.planet {
-  position: absolute;
-  font-size: 4rem;
-  animation: float 6s ease-in-out infinite;
-}
-
-.planet-1 {
-  top: 10%;
-  left: 20%;
-  animation-delay: 0s;
-}
-
-.planet-2 {
-  top: 50%;
-  right: 10%;
-  animation-delay: 2s;
-}
-
-.planet-3 {
-  bottom: 20%;
-  left: 50%;
-  animation-delay: 4s;
-}
-
-.star {
-  position: absolute;
-  font-size: 1.5rem;
-  animation: twinkle 3s ease-in-out infinite;
-}
-
-.star-1 {
-  top: 15%;
-  right: 30%;
-  animation-delay: 0.5s;
-}
-
-.star-2 {
-  top: 70%;
-  left: 10%;
-  animation-delay: 1.5s;
-}
-
-.star-3 {
-  top: 30%;
-  left: 70%;
-  animation-delay: 2.5s;
-}
-
-.star-4 {
-  bottom: 10%;
-  right: 50%;
-  animation-delay: 3.5s;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(5deg); }
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.2); }
-}
-
-/* Stats Section */
-.stats-section {
-  padding: 80px 0;
-  background: rgba(26, 26, 46, 0.5);
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 30px;
-}
-
-.stat-card {
-  text-align: center;
-  padding: 40px 20px;
-  transition: transform 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-5px);
-}
-
-.stat-icon {
-  font-size: 3rem;
-  margin-bottom: 20px;
-}
-
-.stat-number {
+  gap: 0.5rem;
   font-size: 2.5rem;
   font-weight: 700;
-  color: var(--text-accent);
-  margin-bottom: 10px;
-}
-
-.stat-label {
-  color: var(--text-secondary);
-  font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-/* Section Headers */
-.section-header {
-  text-align: center;
-  margin-bottom: 60px;
-  position: relative;
-}
-
-.section-header h2 {
-  font-size: 2.5rem;
   color: var(--text-primary);
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
-.section-header p {
+.section-subtitle {
   font-size: 1.1rem;
   color: var(--text-secondary);
-  margin-bottom: 20px;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.view-all {
-  color: var(--text-accent);
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.3s ease;
+/* Loading States */
+.loading-container {
+  padding: 2rem 0;
 }
 
-.view-all:hover {
-  color: var(--text-primary);
+.loading-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
 }
 
-/* Featured Products */
-.featured-section {
-  padding: 80px 0;
+.loading-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 212, 255, 0.1);
 }
 
+.loading-image {
+  width: 100%;
+  height: 200px;
+  background: linear-gradient(90deg, rgba(0,212,255,0.1) 25%, rgba(0,212,255,0.2) 50%, rgba(0,212,255,0.1) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.loading-content {
+  padding: 1rem;
+}
+
+.loading-title,
+.loading-price,
+.loading-rating {
+  height: 1rem;
+  background: linear-gradient(90deg, rgba(0,212,255,0.1) 25%, rgba(0,212,255,0.2) 50%, rgba(0,212,255,0.1) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
+
+.loading-title { width: 80%; }
+.loading-price { width: 60%; }
+.loading-rating { width: 70%; }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Products Grid */
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
 }
 
 .product-card {
-  cursor: pointer;
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 12px;
   overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
 }
 
 .product-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-}
-
-.product-image {
-  position: relative;
-  height: 200px;
-  overflow: hidden;
-  border-radius: 12px 12px 0 0;
-}
-
-.product-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.product-card:hover .product-image img {
-  transform: scale(1.1);
+  border-color: var(--text-accent);
+  box-shadow: 0 20px 40px rgba(0, 212, 255, 0.2);
 }
 
 .product-badges {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 1rem;
+  left: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.25rem;
+  z-index: 10;
 }
 
 .badge {
-  padding: 4px 8px;
+  padding: 0.25rem 0.5rem;
   border-radius: 12px;
   font-size: 0.7rem;
   font-weight: 600;
@@ -657,20 +943,84 @@ export default {
   color: var(--space-black);
 }
 
+.product-image-container {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.05);
+}
+
+.quick-actions {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.product-card:hover .quick-actions {
+  opacity: 1;
+}
+
+.quick-action-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+.quick-action-btn:hover,
+.quick-action-btn.active {
+  background: var(--text-accent);
+  color: white;
+  transform: scale(1.1);
+}
+
 .product-info {
-  padding: 20px;
+  padding: 1.5rem;
+}
+
+.product-category {
+  color: var(--text-accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
 }
 
 .product-name {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 12px;
+  margin-bottom: 1rem;
   line-height: 1.3;
 }
 
 .product-price {
-  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .current-price {
@@ -683,14 +1033,13 @@ export default {
   font-size: 0.9rem;
   color: var(--text-secondary);
   text-decoration: line-through;
-  margin-left: 8px;
 }
 
 .product-rating {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .stars {
@@ -713,26 +1062,25 @@ export default {
 }
 
 .btn-sm {
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   font-size: 0.9rem;
   width: 100%;
 }
 
-/* Categories Section */
-.categories-section {
-  padding: 80px 0;
-  background: rgba(26, 26, 46, 0.3);
-}
-
+/* Categories Grid */
 .categories-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 30px;
+  gap: 2rem;
 }
 
 .category-card {
   text-align: center;
-  padding: 40px 20px;
+  padding: 3rem 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 12px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -741,17 +1089,19 @@ export default {
 
 .category-card:hover {
   transform: translateY(-5px);
+  border-color: var(--text-accent);
+  box-shadow: 0 15px 30px rgba(0, 212, 255, 0.2);
 }
 
 .category-icon {
   font-size: 4rem;
-  margin-bottom: 20px;
+  margin-bottom: 1.5rem;
 }
 
 .category-card h3 {
   font-size: 1.3rem;
   color: var(--text-primary);
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .category-card p {
@@ -784,36 +1134,37 @@ export default {
   letter-spacing: 1px;
 }
 
-/* Features Section */
-.features-section {
-  padding: 80px 0;
-}
-
+/* Features Grid */
 .features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 30px;
+  gap: 2rem;
 }
 
 .feature-card {
   text-align: center;
-  padding: 40px 20px;
-  transition: transform 0.3s ease;
+  padding: 2.5rem 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 12px;
+  transition: all 0.3s ease;
 }
 
 .feature-card:hover {
   transform: translateY(-5px);
+  border-color: var(--text-accent);
 }
 
 .feature-icon {
-  font-size: 3.5rem;
-  margin-bottom: 24px;
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
 }
 
 .feature-card h3 {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   color: var(--text-primary);
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
 .feature-card p {
@@ -823,104 +1174,118 @@ export default {
 
 /* Newsletter Section */
 .newsletter-section {
-  padding: 80px 0;
-  background: rgba(26, 26, 46, 0.5);
+  background: rgba(0, 212, 255, 0.1);
+  padding: 4rem 0;
 }
 
 .newsletter-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
-  align-items: center;
-  padding: 60px;
-  max-width: 1000px;
+  text-align: center;
+  max-width: 600px;
   margin: 0 auto;
 }
 
-.newsletter-text h2 {
+.newsletter-content h2 {
   font-size: 2rem;
   color: var(--text-primary);
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
-.newsletter-text p {
+.newsletter-content p {
   color: var(--text-secondary);
-  line-height: 1.6;
+  margin-bottom: 2rem;
 }
 
-.input-group {
+.newsletter-form {
   display: flex;
-  gap: 12px;
+  gap: 1rem;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
-.input-group .form-input {
+.newsletter-input {
   flex: 1;
-  border-radius: 50px;
-  padding: 16px 24px;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 8px;
+  color: var(--text-primary);
 }
 
-.input-group .btn {
-  border-radius: 50px;
-  padding: 16px 24px;
-  white-space: nowrap;
+.newsletter-input::placeholder {
+  color: var(--text-secondary);
 }
 
-/* Loading States */
-.loading-products {
+.newsletter-btn {
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.newsletter-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+}
+
+.newsletter-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.section-footer {
   text-align: center;
-  padding: 60px 0;
+  margin-top: 3rem;
 }
 
-.loading-spinner {
-  font-size: 3rem;
-  margin-bottom: 20px;
-  animation: spin 2s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Responsive */
+/* Responsive Design */
 @media (max-width: 1024px) {
   .hero-content {
     grid-template-columns: 1fr;
+    gap: 3rem;
     text-align: center;
   }
   
-  .newsletter-content {
-    grid-template-columns: 1fr;
-    text-align: center;
+  .hero-title {
+    font-size: 3rem;
+  }
+  
+  .products-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   }
 }
 
 @media (max-width: 768px) {
-  .hero {
-    padding: 60px 0;
+  .hero-section {
+    padding: 2rem 0 4rem;
   }
   
   .hero-title {
     font-size: 2.5rem;
   }
   
-  .hero-actions {
-    justify-content: center;
+  .hero-subtitle {
+    font-size: 1rem;
   }
   
-  .section-header h2 {
+  .hero-stats {
+    justify-content: center;
+    gap: 1.5rem;
+  }
+  
+  .section-title {
     font-size: 2rem;
   }
   
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
   .products-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
   }
   
-  .input-group {
+  .newsletter-form {
     flex-direction: column;
   }
 }
@@ -930,17 +1295,28 @@ export default {
     font-size: 2rem;
   }
   
-  .hero-actions {
+  .section-title {
+    font-size: 1.5rem;
     flex-direction: column;
-    align-items: center;
+    gap: 0.25rem;
   }
   
-  .stats-grid {
+  .products-grid {
     grid-template-columns: 1fr;
   }
   
-  .newsletter-content {
-    padding: 40px 20px;
+  .categories-grid,
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .cosmic-animation {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .main-planet {
+    font-size: 3rem;
   }
 }
 </style>

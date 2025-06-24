@@ -1,15 +1,13 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:8080/api'
-
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
   }
 })
 
-// Request interceptor để thêm JWT token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
@@ -23,7 +21,6 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor để handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -36,38 +33,38 @@ api.interceptors.response.use(
   }
 )
 
-// Auth API
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
-  logout: () => api.post('/auth/logout')
+  logout: () => api.post('/auth/logout'),
+  refreshToken: () => api.post('/auth/refresh'),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, password) => api.post('/auth/reset-password', { token, password })
 }
 
-// Products API
 export const productAPI = {
   getAll: (params) => api.get('/products', { params }),
   getById: (id) => api.get(`/products/${id}`),
-  create: (product) => api.post('/products', product),
-  update: (id, product) => api.put(`/products/${id}`, product),
-  delete: (id) => api.delete(`/products/${id}`),
   getFeatured: () => api.get('/products/featured'),
-  getLatest: () => api.get('/products/latest'),
-  getBySeller: (sellerId) => api.get(`/products/seller/${sellerId}`)
+  getByCategory: (category) => api.get(`/products/category/${category}`),
+  create: (productData) => api.post('/products', productData),
+  update: (id, productData) => api.put(`/products/${id}`, productData),
+  delete: (id) => api.delete(`/products/${id}`),
+  uploadImage: (formData) => api.post('/products/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
 }
 
-// Categories API
 export const categoryAPI = {
   getAll: () => api.get('/categories'),
   getById: (id) => api.get(`/categories/${id}`),
-  create: (category) => api.post('/categories', category),
-  update: (id, category) => api.put(`/categories/${id}`, category),
-  delete: (id) => api.delete(`/categories/${id}`),
-  search: (query) => api.get(`/categories/search?q=${query}`)
+  create: (categoryData) => api.post('/categories', categoryData),
+  update: (id, categoryData) => api.put(`/categories/${id}`, categoryData),
+  delete: (id) => api.delete(`/categories/${id}`)
 }
 
-// Cart API
 export const cartAPI = {
-  get: () => api.get('/cart'),
+  getCart: () => api.get('/cart'),
   addItem: (productId, quantity) => api.post('/cart/add', { productId, quantity }),
   updateItem: (productId, quantity) => api.put('/cart/update', { productId, quantity }),
   removeItem: (productId) => api.delete(`/cart/remove/${productId}`),
@@ -75,7 +72,6 @@ export const cartAPI = {
   validate: () => api.get('/cart/validate')
 }
 
-// Orders API
 export const orderAPI = {
   create: (shippingAddress, billingAddress) => api.post('/orders/create', { shippingAddress, billingAddress }),
   getMyOrders: () => api.get('/orders/my-orders'),
@@ -84,9 +80,7 @@ export const orderAPI = {
   getSellerOrders: () => api.get('/orders/seller/my-orders')
 }
 
-// Profile API - MISSING ENDPOINTS ADDED
 export const profileAPI = {
-  // Basic profile
   getProfile: () => api.get('/profile'),
   updateProfile: (profileData) => api.put('/profile', profileData),
   uploadAvatar: (formData) => api.post('/profile/avatar', formData, {
@@ -94,84 +88,44 @@ export const profileAPI = {
   }),
   changePassword: (passwordData) => api.put('/profile/change-password', passwordData),
   
-  // User stats
   getUserStats: () => api.get('/profile/stats'),
   getPurchaseHistory: () => api.get('/profile/purchase-history'),
   getMyProducts: () => api.get('/profile/my-products'),
   
-  // Wishlist
   getWishlist: () => api.get('/profile/wishlist'),
   addToWishlist: (productId) => api.post('/profile/wishlist', { productId }),
   removeFromWishlist: (productId) => api.delete(`/profile/wishlist/${productId}`),
   
-  // Addresses
   getAddresses: () => api.get('/profile/addresses'),
   addAddress: (addressData) => api.post('/profile/addresses', addressData),
   updateAddress: (addressId, addressData) => api.put(`/profile/addresses/${addressId}`, addressData),
   deleteAddress: (addressId) => api.delete(`/profile/addresses/${addressId}`),
   setDefaultAddress: (addressId) => api.put(`/profile/addresses/${addressId}/default`),
   
-  // Payment methods
   getPaymentMethods: () => api.get('/profile/payment-methods'),
   addPaymentMethod: (paymentData) => api.post('/profile/payment-methods', paymentData),
-  deletePaymentMethod: (paymentMethodId) => api.delete(`/profile/payment-methods/${paymentMethodId}`),
-  setDefaultPaymentMethod: (paymentMethodId) => api.put(`/profile/payment-methods/${paymentMethodId}/default`),
-  
-  // Preferences
-  getPreferences: () => api.get('/profile/preferences'),
-  updatePreferences: (preferencesData) => api.put('/profile/preferences', preferencesData),
-  
-  // Two-factor authentication
-  enableTwoFactor: () => api.post('/profile/2fa/enable'),
-  disableTwoFactor: (data) => api.post('/profile/2fa/disable', data),
-  verifyTwoFactor: (data) => api.post('/profile/2fa/verify', data),
-  
-  // Account management
-  requestAccountDeletion: () => api.post('/profile/delete-request'),
-  cancelAccountDeletion: () => api.delete('/profile/delete-request'),
-  exportUserData: () => api.get('/profile/export'),
-  
-  // Notifications
-  getNotifications: () => api.get('/profile/notifications'),
-  markNotificationAsRead: (notificationId) => api.put(`/profile/notifications/${notificationId}/read`),
-  markAllNotificationsAsRead: () => api.put('/profile/notifications/read-all'),
-  
-  // Loyalty program
-  getLoyaltyPoints: () => api.get('/profile/loyalty'),
-  redeemLoyaltyPoints: (data) => api.post('/profile/loyalty/redeem', data)
+  updatePaymentMethod: (methodId, paymentData) => api.put(`/profile/payment-methods/${methodId}`, paymentData),
+  deletePaymentMethod: (methodId) => api.delete(`/profile/payment-methods/${methodId}`),
+  setDefaultPaymentMethod: (methodId) => api.put(`/profile/payment-methods/${methodId}/default`)
 }
 
-// Payment API
-export const paymentAPI = {
-  createIntent: (orderId) => api.post('/payments/create-intent', { orderId }),
-  confirm: (paymentIntentId) => api.post('/payments/confirm', { paymentIntentId }),
-  cancel: (paymentIntentId) => api.post('/payments/cancel', { paymentIntentId }),
-  getStatus: (paymentIntentId) => api.get(`/payments/status/${paymentIntentId}`)
-}
-
-// Admin API
 export const adminAPI = {
-  // Dashboard
   getDashboard: () => api.get('/admin/dashboard'),
   
-  // Users management
   getUsers: () => api.get('/admin/users'),
   toggleUserStatus: (userId) => api.put(`/admin/users/${userId}/toggle-status`),
   
-  // Products management  
   getProducts: () => api.get('/admin/products'),
   toggleProductStatus: (productId) => api.put(`/admin/products/${productId}/toggle-status`),
   deleteProduct: (productId) => api.delete(`/admin/products/${productId}`),
   
-  // Orders management
   getOrders: () => api.get('/admin/orders'),
   updateOrderStatus: (orderId, status) => api.put(`/admin/orders/${orderId}/status`, { status }),
   
-  // Analytics
+
   getAnalytics: (type) => api.get(`/admin/analytics/${type}`)
 }
 
-// Reviews API
 export const reviewAPI = {
   getByProduct: (productId) => api.get(`/reviews/product/${productId}`),
   getMyReviews: () => api.get('/reviews/my-reviews'),
@@ -182,19 +136,107 @@ export const reviewAPI = {
   getStats: (productId) => api.get(`/reviews/stats/${productId}`)
 }
 
-// Search API
 export const searchAPI = {
   products: (query, filters) => api.get('/search/products', { params: { q: query, ...filters } }),
   suggestions: (query) => api.get('/search/suggestions', { params: { q: query } })
 }
 
-// Recommendations API
 export const recommendationAPI = {
   forUser: (limit = 20) => api.get('/recommendations/for-you', { params: { limit } }),
+  
   similar: (productId, limit = 10) => api.get(`/recommendations/similar/${productId}`, { params: { limit } }),
-  trending: () => api.get('/recommendations/trending'),
-  crossSell: (productId) => api.get(`/recommendations/cross-sell/${productId}`),
-  trackInteraction: (data) => api.post('/recommendations/track', data)
+  
+  trending: (limit = 15) => api.get('/recommendations/trending', { params: { limit } }),
+  
+  crossSell: (productId, limit = 8) => api.get(`/recommendations/cross-sell/${productId}`, { params: { limit } }),
+  
+  category: (category, limit = 10) => api.get(`/recommendations/category/${category}`, { params: { limit } }),
+  
+  priceRange: (minPrice, maxPrice, limit = 15) => api.get('/recommendations/price-range', { 
+    params: { minPrice, maxPrice, limit } 
+  }),
+  
+  recentlyViewed: (limit = 10) => api.get('/recommendations/recently-viewed', { params: { limit } }),
+  
+  trackInteraction: (data) => api.post('/recommendations/track', data),
+  
+  refreshPreferences: () => api.post('/recommendations/refresh-preferences'),
+  
+  calculateSimilarities: () => api.post('/recommendations/admin/calculate-similarities')
+}
+
+export const chatAPI = {
+  createConversation: (otherUserId, productId) => api.post('/chat/conversations', { otherUserId, productId }),
+  getConversations: () => api.get('/chat/conversations'),
+  getMessages: (conversationId) => api.get(`/chat/conversations/${conversationId}/messages`),
+  markAsRead: (conversationId) => api.put(`/chat/conversations/${conversationId}/read`),
+  getUnreadCount: () => api.get('/chat/unread-count'),
+  deleteMessage: (messageId) => api.delete(`/chat/messages/${messageId}`),
+  
+}
+
+export const loyaltyAPI = {
+  getPoints: () => api.get('/loyalty/points'),
+  getHistory: () => api.get('/loyalty/history'),
+  getRewards: () => api.get('/loyalty/rewards'),
+  redeemReward: (rewardId) => api.post(`/loyalty/redeem/${rewardId}`),
+  getTier: () => api.get('/loyalty/tier'),
+  getLeaderboard: () => api.get('/loyalty/leaderboard')
+}
+
+export const uploadFile = async (file, type = 'image') => {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('type', type)
+  
+  return api.post('/files/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
+export const utils = {
+  formatPrice: (price, currency = 'VND') => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency
+    }).format(price)
+  },
+  
+  formatDate: (date, options = {}) => {
+    return new Date(date).toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      ...options
+    })
+  },
+  
+  debounce: (func, wait) => {
+    let timeout
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout)
+        func(...args)
+      }
+      clearTimeout(timeout)
+      timeout = setTimeout(later, wait)
+    }
+  },
+  
+  generateSlug: (name) => {
+    return name
+      .toLowerCase()
+      .replace(/[áàảãạâấầẩẫậăắằẳẵặ]/g, 'a')
+      .replace(/[éèẻẽẹêếềểễệ]/g, 'e')
+      .replace(/[íìỉĩị]/g, 'i')
+      .replace(/[óòỏõọôốồổỗộơớờởỡợ]/g, 'o')
+      .replace(/[úùủũụưứừửữự]/g, 'u')
+      .replace(/[ýỳỷỹỵ]/g, 'y')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+  }
 }
 
 export default api

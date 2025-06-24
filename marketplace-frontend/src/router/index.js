@@ -64,6 +64,16 @@ const routes = [
     component: () => import('@/views/Profile.vue'),
     meta: { requiresAuth: true }
   },
+  // NEW: Loyalty route - Phase 2 integration
+  {
+    path: '/loyalty',
+    name: 'Loyalty',
+    component: () => import('@/views/LoyaltyPage.vue'),
+    meta: { 
+      requiresAuth: true,
+      title: 'Chương trình Khách hàng Thân thiết'
+    }
+  },
   {
     path: '/admin',
     name: 'AdminDashboard',
@@ -107,7 +117,7 @@ const router = createRouter({
 })
 
 // Navigation guards
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
   // Check if route requires authentication
@@ -137,7 +147,48 @@ router.beforeEach((to, from, next) => {
     }
   }
   
+  // NEW: Initialize loyalty data when navigating to loyalty page
+  if (to.name === 'Loyalty' && authStore.isAuthenticated) {
+    try {
+      // Import loyalty store dynamically to avoid circular imports
+      const { useLoyaltyStore } = await import('@/stores/loyalty')
+      const loyaltyStore = useLoyaltyStore()
+      
+      // Initialize loyalty data if not already loaded
+      if (!loyaltyStore.userPoints.current) {
+        await loyaltyStore.initializeLoyalty()
+      }
+    } catch (error) {
+      console.error('Failed to initialize loyalty data:', error)
+      // Don't block navigation, just log the error
+    }
+  }
+  
+  // Set page title if provided in meta
+  if (to.meta.title) {
+    document.title = `${to.meta.title} - CosmicMarket`
+  } else {
+    document.title = 'CosmicMarket - Future Commerce'
+  }
+  
   next()
+})
+
+// NEW: After each navigation, track page views for analytics
+router.afterEach((to, from) => {
+  // Track page view for analytics (can be enhanced later)
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('config', 'GA_TRACKING_ID', {
+      page_title: to.meta.title || to.name,
+      page_location: window.location.href,
+      page_path: to.fullPath
+    })
+  }
+  
+  // Log navigation for debugging in development
+  if (import.meta.env.DEV) {
+    console.log(`🧭 Navigated from ${from.name || from.path} to ${to.name || to.path}`)
+  }
 })
 
 export default router
