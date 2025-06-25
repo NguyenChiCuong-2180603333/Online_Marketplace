@@ -2,26 +2,40 @@ package com.marketplace.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class RegisterRequest {
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email format is invalid")
+    @NotBlank(message = "Email là bắt buộc")
+    @Email(message = "Định dạng email không hợp lệ")
+    @Pattern(
+        regexp = "^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\\.[a-zA-Z]{2,}$",
+        message = "Email phải có định dạng hợp lệ với tên miền đầy đủ"
+    )
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    @NotBlank(message = "Mật khẩu là bắt buộc")
+    @Size(min = 8, message = "Mật khẩu phải có ít nhất 8 ký tự")
+    @Pattern(
+        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$",
+        message = "Mật khẩu phải chứa ít nhất 1 chữ thường, 1 chữ hoa và 1 số"
+    )
     private String password;
 
-    @NotBlank(message = "First name is required")
+    @NotBlank(message = "Tên là bắt buộc")
+    @Size(min = 2, max = 50, message = "Tên phải từ 2-50 ký tự")
     private String firstName;
 
-    @NotBlank(message = "Last name is required")
+    @NotBlank(message = "Họ là bắt buộc") 
+    @Size(min = 2, max = 50, message = "Họ phải từ 2-50 ký tự")
     private String lastName;
 
-    private String phone; // Optional
+    @Pattern(
+        regexp = "^(0|\\+84)[3-9]\\d{8}$",
+        message = "Số điện thoại phải là số Việt Nam hợp lệ"
+    )
+    private String phone;
 
-    // Constructors
     public RegisterRequest() {}
 
     public RegisterRequest(String email, String password, String firstName, String lastName) {

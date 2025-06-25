@@ -114,17 +114,14 @@ public class UserService implements UserDetailsService {
     public void changePassword(String userId, ChangePasswordRequest request) {
         User user = getUserById(userId);
 
-        // Verify current password
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new BadRequestException("Mật khẩu hiện tại không đúng");
         }
 
-        // Verify new password confirmation
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new BadRequestException("Mật khẩu xác nhận không khớp");
         }
 
-        // Check if new password is different from current
         if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
             throw new BadRequestException("Mật khẩu mới phải khác mật khẩu hiện tại");
         }
@@ -149,7 +146,6 @@ public class UserService implements UserDetailsService {
     }
 
     public List<User> searchUsers(String searchTerm) {
-        // Implement search functionality if needed
         return userRepository.findAll().stream()
                 .filter(user ->
                         user.getFirstName().toLowerCase().contains(searchTerm.toLowerCase()) ||
@@ -169,7 +165,6 @@ public class UserService implements UserDetailsService {
         stats.put("adminUsers", allUsers.stream().filter(u -> "ADMIN".equals(u.getRole())).count());
         stats.put("regularUsers", allUsers.stream().filter(u -> "USER".equals(u.getRole())).count());
 
-        // New users this month
         LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
         long newUsersThisMonth = allUsers.stream()
                 .filter(u -> u.getCreatedAt().isAfter(startOfMonth))
@@ -177,5 +172,9 @@ public class UserService implements UserDetailsService {
         stats.put("newUsersThisMonth", newUsersThisMonth);
 
         return stats;
+    }
+
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
     }
 }

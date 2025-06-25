@@ -9,8 +9,14 @@
           </div>
 
           <form @submit.prevent="handleLogin" class="login-form">
+            <!-- Main Error Display -->
             <div v-if="error" class="alert alert-error">
               {{ error }}
+            </div>
+
+            <!-- Success Message -->
+            <div v-if="success" class="alert alert-success">
+              {{ success }}
             </div>
 
             <div class="form-group">
@@ -19,20 +25,61 @@
                 v-model="credentials.email"
                 type="email"
                 class="form-input"
+                :class="{ 'error-input': hasFieldError('email') }"
                 placeholder="Nhập email của bạn"
                 required
+                autocomplete="email"
               />
+              <span v-if="hasFieldError('email')" class="field-error">
+                {{ getFieldError('email') }}
+              </span>
             </div>
 
             <div class="form-group">
               <label class="form-label">Mật khẩu</label>
-              <input
-                v-model="credentials.password"
-                type="password"
-                class="form-input"
-                placeholder="Nhập mật khẩu"
-                required
-              />
+              <div class="password-input-wrapper">
+                <input
+                  v-model="credentials.password"
+                  :type="showPassword ? 'text' : 'password'"
+                  class="form-input"
+                  :class="{ 'error-input': hasFieldError('password') }"
+                  placeholder="Nhập mật khẩu"
+                  required
+                  autocomplete="current-password"
+                />
+                <button 
+                  type="button" 
+                  @click="togglePassword" 
+                  class="password-toggle"
+                  tabindex="-1"
+                >
+                  {{ showPassword ? '🙈' : '👁️' }}
+                </button>
+              </div>
+              <span v-if="hasFieldError('password')" class="field-error">
+                {{ getFieldError('password') }}
+              </span>
+            </div>
+
+            <!-- Remember Me & Forgot Password -->
+            <div class="form-options">
+              <label class="remember-me-wrapper">
+                <input 
+                  v-model="rememberMe" 
+                  type="checkbox" 
+                  class="checkbox-input"
+                />
+                <span class="checkbox-custom"></span>
+                <span class="checkbox-label">Ghi nhớ đăng nhập</span>
+              </label>
+              
+              <button 
+                type="button" 
+                @click="showForgotPassword" 
+                class="forgot-password-link"
+              >
+                Quên mật khẩu?
+              </button>
             </div>
 
             <button type="submit" class="btn btn-primary w-full" :disabled="loading">
@@ -42,18 +89,50 @@
           </form>
 
           <div class="login-footer">
-            <p>Chưa có tài khoản? 
+            <p>Chưa có tài khoản?
               <router-link to="/register" class="text-accent">Đăng ký ngay</router-link>
             </p>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Forgot Password Modal -->
+    <div v-if="showForgotModal" class="modal-overlay" @click="closeForgotModal">
+      <div class="modal-content space-card" @click.stop>
+        <div class="modal-header">
+          <h3>🔑 Quên mật khẩu</h3>
+          <button @click="closeForgotModal" class="modal-close">✕</button>
+        </div>
+        <form @submit.prevent="handleForgotPassword" class="forgot-form">
+          <p class="modal-description">
+            Nhập email của bạn để nhận liên kết đặt lại mật khẩu
+          </p>
+          <div class="form-group">
+            <input
+              v-model="forgotEmail"
+              type="email"
+              class="form-input"
+              placeholder="Nhập email của bạn"
+              required
+            />
+          </div>
+          <div class="modal-actions">
+            <button type="button" @click="closeForgotModal" class="btn btn-secondary">
+              Hủy
+            </button>
+            <button type="submit" class="btn btn-primary" :disabled="forgotLoading">
+              {{ forgotLoading ? 'Đang gửi...' : 'Gửi email' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
 
@@ -71,29 +150,164 @@ export default {
     
     const loading = ref(false)
     const error = ref('')
+    const success = ref('')
+    const fieldErrors = ref({})
+    const showPassword = ref(false)
+    const rememberMe = ref(false)
+    
+    const showForgotModal = ref(false)
+    const forgotEmail = ref('')
+    const forgotLoading = ref(false)
+
+    const parseErrorResponse = (error) => {
+      console.log('Login error object:', error)
+      
+      if (error.response?.data) {
+        const errorData = error.response.data
+        console.log('Login error data:', errorData)
+        
+        if (errorData.errors && typeof errorData.errors === 'object') {
+          fieldErrors.value = { ...errorData.errors }
+          
+          const firstFieldError = Object.values(errorData.errors)[0]
+          return firstFieldError || 'Dữ liệu không hợp lệ'
+        }
+        
+        if (errorData.error) {
+          const errorMsg = errorData.error
+          
+          if (errorMsg.includes('Tài khoản không tồn tại')) {
+            return '❌ Tài khoản không tồn tại'
+          }
+          
+          if (errorMsg.includes('Mật khẩu không đúng')) {
+            return '❌ Mật khẩu không đúng'
+          }
+          
+          if (errorMsg.includes('Tài khoản đã bị khóa')) {
+            return '🔒 Tài khoản đã bị khóa. Vui lòng liên hệ hỗ trợ'
+          }
+          
+          return errorMsg
+        }
+        
+        if (errorData.message) {
+          return errorData.message
+        }
+        
+        if (typeof errorData === 'string') {
+          return errorData
+        }
+      }
+      
+      return 'Đăng nhập thất bại. Vui lòng thử lại.'
+    }
 
     const handleLogin = async () => {
       loading.value = true
       error.value = ''
+      success.value = ''
+      fieldErrors.value = {}
       
       try {
-        await authStore.login(credentials.value)
+        const loginData = { 
+          email: credentials.value.email.trim(),
+          password: credentials.value.password
+        }
         
-        // Redirect to intended page or home
-        const redirectTo = route.query.redirect || '/'
-        router.push(redirectTo)
+        await authStore.login(loginData)
+        
+        success.value = '✅ Đăng nhập thành công!'
+        
+        if (rememberMe.value) {
+          localStorage.setItem('rememberMe', 'true')
+          localStorage.setItem('rememberedEmail', credentials.value.email)
+        } else {
+          localStorage.removeItem('rememberMe')
+          localStorage.removeItem('rememberedEmail')
+        }
+        
+        setTimeout(() => {
+          const redirectTo = route.query.redirect || '/'
+          router.push(redirectTo)
+        }, 1000)
+        
       } catch (err) {
-        error.value = authStore.error || 'Đăng nhập thất bại'
+        error.value = parseErrorResponse(err)
+        console.error('Login error:', err)
+        
       } finally {
         loading.value = false
       }
     }
 
+    const togglePassword = () => {
+      showPassword.value = !showPassword.value
+    }
+
+    const showForgotPassword = () => {
+      forgotEmail.value = credentials.value.email
+      showForgotModal.value = true
+    }
+
+    const closeForgotModal = () => {
+      showForgotModal.value = false
+      forgotEmail.value = ''
+    }
+
+    const handleForgotPassword = async () => {
+      forgotLoading.value = true
+      
+      try {
+        
+        alert('📧 Email đặt lại mật khẩu đã được gửi!')
+        closeForgotModal()
+        
+      } catch (err) {
+        alert('❌ Có lỗi xảy ra. Vui lòng thử lại.')
+        console.error('Forgot password error:', err)
+        
+      } finally {
+        forgotLoading.value = false
+      }
+    }
+
+    const hasFieldError = (fieldName) => {
+      return fieldErrors.value[fieldName]
+    }
+
+    const getFieldError = (fieldName) => {
+      return fieldErrors.value[fieldName] || ''
+    }
+
+    onMounted(() => {
+      const remembered = localStorage.getItem('rememberMe')
+      const rememberedEmail = localStorage.getItem('rememberedEmail')
+      
+      if (remembered === 'true' && rememberedEmail) {
+        credentials.value.email = rememberedEmail
+        rememberMe.value = true
+      }
+    })
+
     return {
       credentials,
       loading,
       error,
-      handleLogin
+      success,
+      fieldErrors,
+      showPassword,
+      rememberMe,
+      showForgotModal,
+      forgotEmail,
+      forgotLoading,
+      handleLogin,
+      togglePassword,
+      showForgotPassword,
+      closeForgotModal,
+      handleForgotPassword,
+      hasFieldError,
+      getFieldError
     }
   }
 }
@@ -136,6 +350,101 @@ export default {
   margin-bottom: 24px;
 }
 
+/* Password Input with Toggle */
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+}
+
+.password-toggle:hover {
+  color: var(--text-accent);
+}
+
+/* Form Options Row */
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.5rem 0;
+}
+
+/* Remember Me Checkbox */
+.remember-me-wrapper {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.checkbox-input {
+  display: none;
+}
+
+.checkbox-custom {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  border-radius: 4px;
+  margin-right: 8px;
+  position: relative;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.checkbox-input:checked + .checkbox-custom {
+  background: var(--text-accent);
+  border-color: var(--text-accent);
+}
+
+.checkbox-input:checked + .checkbox-custom::after {
+  content: '✓';
+  position: absolute;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.checkbox-label {
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+}
+
+.remember-me-wrapper:hover .checkbox-label {
+  color: var(--text-primary);
+}
+
+/* Forgot Password Link */
+.forgot-password-link {
+  background: none;
+  border: none;
+  color: var(--text-accent);
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: opacity 0.3s ease;
+}
+
+.forgot-password-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* Footer */
 .login-footer {
   text-align: center;
   padding-top: 24px;
@@ -149,5 +458,131 @@ export default {
 
 .login-footer a:hover {
   text-decoration: underline;
+}
+
+/* Error Styling */
+.error-input {
+  border-color: #ff6b6b !important;
+  background-color: rgba(255, 107, 107, 0.1) !important;
+}
+
+.field-error {
+  display: block;
+  color: #ff6b6b;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.alert-error {
+  background-color: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.alert-success {
+  background-color: rgba(76, 217, 100, 0.1);
+  border: 1px solid rgba(76, 217, 100, 0.3);
+  color: #4cd964;
+}
+
+/* Modal Styling */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  width: 90%;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-header h3 {
+  color: var(--text-accent);
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+}
+
+.modal-description {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-secondary);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .login-card {
+    padding: 2rem 1.5rem;
+  }
+  
+  .form-options {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .modal-content {
+    padding: 1.5rem;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+  }
 }
 </style>

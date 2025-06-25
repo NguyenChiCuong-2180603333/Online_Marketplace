@@ -9,6 +9,7 @@
           </div>
 
           <form @submit.prevent="handleRegister" class="register-form">
+            <!-- Main Error Display -->
             <div v-if="error" class="alert alert-error">
               {{ error }}
             </div>
@@ -24,9 +25,13 @@
                   v-model="userData.lastName"
                   type="text"
                   class="form-input"
+                  :class="{ 'error-input': hasFieldError('lastName') }"
                   placeholder="Họ"
                   required
                 />
+                <span v-if="hasFieldError('lastName')" class="field-error">
+                  {{ getFieldError('lastName') }}
+                </span>
               </div>
 
               <div class="form-group">
@@ -35,9 +40,13 @@
                   v-model="userData.firstName"
                   type="text"
                   class="form-input"
+                  :class="{ 'error-input': hasFieldError('firstName') }"
                   placeholder="Tên"
                   required
                 />
+                <span v-if="hasFieldError('firstName')" class="field-error">
+                  {{ getFieldError('firstName') }}
+                </span>
               </div>
             </div>
 
@@ -47,9 +56,13 @@
                 v-model="userData.email"
                 type="email"
                 class="form-input"
+                :class="{ 'error-input': hasFieldError('email') }"
                 placeholder="Nhập email của bạn"
                 required
               />
+              <span v-if="hasFieldError('email')" class="field-error">
+                {{ getFieldError('email') }}
+              </span>
             </div>
 
             <div class="form-group">
@@ -58,8 +71,12 @@
                 v-model="userData.phone"
                 type="tel"
                 class="form-input"
+                :class="{ 'error-input': hasFieldError('phone') }"
                 placeholder="Số điện thoại"
               />
+              <span v-if="hasFieldError('phone')" class="field-error">
+                {{ getFieldError('phone') }}
+              </span>
             </div>
 
             <div class="form-group">
@@ -68,10 +85,14 @@
                 v-model="userData.password"
                 type="password"
                 class="form-input"
+                :class="{ 'error-input': hasFieldError('password') }"
                 placeholder="Mật khẩu (tối thiểu 6 ký tự)"
                 required
                 minlength="6"
               />
+              <span v-if="hasFieldError('password')" class="field-error">
+                {{ getFieldError('password') }}
+              </span>
             </div>
 
             <div class="form-group">
@@ -87,12 +108,12 @@
 
             <button type="submit" class="btn btn-primary w-full" :disabled="loading">
               <span v-if="loading">🔄 Đang đăng ký...</span>
-              <span v-else">⭐ Đăng ký ngay</span>
+              <span v-else>⭐ Đăng ký ngay</span>
             </button>
           </form>
 
           <div class="register-footer">
-            <p>Đã có tài khoản? 
+            <p>Đã có tài khoản?
               <router-link to="/login" class="text-accent">Đăng nhập ngay</router-link>
             </p>
           </div>
@@ -125,11 +146,50 @@ export default {
     const loading = ref(false)
     const error = ref('')
     const success = ref('')
+    const fieldErrors = ref({})
+
+    // Enhanced error parsing function
+    const parseErrorResponse = (error) => {
+      console.log('Full error object:', error)
+      
+      if (error.response?.data) {
+        const errorData = error.response.data
+        console.log('Error data:', errorData)
+        
+        // Case 1: Validation errors with 'errors' object
+        if (errorData.errors && typeof errorData.errors === 'object') {
+          fieldErrors.value = { ...errorData.errors }
+          
+          // Get first error message to display as main error
+          const firstFieldError = Object.values(errorData.errors)[0]
+          return firstFieldError || 'Dữ liệu không hợp lệ'
+        }
+        
+        // Case 2: Single error message
+        if (errorData.error) {
+          return errorData.error
+        }
+        
+        // Case 3: Message field
+        if (errorData.message) {
+          return errorData.message
+        }
+        
+        // Case 4: Direct string errors
+        if (typeof errorData === 'string') {
+          return errorData
+        }
+      }
+      
+      // Default fallback
+      return 'Đăng ký thất bại. Vui lòng thử lại.'
+    }
 
     const handleRegister = async () => {
       loading.value = true
       error.value = ''
       success.value = ''
+      fieldErrors.value = {}
 
       // Validate passwords match
       if (userData.value.password !== confirmPassword.value) {
@@ -145,11 +205,24 @@ export default {
         setTimeout(() => {
           router.push('/login')
         }, 2000)
+        
       } catch (err) {
-        error.value = authStore.error || 'Đăng ký thất bại'
+        error.value = parseErrorResponse(err)
+        console.error('Registration error:', err)
+        
       } finally {
         loading.value = false
       }
+    }
+
+    // Helper function to check if a field has error
+    const hasFieldError = (fieldName) => {
+      return fieldErrors.value[fieldName]
+    }
+
+    // Helper function to get field error message
+    const getFieldError = (fieldName) => {
+      return fieldErrors.value[fieldName] || ''
     }
 
     return {
@@ -158,7 +231,10 @@ export default {
       loading,
       error,
       success,
-      handleRegister
+      fieldErrors,
+      handleRegister,
+      hasFieldError,
+      getFieldError
     }
   }
 }
@@ -220,6 +296,39 @@ export default {
 
 .register-footer a:hover {
   text-decoration: underline;
+}
+
+/* Error styling */
+.error-input {
+  border-color: #ff6b6b !important;
+  background-color: rgba(255, 107, 107, 0.1) !important;
+}
+
+.field-error {
+  display: block;
+  color: #ff6b6b;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.alert-error {
+  background-color: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.alert-success {
+  background-color: rgba(76, 217, 100, 0.1);
+  border: 1px solid rgba(76, 217, 100, 0.3);
+  color: #4cd964;
 }
 
 @media (max-width: 768px) {

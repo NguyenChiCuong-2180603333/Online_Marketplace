@@ -3,6 +3,7 @@ package com.marketplace.service;
 import com.marketplace.dto.LoginRequest;
 import com.marketplace.dto.RegisterRequest;
 import com.marketplace.model.User;
+import com.marketplace.repository.UserRepository;
 import com.marketplace.security.JwtTokenProvider;
 import com.marketplace.security.UserPrincipal;
 import com.marketplace.exception.BadRequestException;
@@ -11,10 +12,12 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class AuthService {
@@ -27,6 +30,12 @@ public class AuthService {
 
     @Autowired
     private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private UserRepository userRepository;
 
     public User register(RegisterRequest registerRequest) {
         User user = new User();
@@ -41,18 +50,37 @@ public class AuthService {
 
     public Map<String, Object> login(LoginRequest loginRequest) {
         try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            loginRequest.getEmail(),
-                            loginRequest.getPassword()
-                    )
+            String email = loginRequest.getEmail().trim().toLowerCase();
+            String password = loginRequest.getPassword();
+
+            Optional<User> optionalUser = userRepository.findByEmail(email);
+            if (optionalUser.isEmpty()) {
+                throw new BadRequestException("Tài khoản không tồn tại");
+            }
+
+            User user = optionalUser.get();
+
+            if (!user.isEnabled()) {
+                throw new BadRequestException("Tài khoản đã bị khóa. Vui lòng liên hệ hỗ trợ");
+            }
+
+            if (!passwordEncoder.matches(password, user.getPassword())) {
+                throw new BadRequestException("Mật khẩu không đúng");
+            }
+
+            Authentication authentication = new UsernamePasswordAuthenticationToken(
+                    email, 
+                    password
             );
-
-            UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            
+            UserPrincipal userPrincipal = UserPrincipal.create(user);
+            authentication = new UsernamePasswordAuthenticationToken(
+                    userPrincipal, 
+                    password, 
+                    userPrincipal.getAuthorities()
+            );
+            
             String jwt = jwtTokenProvider.generateToken(authentication);
-
-            // Get user details
-            User user = userService.getUserByEmail(loginRequest.getEmail());
 
             Map<String, Object> response = new HashMap<>();
             response.put("token", jwt);
@@ -68,10 +96,13 @@ public class AuthService {
             response.put("message", "Đăng nhập thành công");
 
             return response;
-        } catch (BadCredentialsException e) {
-            throw new BadRequestException("Email hoặc mật khẩu không đúng");
+
+        } catch (BadRequestException e) {
+            throw e;
         } catch (Exception e) {
-            throw new BadRequestException("Đăng nhập thất bại: " + e.getMessage());
+            System.err.println("Unexpected login error: " + e.getMessage());
+            e.printStackTrace();
+            throw new BadRequestException("Đăng nhập thất bại. Vui lòng thử lại");
         }
     }
 }

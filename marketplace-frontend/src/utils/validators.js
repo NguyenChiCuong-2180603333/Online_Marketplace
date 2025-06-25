@@ -6,8 +6,40 @@ export const validateEmail = (email) => {
     return { isValid: false, message: 'Email là bắt buộc' }
   }
   
+  email = email.trim()
+  
+  if (!email.includes('@')) {
+    return { isValid: false, message: 'Email phải chứa ký tự @' }
+  }
+  
+  if ((email.match(/@/g) || []).length !== 1) {
+    return { isValid: false, message: 'Email chỉ được chứa một ký tự @' }
+  }
+  
+  const parts = email.split('@')
+  const [localPart, domainPart] = parts
+  
+  if (!localPart || localPart.length === 0) {
+    return { isValid: false, message: 'Email thiếu phần trước ký tự @' }
+  }
+  
+  if (!domainPart || domainPart.length === 0) {
+    return { isValid: false, message: 'Email thiếu tên miền sau ký tự @' }
+  }
+  
+  if (!domainPart.includes('.')) {
+    return { isValid: false, message: 'Email thiếu phần mở rộng (ví dụ: .com, .vn)' }
+  }
+  
+  const domainParts = domainPart.split('.')
+  const tld = domainParts[domainParts.length - 1]
+  
+  if (!tld || tld.length < 2 || !/^[a-zA-Z]+$/.test(tld)) {
+    return { isValid: false, message: 'Phần mở rộng email không hợp lệ (ví dụ: .com, .vn)' }
+  }
+  
   if (!VALIDATION_RULES.EMAIL.test(email)) {
-    return { isValid: false, message: ERROR_MESSAGES.EMAIL_INVALID }
+    return { isValid: false, message: 'Định dạng email không hợp lệ' }
   }
   
   return { isValid: true, message: '' }

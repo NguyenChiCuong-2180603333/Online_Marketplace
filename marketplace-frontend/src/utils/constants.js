@@ -83,7 +83,7 @@ export const FILE_UPLOAD = {
 
 
 export const VALIDATION_RULES = {
-  EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  EMAIL: /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/,
   PHONE_VN: /^(0|\+84)[3-9]\d{8}$/,
   PASSWORD_MIN_LENGTH: 8,
   USERNAME_MIN_LENGTH: 3,
