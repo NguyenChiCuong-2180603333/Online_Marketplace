@@ -90,7 +90,7 @@
 </template>
 
 <script>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted  } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import { useRouter } from 'vue-router'
@@ -119,19 +119,24 @@ export default {
         console.error('Logout error:', error)
       }
     }
+    
+    onMounted(() => {
+      authStore.initializeFromStorage()
 
-    // Load cart when app starts
     if (isAuthenticated.value) {
       cartStore.loadCart()
     }
+    })
 
     return {
+      authStore,
+      cartStore,
+      showUserMenu,
+      loading,
       isAuthenticated,
       isAdmin,
       userName,
       cartItemsCount,
-      showUserMenu,
-      loading,
       handleLogout
     }
   }

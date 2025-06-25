@@ -23,15 +23,34 @@ export const useAuthStore = defineStore('auth', {
       
       try {
         const response = await authAPI.login(credentials)
-        const { token, id, email, firstName, lastName, role } = response.data
+        console.log('🔍 Full login response:', response.data)
+
+        const { token, user } = response.data
+
+        if (!user || !user.role) {
+          throw new Error('Invalid user data from server')
+        }
+
+        console.log('👤 User data:', user) 
+        console.log('🔑 User role:', user.role) 
         
         this.token = token
-        this.user = { id, email, firstName, lastName, role }
+        this.user = {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          avatar: user.avatar || ''
+        }
         this.isAuthenticated = true
         
         localStorage.setItem('token', token)
         localStorage.setItem('user', JSON.stringify(this.user))
         
+        console.log('💾 Saved to localStorage:', this.user) 
+        console.log('🎯 Is Admin?', this.isAdmin) 
+
         return response.data
       } catch (error) {
         this.error = error.response?.data?.message || 'Đăng nhập thất bại'
@@ -60,7 +79,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         await authAPI.logout()
       } catch (error) {
-        // Ignore logout errors
+        console.warn('Logout API error (ignored):', error)
       } finally {
         this.token = null
         this.user = null
@@ -69,6 +88,27 @@ export const useAuthStore = defineStore('auth', {
         
         localStorage.removeItem('token')
         localStorage.removeItem('user')
+
+        console.log('Logged out successfully')
+      }
+    },
+
+    initializeFromStorage() {
+      const token = localStorage.getItem('token')
+      const userData = localStorage.getItem('user')
+      
+      if (token && userData) {
+        try {
+          this.token = token
+          this.user = JSON.parse(userData)
+          this.isAuthenticated = true
+          
+          console.log('Initialized from storage:', this.user)
+          console.log('Is Admin?', this.isAdmin)
+        } catch (error) {
+          console.error('Error parsing user data from storage:', error)
+          this.logout() 
+        }
       }
     },
 

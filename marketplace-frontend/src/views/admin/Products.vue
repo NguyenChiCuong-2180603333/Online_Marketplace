@@ -1,6 +1,7 @@
 <template>
   <div class="admin-products">
     <div class="container">
+      <!-- Header -->
       <div class="page-header">
         <div class="header-info">
           <h1>📦 Quản lý sản phẩm</h1>
@@ -45,8 +46,6 @@
             <option value="price-desc">Giá cao → thấp</option>
             <option value="stock">Tồn kho</option>
           </select>
-
-          <button @click="exportProducts" class="export-btn">📊 Xuất Excel</button>
         </div>
       </div>
 
@@ -92,8 +91,8 @@
         <div v-else-if="filteredProducts.length === 0" class="empty-state">
           <div class="empty-icon">📦</div>
           <h3>Không có sản phẩm nào</h3>
-          <p>Chưa có sản phẩm nào phù hợp với bộ lọc hiện tại</p>
-          <button @click="clearFilters" class="btn-clear">🔄 Xóa bộ lọc</button>
+          <p>Chưa có sản phẩm nào trong hệ thống. Hãy thêm sản phẩm đầu tiên!</p>
+          <button @click="showCreateModal = true" class="btn-add-first">➕ Thêm sản phẩm đầu tiên</button>
         </div>
 
         <div v-else class="products-table">
@@ -106,7 +105,6 @@
                 <th>Giá</th>
                 <th>Tồn kho</th>
                 <th>Trạng thái</th>
-                <th>Đánh giá</th>
                 <th>Ngày tạo</th>
                 <th>Hành động</th>
               </tr>
@@ -118,235 +116,107 @@
                     <img 
                       :src="product.images?.[0] || '/placeholder-product.jpg'" 
                       :alt="product.name"
-                      class="product-thumbnail"
                       @error="handleImageError"
-                    >
+                    />
                   </div>
                 </td>
-                
                 <td>
                   <div class="product-info">
                     <h4>{{ product.name }}</h4>
-                    <p class="product-description">{{ truncateText(product.description, 100) }}</p>
-                    <small class="product-id">ID: {{ product.id?.substring(0, 8) }}</small>
+                    <p>{{ truncateText(product.description, 100) }}</p>
+                    <span class="product-id">ID: {{ product.id }}</span>
                   </div>
                 </td>
-                
                 <td>
-                  <span class="category-badge">{{ product.category }}</span>
+                  <span class="category-tag">{{ product.category }}</span>
                 </td>
-                
                 <td>
-                  <div class="product-price">
-                    <strong>{{ formatCurrency(product.price) }}</strong>
+                  <div class="price-info">
+                    <span class="price">{{ formatCurrency(product.price) }}</span>
                   </div>
                 </td>
-                
                 <td>
                   <div class="stock-info">
-                    <span 
-                      class="stock-badge" 
-                      :class="getStockClass(product.stockQuantity)"
-                    >
+                    <span class="stock-number" :class="{ 'low-stock': product.stockQuantity <= 10 }">
                       {{ product.stockQuantity }}
                     </span>
-                    <small v-if="product.stockQuantity <= 10" class="low-stock-warning">
-                      ⚠️ Sắp hết
-                    </small>
+                    <span v-if="product.stockQuantity <= 10" class="low-stock-badge">⚠️ Ít</span>
                   </div>
                 </td>
-                
                 <td>
-                  <button 
-                    @click="toggleProductStatus(product)"
-                    class="status-toggle"
-                    :class="product.isActive ? 'status-active' : 'status-inactive'"
-                  >
+                  <span class="status-badge" :class="{ active: product.isActive, inactive: !product.isActive }">
                     {{ product.isActive ? '✅ Đang bán' : '❌ Ngừng bán' }}
-                  </button>
+                  </span>
                 </td>
-                
                 <td>
-                  <div class="rating-info">
-                    <div class="stars">
-                      <span>⭐ {{ product.averageRating?.toFixed(1) || '0.0' }}</span>
-                    </div>
-                    <small>({{ product.reviewCount || 0 }} đánh giá)</small>
+                  <div class="date-info">
+                    <span class="date">{{ formatDate(product.createdAt) }}</span>
                   </div>
                 </td>
-                
-                <td>
-                  <div class="created-date">
-                    <div>{{ formatDate(product.createdAt) }}</div>
-                    <small>{{ formatTime(product.createdAt) }}</small>
-                  </div>
-                </td>
-                
                 <td>
                   <div class="action-buttons">
-                    <button @click="viewProduct(product)" class="btn-view" title="Xem chi tiết">👁️</button>
-                    <button @click="editProduct(product)" class="btn-edit" title="Chỉnh sửa">✏️</button>
-                    <button @click="viewReviews(product.id)" class="btn-reviews" title="Xem đánh giá">💬</button>
-                    <button @click="deleteProduct(product)" class="btn-delete" title="Xóa sản phẩm">🗑️</button>
+                    <button @click="viewProduct(product)" class="btn btn-view" title="Xem chi tiết">👁️</button>
+                    <button @click="editProduct(product)" class="btn btn-edit" title="Chỉnh sửa">✏️</button>
+                    <button @click="toggleProductStatus(product)" class="btn btn-toggle" title="Bật/Tắt">
+                      {{ product.isActive ? '❌' : '✅' }}
+                    </button>
+                    <button @click="deleteProduct(product)" class="btn btn-delete" title="Xóa">🗑️</button>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-
-        <!-- Pagination -->
-        <div v-if="totalPages > 1" class="pagination">
-          <button 
-            @click="currentPage = 1" 
-            :disabled="currentPage === 1"
-            class="page-btn"
-          >
-            ⏪
-          </button>
-          <button 
-            @click="currentPage--" 
-            :disabled="currentPage === 1"
-            class="page-btn"
-          >
-            ◀️
-          </button>
-          
-          <span class="page-info">
-            Trang {{ currentPage }} / {{ totalPages }}
-          </span>
-          
-          <button 
-            @click="currentPage++" 
-            :disabled="currentPage === totalPages"
-            class="page-btn"
-          >
-            ▶️
-          </button>
-          <button 
-            @click="currentPage = totalPages" 
-            :disabled="currentPage === totalPages"
-            class="page-btn"
-          >
-            ⏩
-          </button>
-        </div>
       </div>
-    </div>
 
-    <!-- Product Detail Modal -->
-    <div v-if="selectedProduct" class="modal-overlay" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>Chi tiết sản phẩm</h2>
-          <button @click="closeModal" class="close-btn">✕</button>
-        </div>
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="pagination">
+        <button 
+          @click="currentPage = Math.max(1, currentPage - 1)" 
+          :disabled="currentPage === 1"
+          class="page-btn"
+        >
+          « Trước
+        </button>
         
-        <div class="modal-body">
-          <div class="product-detail">
-            <div class="product-images">
-              <div class="main-image">
-                <img :src="selectedProduct.images?.[0] || '/placeholder-product.jpg'" :alt="selectedProduct.name">
-              </div>
-              <div v-if="selectedProduct.images?.length > 1" class="image-gallery">
-                <img 
-                  v-for="(image, index) in selectedProduct.images" 
-                  :key="index"
-                  :src="image" 
-                  :alt="`${selectedProduct.name} ${index + 1}`"
-                  class="gallery-image"
-                >
-              </div>
-            </div>
-            
-            <div class="product-details">
-              <div class="detail-section">
-                <h3>📋 Thông tin cơ bản</h3>
-                <div class="detail-grid">
-                  <div class="detail-item">
-                    <label>Tên sản phẩm:</label>
-                    <span>{{ selectedProduct.name }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <label>Danh mục:</label>
-                    <span>{{ selectedProduct.category }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <label>Giá bán:</label>
-                    <span>{{ formatCurrency(selectedProduct.price) }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <label>Tồn kho:</label>
-                    <span>{{ selectedProduct.stockQuantity }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="detail-section">
-                <h3>📝 Mô tả</h3>
-                <p>{{ selectedProduct.description }}</p>
-              </div>
-
-              <div class="detail-section">
-                <h3>⭐ Đánh giá</h3>
-                <div class="rating-summary">
-                  <div class="rating-score">
-                    <span class="score">{{ selectedProduct.averageRating?.toFixed(1) || '0.0' }}</span>
-                    <div class="stars">⭐⭐⭐⭐⭐</div>
-                    <span>({{ selectedProduct.reviewCount || 0 }} đánh giá)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="detail-section">
-                <h3>📊 Thống kê</h3>
-                <div class="stats-row">
-                  <div class="stat-item">
-                    <span class="stat-number">{{ productStats.views || 0 }}</span>
-                    <span class="stat-label">Lượt xem</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-number">{{ productStats.orders || 0 }}</span>
-                    <span class="stat-label">Đã bán</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-number">{{ formatCurrency(productStats.revenue || 0) }}</span>
-                    <span class="stat-label">Doanh thu</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <span class="page-info">
+          Trang {{ currentPage }} / {{ totalPages }}
+        </span>
+        
+        <button 
+          @click="currentPage = Math.min(totalPages, currentPage + 1)" 
+          :disabled="currentPage === totalPages"
+          class="page-btn"
+        >
+          Sau »
+        </button>
       </div>
     </div>
 
     <!-- Create/Edit Product Modal -->
     <div v-if="showCreateModal || showEditModal" class="modal-overlay" @click="closeCreateEditModal">
-      <div class="modal-content create-edit-modal" @click.stop>
+      <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h2>{{ showCreateModal ? '➕ Thêm sản phẩm mới' : '✏️ Chỉnh sửa sản phẩm' }}</h2>
-          <button @click="closeCreateEditModal" class="close-btn">✕</button>
+          <h3>{{ showCreateModal ? '➕ Thêm sản phẩm mới' : '✏️ Chỉnh sửa sản phẩm' }}</h3>
+          <button @click="closeCreateEditModal" class="modal-close">✕</button>
         </div>
-        
         <div class="modal-body">
           <form @submit.prevent="submitProduct">
             <div class="form-grid">
               <div class="form-group">
-                <label for="productName">Tên sản phẩm *</label>
+                <label>Tên sản phẩm *</label>
                 <input 
-                  id="productName"
                   v-model="productForm.name" 
                   type="text" 
+                  placeholder="Nhập tên sản phẩm..."
                   required
-                  placeholder="Nhập tên sản phẩm"
                   class="form-input"
                 >
               </div>
 
               <div class="form-group">
-                <label for="productCategory">Danh mục *</label>
-                <select id="productCategory" v-model="productForm.category" required class="form-select">
+                <label>Danh mục *</label>
+                <select v-model="productForm.category" required class="form-select">
                   <option value="">Chọn danh mục</option>
                   <option v-for="category in categories" :key="category.id" :value="category.name">
                     {{ category.name }}
@@ -355,76 +225,110 @@
               </div>
 
               <div class="form-group">
-                <label for="productPrice">Giá bán *</label>
+                <label>Giá (VNĐ) *</label>
                 <input 
-                  id="productPrice"
                   v-model.number="productForm.price" 
                   type="number" 
-                  required
                   min="0"
+                  step="1000"
                   placeholder="0"
+                  required
                   class="form-input"
                 >
               </div>
 
               <div class="form-group">
-                <label for="productStock">Tồn kho *</label>
+                <label>Số lượng tồn kho *</label>
                 <input 
-                  id="productStock"
                   v-model.number="productForm.stockQuantity" 
                   type="number" 
-                  required
                   min="0"
                   placeholder="0"
+                  required
                   class="form-input"
                 >
               </div>
             </div>
 
             <div class="form-group">
-              <label for="productDescription">Mô tả sản phẩm *</label>
+              <label>Mô tả sản phẩm</label>
               <textarea 
-                id="productDescription"
                 v-model="productForm.description" 
-                required
-                placeholder="Nhập mô tả chi tiết về sản phẩm"
-                class="form-textarea"
+                placeholder="Nhập mô tả chi tiết về sản phẩm..."
                 rows="4"
+                class="form-textarea"
               ></textarea>
             </div>
 
             <div class="form-group">
-              <label for="productImages">Hình ảnh sản phẩm</label>
+              <label>Hình ảnh sản phẩm</label>
               <div class="image-upload">
                 <input 
-                  id="productImages"
+                  @change="handleImageUpload" 
                   type="file" 
                   multiple 
                   accept="image/*"
-                  @change="handleImageUpload"
                   class="file-input"
+                  id="image-upload"
                 >
-                <div class="upload-text">
-                  📷 Chọn hoặc kéo thả hình ảnh vào đây
-                </div>
-                <div class="image-preview" v-if="productForm.images?.length > 0">
-                  <div v-for="(image, index) in productForm.images" :key="index" class="preview-item">
-                    <img :src="image" :alt="`Preview ${index + 1}`">
-                    <button type="button" @click="removeImage(index)" class="remove-image">✕</button>
-                  </div>
+                <label for="image-upload" class="upload-btn">
+                  📷 Chọn hình ảnh
+                </label>
+                <p class="upload-hint">Có thể chọn nhiều hình ảnh</p>
+              </div>
+              
+              <div v-if="productForm.images.length" class="image-preview">
+                <div v-for="(image, index) in productForm.images" :key="index" class="preview-item">
+                  <img :src="image" :alt="`Preview ${index + 1}`">
+                  <button @click="removeImage(index)" type="button" class="remove-image">✕</button>
                 </div>
               </div>
             </div>
 
             <div class="form-actions">
-              <button type="button" @click="closeCreateEditModal" class="btn-cancel">
+              <button type="button" @click="closeCreateEditModal" class="btn btn-cancel">
                 Hủy
               </button>
-              <button type="submit" class="btn-submit" :disabled="submitting">
-                {{ submitting ? 'Đang lưu...' : (showCreateModal ? '➕ Thêm sản phẩm' : '💾 Cập nhật') }}
+              <button type="submit" :disabled="submitting" class="btn btn-primary">
+                {{ submitting ? '⏳ Đang lưu...' : (showCreateModal ? '➕ Thêm sản phẩm' : '💾 Cập nhật') }}
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Detail Modal -->
+    <div v-if="selectedProduct" class="modal-overlay" @click="selectedProduct = null">
+      <div class="modal-content detail-modal" @click.stop>
+        <div class="modal-header">
+          <h3>👁️ Chi tiết sản phẩm</h3>
+          <button @click="selectedProduct = null" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="product-detail">
+            <div class="detail-images">
+              <img 
+                :src="selectedProduct.images?.[0] || '/placeholder-product.jpg'" 
+                :alt="selectedProduct.name"
+              >
+            </div>
+            <div class="detail-info">
+              <h3>{{ selectedProduct.name }}</h3>
+              <p class="detail-category">📂 {{ selectedProduct.category }}</p>
+              <p class="detail-price">💰 {{ formatCurrency(selectedProduct.price) }}</p>
+              <p class="detail-stock">📦 Tồn kho: {{ selectedProduct.stockQuantity }}</p>
+              <p class="detail-status">
+                <span :class="{ active: selectedProduct.isActive, inactive: !selectedProduct.isActive }">
+                  {{ selectedProduct.isActive ? '✅ Đang bán' : '❌ Ngừng bán' }}
+                </span>
+              </p>
+              <div class="detail-description">
+                <h4>Mô tả:</h4>
+                <p>{{ selectedProduct.description || 'Chưa có mô tả' }}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -432,153 +336,157 @@
 </template>
 
 <script>
-import axios from 'axios'
+import { ref, computed, onMounted } from 'vue'
 
 export default {
   name: 'AdminProducts',
-  data() {
-    return {
-      products: [],
-      categories: [],
-      filteredProducts: [],
-      loading: true,
-      searchQuery: '',
-      statusFilter: '',
-      categoryFilter: '',
-      sortBy: 'newest',
-      currentPage: 1,
-      itemsPerPage: 12,
-      selectedProduct: null,
-      productStats: {},
-      showCreateModal: false,
-      showEditModal: false,
-      submitting: false,
-      productForm: {
-        id: null,
-        name: '',
-        category: '',
-        price: 0,
-        stockQuantity: 0,
-        description: '',
-        images: []
-      },
-      stats: {
-        total: 0,
-        active: 0,
-        inactive: 0,
-        lowStock: 0
-      }
+  setup() {
+    // Reactive data
+    const products = ref([])
+    const categories = ref([
+      { id: 1, name: 'Electronics' },
+      { id: 2, name: 'Fashion' },
+      { id: 3, name: 'Books' },
+      { id: 4, name: 'Home & Garden' },
+      { id: 5, name: 'Sports' }
+    ])
+    const filteredProducts = ref([])
+    const loading = ref(false)
+    const searchQuery = ref('')
+    const statusFilter = ref('')
+    const categoryFilter = ref('')
+    const sortBy = ref('newest')
+    const currentPage = ref(1)
+    const itemsPerPage = 12
+    const selectedProduct = ref(null)
+    const showCreateModal = ref(false)
+    const showEditModal = ref(false)
+    const submitting = ref(false)
+    
+    const productForm = ref({
+      id: null,
+      name: '',
+      category: '',
+      price: 0,
+      stockQuantity: 0,
+      description: '',
+      images: []
+    })
+    
+    const stats = ref({
+      total: 0,
+      active: 0,
+      inactive: 0,
+      lowStock: 0
+    })
+
+    // Computed
+    const paginatedProducts = computed(() => {
+      const start = (currentPage.value - 1) * itemsPerPage
+      const end = start + itemsPerPage
+      return filteredProducts.value.slice(start, end)
+    })
+
+    const totalPages = computed(() => {
+      return Math.ceil(filteredProducts.value.length / itemsPerPage)
+    })
+
+    // Methods
+    const loadProducts = () => {
+      loading.value = true
+      // Mock data for demo
+      setTimeout(() => {
+        products.value = [
+          {
+            id: 1,
+            name: 'iPhone 15 Pro Max',
+            category: 'Electronics',
+            price: 35000000,
+            stockQuantity: 25,
+            description: 'Điện thoại thông minh cao cấp từ Apple với chip A17 Pro',
+            images: ['/placeholder-product.jpg'],
+            isActive: true,
+            createdAt: new Date('2024-01-15')
+          },
+          {
+            id: 2,
+            name: 'Samsung Galaxy S24 Ultra',
+            category: 'Electronics',
+            price: 32000000,
+            stockQuantity: 8,
+            description: 'Flagship Android với bút S Pen và camera 200MP',
+            images: ['/placeholder-product.jpg'],
+            isActive: true,
+            createdAt: new Date('2024-01-20')
+          },
+          {
+            id: 3,
+            name: 'MacBook Pro M3',
+            category: 'Electronics',
+            price: 45000000,
+            stockQuantity: 3,
+            description: 'Laptop professional với chip M3 mạnh mẽ',
+            images: ['/placeholder-product.jpg'],
+            isActive: false,
+            createdAt: new Date('2024-01-10')
+          }
+        ]
+        filteredProducts.value = [...products.value]
+        calculateStats()
+        loading.value = false
+      }, 1000)
     }
-  },
-  computed: {
-    paginatedProducts() {
-      const start = (this.currentPage - 1) * this.itemsPerPage
-      const end = start + this.itemsPerPage
-      return this.filteredProducts.slice(start, end)
-    },
-    totalPages() {
-      return Math.ceil(this.filteredProducts.length / this.itemsPerPage)
+
+    const calculateStats = () => {
+      stats.value.total = products.value.length
+      stats.value.active = products.value.filter(p => p.isActive).length
+      stats.value.inactive = products.value.filter(p => !p.isActive).length
+      stats.value.lowStock = products.value.filter(p => p.stockQuantity <= 10).length
     }
-  },
-  async mounted() {
-    await this.loadProducts()
-    await this.loadCategories()
-    this.calculateStats()
-  },
-  methods: {
-    async loadProducts() {
-      try {
-        this.loading = true
-        const response = await axios.get('/api/admin/products', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-        
-        this.products = response.data
-        this.filteredProducts = [...this.products]
-      } catch (error) {
-        console.error('Lỗi khi tải sản phẩm:', error)
-        this.showToast('Không thể tải danh sách sản phẩm', 'error')
-      } finally {
-        this.loading = false
+
+    const filterProducts = () => {
+      let filtered = [...products.value]
+
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        filtered = filtered.filter(product => 
+          product.name.toLowerCase().includes(query) ||
+          product.description.toLowerCase().includes(query) ||
+          product.category.toLowerCase().includes(query)
+        )
       }
-    },
 
-    async loadCategories() {
-      try {
-        const response = await axios.get('/api/categories/admin/all', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-        this.categories = response.data
-      } catch (error) {
-        console.error('Lỗi khi tải danh mục:', error)
+      if (statusFilter.value) {
+        filtered = filtered.filter(product => 
+          statusFilter.value === 'active' ? product.isActive : !product.isActive
+        )
       }
-    },
 
-    async toggleProductStatus(product) {
-      const action = product.isActive ? 'ngừng bán' : 'bán lại'
-      if (!confirm(`Bạn có chắc chắn muốn ${action} sản phẩm "${product.name}"?`)) return
-
-      try {
-        await axios.put(`/api/admin/products/${product.id}/toggle-status`, {}, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-        
-        product.isActive = !product.isActive
-        this.showToast(`Đã ${action} sản phẩm thành công`, 'success')
-        this.calculateStats()
-      } catch (error) {
-        console.error('Lỗi khi cập nhật trạng thái sản phẩm:', error)
-        this.showToast(`Không thể ${action} sản phẩm`, 'error')
+      if (categoryFilter.value) {
+        filtered = filtered.filter(product => 
+          product.category === categoryFilter.value
+        )
       }
-    },
 
-    async deleteProduct(product) {
-      if (!confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${product.name}"?\nHành động này không thể hoàn tác!`)) return
+      filteredProducts.value = filtered
+      currentPage.value = 1
+    }
 
-      try {
-        await axios.delete(`/api/admin/products/${product.id}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-        
-        this.products = this.products.filter(p => p.id !== product.id)
-        this.filterProducts()
-        this.calculateStats()
-        this.showToast('Đã xóa sản phẩm thành công', 'success')
-      } catch (error) {
-        console.error('Lỗi khi xóa sản phẩm:', error)
-        this.showToast('Không thể xóa sản phẩm', 'error')
-      }
-    },
+    const searchProducts = () => {
+      filterProducts()
+    }
 
-    async viewProduct(product) {
-      this.selectedProduct = product
-      await this.loadProductStats(product.id)
-    },
+    const sortProducts = () => {
+      // Implementation for sorting
+      filterProducts()
+    }
 
-    async loadProductStats(productId) {
-      try {
-        const response = await axios.get(`/api/admin/products/${productId}/stats`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-        this.productStats = response.data
-      } catch (error) {
-        console.error('Lỗi khi tải thống kê sản phẩm:', error)
-        this.productStats = {}
-      }
-    },
+    const viewProduct = (product) => {
+      selectedProduct.value = product
+    }
 
-    editProduct(product) {
-      this.productForm = {
+    const editProduct = (product) => {
+      productForm.value = {
         id: product.id,
         name: product.name,
         category: product.category,
@@ -587,149 +495,69 @@ export default {
         description: product.description,
         images: product.images || []
       }
-      this.showEditModal = true
-    },
+      showEditModal.value = true
+    }
 
-    viewReviews(productId) {
-      this.$router.push(`/admin/reviews?productId=${productId}`)
-    },
+    const toggleProductStatus = (product) => {
+      const action = product.isActive ? 'ngừng bán' : 'bán lại'
+      if (!confirm(`Bạn có chắc chắn muốn ${action} sản phẩm "${product.name}"?`)) return
 
-    async submitProduct() {
-      try {
-        this.submitting = true
-        
-        const url = this.showCreateModal 
-          ? '/api/admin/products'
-          : `/api/admin/products/${this.productForm.id}`
-        
-        const method = this.showCreateModal ? 'post' : 'put'
-        
-        const response = await axios[method](url, this.productForm, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+      product.isActive = !product.isActive
+      calculateStats()
+      alert(`Đã ${action} sản phẩm thành công`)
+    }
+
+    const deleteProduct = (product) => {
+      if (!confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${product.name}"?\nHành động này không thể hoàn tác!`)) return
+
+      const index = products.value.findIndex(p => p.id === product.id)
+      if (index !== -1) {
+        products.value.splice(index, 1)
+        filterProducts()
+        calculateStats()
+        alert('Đã xóa sản phẩm thành công')
+      }
+    }
+
+    const submitProduct = () => {
+      if (!productForm.value.name || !productForm.value.category || !productForm.value.price) {
+        alert('Vui lòng điền đầy đủ thông tin bắt buộc')
+        return
+      }
+
+      submitting.value = true
+      
+      setTimeout(() => {
+        if (showCreateModal.value) {
+          // Add new product
+          const newProduct = {
+            ...productForm.value,
+            id: Date.now(),
+            isActive: true,
+            createdAt: new Date()
           }
-        })
-        
-        if (this.showCreateModal) {
-          this.products.push(response.data)
+          products.value.push(newProduct)
+          alert('Đã thêm sản phẩm thành công')
         } else {
-          const index = this.products.findIndex(p => p.id === this.productForm.id)
+          // Update existing product
+          const index = products.value.findIndex(p => p.id === productForm.value.id)
           if (index !== -1) {
-            this.products[index] = response.data
+            products.value[index] = { ...products.value[index], ...productForm.value }
+            alert('Đã cập nhật sản phẩm thành công')
           }
         }
         
-        this.filterProducts()
-        this.calculateStats()
-        this.closeCreateEditModal()
-        
-        this.showToast(
-          this.showCreateModal ? 'Đã thêm sản phẩm thành công' : 'Đã cập nhật sản phẩm thành công', 
-          'success'
-        )
-      } catch (error) {
-        console.error('Lỗi khi lưu sản phẩm:', error)
-        this.showToast('Không thể lưu sản phẩm', 'error')
-      } finally {
-        this.submitting = false
-      }
-    },
+        filterProducts()
+        calculateStats()
+        closeCreateEditModal()
+        submitting.value = false
+      }, 1000)
+    }
 
-    handleImageUpload(event) {
-      const files = Array.from(event.target.files)
-      files.forEach(file => {
-        if (file.type.startsWith('image/')) {
-          const reader = new FileReader()
-          reader.onload = (e) => {
-            this.productForm.images.push(e.target.result)
-          }
-          reader.readAsDataURL(file)
-        }
-      })
-    },
-
-    removeImage(index) {
-      this.productForm.images.splice(index, 1)
-    },
-
-    filterProducts() {
-      let filtered = [...this.products]
-
-      if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(product => 
-          product.name.toLowerCase().includes(query) ||
-          product.description.toLowerCase().includes(query) ||
-          product.category.toLowerCase().includes(query)
-        )
-      }
-
-      if (this.statusFilter) {
-        filtered = filtered.filter(product => 
-          this.statusFilter === 'active' ? product.isActive : !product.isActive
-        )
-      }
-
-      if (this.categoryFilter) {
-        filtered = filtered.filter(product => product.category === this.categoryFilter)
-      }
-
-      this.filteredProducts = filtered
-      this.currentPage = 1
-      this.sortProducts()
-    },
-
-    sortProducts() {
-      switch (this.sortBy) {
-        case 'oldest':
-          this.filteredProducts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-          break
-        case 'name':
-          this.filteredProducts.sort((a, b) => a.name.localeCompare(b.name))
-          break
-        case 'price-asc':
-          this.filteredProducts.sort((a, b) => a.price - b.price)
-          break
-        case 'price-desc':
-          this.filteredProducts.sort((a, b) => b.price - a.price)
-          break
-        case 'stock':
-          this.filteredProducts.sort((a, b) => a.stockQuantity - b.stockQuantity)
-          break
-        case 'newest':
-        default:
-          this.filteredProducts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      }
-    },
-
-    searchProducts() {
-      this.filterProducts()
-    },
-
-    clearFilters() {
-      this.searchQuery = ''
-      this.statusFilter = ''
-      this.categoryFilter = ''
-      this.sortBy = 'newest'
-      this.filterProducts()
-    },
-
-    calculateStats() {
-      this.stats.total = this.products.length
-      this.stats.active = this.products.filter(p => p.isActive).length
-      this.stats.inactive = this.products.filter(p => !p.isActive).length
-      this.stats.lowStock = this.products.filter(p => p.stockQuantity <= 10).length
-    },
-
-    closeModal() {
-      this.selectedProduct = null
-      this.productStats = {}
-    },
-
-    closeCreateEditModal() {
-      this.showCreateModal = false
-      this.showEditModal = false
-      this.productForm = {
+    const closeCreateEditModal = () => {
+      showCreateModal.value = false
+      showEditModal.value = false
+      productForm.value = {
         id: null,
         name: '',
         category: '',
@@ -738,48 +566,86 @@ export default {
         description: '',
         images: []
       }
-    },
+    }
 
-    exportProducts() {
-      this.showToast('Tính năng xuất Excel đang được phát triển', 'info')
-    },
+    const handleImageUpload = (event) => {
+      const files = Array.from(event.target.files)
+      files.forEach(file => {
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            productForm.value.images.push(e.target.result)
+          }
+          reader.readAsDataURL(file)
+        }
+      })
+    }
 
-    getStockClass(stock) {
-      if (stock <= 5) return 'stock-critical'
-      if (stock <= 10) return 'stock-low'
-      if (stock <= 50) return 'stock-medium'
-      return 'stock-high'
-    },
+    const removeImage = (index) => {
+      productForm.value.images.splice(index, 1)
+    }
 
-    handleImageError(event) {
+    const handleImageError = (event) => {
       event.target.src = '/placeholder-product.jpg'
-    },
+    }
 
-    showToast(message, type = 'info') {
-      // Implement toast notification - có thể dùng thư viện như vue-toastification
-      console.log(`${type.toUpperCase()}: ${message}`)
-    },
-
-    formatCurrency(amount) {
+    const formatCurrency = (amount) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
         currency: 'VND'
       }).format(amount)
-    },
+    }
 
-    formatDate(dateString) {
-      if (!dateString) return 'N/A'
-      return new Date(dateString).toLocaleDateString('vi-VN')
-    },
+    const formatDate = (date) => {
+      return new Intl.DateTimeFormat('vi-VN').format(new Date(date))
+    }
 
-    formatTime(dateString) {
-      if (!dateString) return 'N/A'
-      return new Date(dateString).toLocaleTimeString('vi-VN')
-    },
-
-    truncateText(text, length) {
+    const truncateText = (text, length) => {
       if (!text) return ''
       return text.length > length ? text.substring(0, length) + '...' : text
+    }
+
+    // Lifecycle
+    onMounted(() => {
+      loadProducts()
+    })
+
+    return {
+      products,
+      categories,
+      filteredProducts,
+      loading,
+      searchQuery,
+      statusFilter,
+      categoryFilter,
+      sortBy,
+      currentPage,
+      itemsPerPage,
+      selectedProduct,
+      showCreateModal,
+      showEditModal,
+      submitting,
+      productForm,
+      stats,
+      paginatedProducts,
+      totalPages,
+      loadProducts,
+      calculateStats,
+      filterProducts,
+      searchProducts,
+      sortProducts,
+      viewProduct,
+      editProduct,
+      toggleProductStatus,
+      deleteProduct,
+      submitProduct,
+      closeCreateEditModal,
+      handleImageUpload,
+      removeImage,
+      handleImageError,
+      formatCurrency,
+      formatDate,
+      truncateText
     }
   }
 }
@@ -787,62 +653,50 @@ export default {
 
 <style scoped>
 .admin-products {
-  padding: 20px;
-  background: #f8f9fa;
   min-height: 100vh;
-}
-
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 2rem 0;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
+  align-items: flex-start;
+  margin-bottom: 2rem;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 1rem;
 }
 
 .header-info h1 {
   font-size: 2.5rem;
-  color: #2c3e50;
-  margin: 0;
+  color: var(--text-accent);
+  margin-bottom: 0.5rem;
 }
 
 .header-info p {
-  color: #7f8c8d;
+  color: var(--text-secondary);
   font-size: 1.1rem;
-  margin: 5px 0 0 0;
 }
 
 .btn-create {
-  padding: 12px 24px;
-  background: #27ae60;
-  color: white;
+  padding: 0.75rem 1.5rem;
+  background: var(--text-accent);
   border: none;
   border-radius: 8px;
+  color: white;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 16px;
-  font-weight: 500;
-  transition: background 0.3s;
+  transition: all 0.3s ease;
 }
 
 .btn-create:hover {
-  background: #229954;
+  background: rgba(0, 212, 255, 0.8);
+  transform: translateY(-2px);
 }
 
 .filter-section {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  margin-bottom: 30px;
   display: flex;
-  gap: 20px;
-  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
   flex-wrap: wrap;
 }
 
@@ -854,118 +708,89 @@ export default {
 
 .search-input {
   flex: 1;
-  padding: 12px 16px;
-  border: 2px solid #e1e5e9;
+  padding: 0.75rem;
+  border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 8px 0 0 8px;
-  font-size: 16px;
-  outline: none;
-  transition: border-color 0.3s;
-}
-
-.search-input:focus {
-  border-color: #3498db;
+  background: rgba(26, 26, 46, 0.8);
+  color: var(--text-primary);
 }
 
 .search-btn {
-  padding: 12px 20px;
-  background: #3498db;
-  color: white;
+  padding: 0.75rem 1rem;
+  background: var(--text-accent);
   border: none;
   border-radius: 0 8px 8px 0;
+  color: white;
   cursor: pointer;
-  font-size: 16px;
-  transition: background 0.3s;
-}
-
-.search-btn:hover {
-  background: #2980b9;
 }
 
 .filters {
   display: flex;
-  gap: 15px;
-  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .filter-select {
-  padding: 10px 15px;
-  border: 2px solid #e1e5e9;
+  padding: 0.75rem;
+  border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 8px;
-  font-size: 14px;
-  outline: none;
-  background: white;
-  cursor: pointer;
-}
-
-.export-btn {
-  padding: 10px 20px;
-  background: #f39c12;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background 0.3s;
-}
-
-.export-btn:hover {
-  background: #e67e22;
+  background: rgba(26, 26, 46, 0.8);
+  color: var(--text-primary);
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .stat-card {
-  background: white;
-  padding: 25px;
+  padding: 1.5rem;
+  background: rgba(26, 26, 46, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 1rem;
 }
 
 .stat-icon {
-  font-size: 3rem;
+  font-size: 2rem;
   opacity: 0.8;
 }
 
 .stat-info h3 {
-  font-size: 2rem;
-  margin: 0 0 5px 0;
-  color: #2c3e50;
+  font-size: 1.8rem;
+  color: var(--text-accent);
+  margin-bottom: 0.25rem;
 }
 
 .stat-info p {
-  margin: 0;
-  color: #7f8c8d;
-  font-size: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
 .products-table-container {
-  background: white;
+  background: rgba(26, 26, 46, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   overflow: hidden;
 }
 
 .loading {
   text-align: center;
-  padding: 60px 20px;
+  padding: 3rem;
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
+  border: 4px solid rgba(0, 212, 255, 0.3);
+  border-top: 4px solid var(--text-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
+  margin: 0 auto 1rem;
 }
 
 @keyframes spin {
@@ -975,26 +800,43 @@ export default {
 
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: 3rem;
 }
 
 .empty-icon {
   font-size: 4rem;
-  margin-bottom: 20px;
+  margin-bottom: 1rem;
   opacity: 0.5;
 }
 
-.btn-clear {
-  padding: 10px 20px;
-  background: #3498db;
-  color: white;
+.empty-state h3 {
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.btn-add-first {
+  padding: 0.75rem 1.5rem;
+  background: var(--text-accent);
   border: none;
   border-radius: 8px;
+  color: white;
+  font-weight: 600;
   cursor: pointer;
-  margin-top: 15px;
+  transition: all 0.3s ease;
+}
+
+.btn-add-first:hover {
+  background: rgba(0, 212, 255, 0.8);
+  transform: translateY(-2px);
 }
 
 .products-table {
+  width: 100%;
   overflow-x: auto;
 }
 
@@ -1003,218 +845,158 @@ export default {
   border-collapse: collapse;
 }
 
-.products-table th {
-  background: #f8f9fa;
-  padding: 15px 12px;
-  text-align: left;
-  font-weight: 600;
-  color: #2c3e50;
-  border-bottom: 2px solid #e1e5e9;
-}
-
+.products-table th,
 .products-table td {
-  padding: 15px 12px;
-  border-bottom: 1px solid #f1f3f4;
-  vertical-align: middle;
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
 }
 
-.product-row:hover {
-  background: #f8f9fa;
+.products-table th {
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-accent);
+  font-weight: 600;
 }
 
 .product-image {
-  display: flex;
-  justify-content: center;
-}
-
-.product-thumbnail {
   width: 60px;
   height: 60px;
-  object-fit: cover;
   border-radius: 8px;
-  border: 2px solid #e1e5e9;
+  overflow: hidden;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .product-info h4 {
-  margin: 0 0 8px 0;
-  color: #2c3e50;
-  font-size: 16px;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
 }
 
-.product-description {
-  color: #7f8c8d;
-  margin: 4px 0;
-  font-size: 14px;
-  line-height: 1.4;
+.product-info p {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
 }
 
 .product-id {
-  color: #95a5a6;
-  font-size: 12px;
-  font-family: monospace;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  opacity: 0.7;
 }
 
-.category-badge {
-  padding: 4px 12px;
-  background: #e8f4fd;
-  color: #2980b9;
-  border-radius: 20px;
-  font-size: 12px;
+.category-tag {
+  background: rgba(0, 212, 255, 0.2);
+  color: var(--text-accent);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.price {
+  color: var(--text-accent);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.stock-number {
   font-weight: 600;
 }
 
-.product-price strong {
-  color: #27ae60;
-  font-size: 16px;
+.stock-number.low-stock {
+  color: #ffc107;
 }
 
-.stock-info {
-  text-align: center;
+.low-stock-badge {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  padding: 0.15rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  margin-left: 0.5rem;
 }
 
-.stock-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
+.status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
   font-weight: 600;
-  display: inline-block;
-  min-width: 40px;
 }
 
-.stock-critical { background: #ffebee; color: #c62828; }
-.stock-low { background: #fff3e0; color: #ef6c00; }
-.stock-medium { background: #f3e5f5; color: #7b1fa2; }
-.stock-high { background: #e8f5e8; color: #2e7d32; }
-
-.low-stock-warning {
-  display: block;
-  color: #ff5722;
-  font-size: 10px;
-  margin-top: 2px;
+.status-badge.active {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
 }
 
-.status-toggle {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.status-active {
-  background: #d4edda;
-  color: #155724;
-}
-
-.status-inactive {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.status-toggle:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.rating-info {
-  text-align: center;
-}
-
-.stars {
-  color: #f39c12;
-  margin-bottom: 2px;
-}
-
-.rating-info small {
-  color: #7f8c8d;
-  font-size: 11px;
-}
-
-.created-date div {
-  font-weight: 500;
-  color: #2c3e50;
-}
-
-.created-date small {
-  color: #7f8c8d;
+.status-badge.inactive {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
 }
 
 .action-buttons {
   display: flex;
-  gap: 6px;
+  gap: 0.5rem;
 }
 
-.action-buttons button {
-  padding: 8px;
+.btn {
+  padding: 0.5rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s;
-  min-width: 32px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
 }
 
 .btn-view {
-  background: #3498db;
-  color: white;
-}
-
-.btn-view:hover {
-  background: #2980b9;
+  background: rgba(0, 212, 255, 0.2);
+  color: var(--text-accent);
 }
 
 .btn-edit {
-  background: #f39c12;
-  color: white;
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
 }
 
-.btn-edit:hover {
-  background: #e67e22;
-}
-
-.btn-reviews {
-  background: #9b59b6;
-  color: white;
-}
-
-.btn-reviews:hover {
-  background: #8e44ad;
+.btn-toggle {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
 }
 
 .btn-delete {
-  background: #e74c3c;
-  color: white;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
 }
 
-.btn-delete:hover {
-  background: #c0392b;
+.btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.8;
 }
 
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-top: 1px solid #e1e5e9;
+  gap: 1rem;
+  margin-top: 2rem;
 }
 
 .page-btn {
-  padding: 8px 12px;
-  border: 1px solid #e1e5e9;
-  background: white;
+  padding: 0.5rem 1rem;
+  background: rgba(26, 26, 46, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 6px;
+  color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #3498db;
+  background: var(--text-accent);
   color: white;
-  border-color: #3498db;
 }
 
 .page-btn:disabled {
@@ -1223,349 +1005,256 @@ export default {
 }
 
 .page-info {
-  margin: 0 15px;
-  font-weight: 500;
-  color: #2c3e50;
+  color: var(--text-secondary);
 }
 
-/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(5px);
 }
 
 .modal-content {
-  background: white;
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 12px;
-  max-width: 1000px;
+  max-width: 600px;
   width: 90%;
-  max-height: 90vh;
+  max-height: 80vh;
   overflow-y: auto;
-}
-
-.create-edit-modal {
-  max-width: 800px;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 25px;
-  border-bottom: 1px solid #e1e5e9;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
 }
 
-.modal-header h2 {
+.modal-header h3 {
+  color: var(--text-accent);
   margin: 0;
-  color: #2c3e50;
 }
 
-.close-btn {
+.modal-close {
   background: none;
   border: none;
-  font-size: 24px;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
   cursor: pointer;
-  padding: 5px;
-  color: #7f8c8d;
-  transition: color 0.3s;
+  padding: 0.25rem;
+  transition: color 0.3s ease;
 }
 
-.close-btn:hover {
-  color: #2c3e50;
+.modal-close:hover {
+  color: var(--text-accent);
 }
 
 .modal-body {
-  padding: 25px;
+  padding: 1.5rem;
 }
 
-.product-detail {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
-}
-
-.product-images .main-image img {
-  width: 100%;
-  height: 300px;
-  object-fit: cover;
-  border-radius: 12px;
-  border: 2px solid #e1e5e9;
-}
-
-.image-gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.gallery-image {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 2px solid #e1e5e9;
-  cursor: pointer;
-  transition: transform 0.3s;
-}
-
-.gallery-image:hover {
-  transform: scale(1.05);
-}
-
-.product-details {
-  display: grid;
-  gap: 25px;
-}
-
-.detail-section h3 {
-  margin: 0 0 15px 0;
-  color: #2c3e50;
-  font-size: 1.2rem;
-  border-bottom: 2px solid #3498db;
-  padding-bottom: 8px;
-}
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-}
-
-.detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.detail-item label {
-  font-weight: 600;
-  color: #7f8c8d;
-  font-size: 14px;
-}
-
-.detail-item span {
-  color: #2c3e50;
-  font-size: 15px;
-}
-
-.rating-summary {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.rating-score {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-}
-
-.score {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #f39c12;
-}
-
-.stats-row {
-  display: flex;
-  gap: 30px;
-  justify-content: space-around;
-}
-
-.stat-item {
-  text-align: center;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  flex: 1;
-}
-
-.stat-number {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #3498db;
-  margin-bottom: 5px;
-}
-
-.stat-label {
-  color: #7f8c8d;
-  font-size: 14px;
-}
-
-/* Form Styles */
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
+  display: block;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
   font-weight: 600;
-  color: #2c3e50;
-  font-size: 14px;
 }
 
 .form-input,
-.form-textarea,
-.form-select {
-  padding: 12px 15px;
-  border: 2px solid #e1e5e9;
-  border-radius: 8px;
-  font-size: 15px;
-  outline: none;
-  transition: border-color 0.3s;
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
 }
 
 .form-input:focus,
-.form-textarea:focus,
-.form-select:focus {
-  border-color: #3498db;
-}
-
-.form-textarea {
-  resize: vertical;
-  min-height: 100px;
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--text-accent);
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
 }
 
 .image-upload {
-  border: 2px dashed #e1e5e9;
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
-  transition: border-color 0.3s;
-}
-
-.image-upload:hover {
-  border-color: #3498db;
-}
-
-.upload-text {
-  color: #7f8c8d;
-  margin: 10px 0;
-  font-size: 14px;
+  margin-bottom: 1rem;
 }
 
 .file-input {
-  margin-bottom: 15px;
+  display: none;
+}
+
+.upload-btn {
+  display: inline-block;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 212, 255, 0.2);
+  border: 1px solid var(--text-accent);
+  border-radius: 6px;
+  color: var(--text-accent);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.upload-btn:hover {
+  background: var(--text-accent);
+  color: white;
+}
+
+.upload-hint {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
 }
 
 .image-preview {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 10px;
-  margin-top: 15px;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
 }
 
 .preview-item {
   position: relative;
-  border-radius: 8px;
+  width: 80px;
+  height: 80px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
 .preview-item img {
-  width: 100px;
-  height: 100px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
 .remove-image {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  background: rgba(231, 76, 60, 0.9);
-  color: white;
+  top: 4px;
+  right: 4px;
+  background: rgba(239, 68, 68, 0.8);
   border: none;
   border-radius: 50%;
+  color: white;
   width: 20px;
   height: 20px;
+  font-size: 0.7rem;
   cursor: pointer;
-  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .form-actions {
   display: flex;
-  gap: 15px;
+  gap: 1rem;
   justify-content: flex-end;
-  margin-top: 25px;
-  padding-top: 20px;
-  border-top: 1px solid #e1e5e9;
+  margin-top: 2rem;
 }
 
 .btn-cancel {
-  padding: 12px 20px;
-  background: #95a5a6;
-  color: white;
-  border: none;
-  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  color: #ef4444;
   cursor: pointer;
-  font-size: 14px;
-  transition: background 0.3s;
+  transition: all 0.3s ease;
 }
 
 .btn-cancel:hover {
-  background: #7f8c8d;
-}
-
-.btn-submit {
-  padding: 12px 25px;
-  background: #27ae60;
+  background: #ef4444;
   color: white;
+}
+
+.btn-primary {
+  padding: 0.75rem 1.5rem;
+  background: var(--text-accent);
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background 0.3s;
+  transition: all 0.3s ease;
 }
 
-.btn-submit:hover:not(:disabled) {
-  background: #229954;
+.btn-primary:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.8);
 }
 
-.btn-submit:disabled {
+.btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-  .product-detail {
-    grid-template-columns: 1fr;
-  }
+.detail-modal {
+  max-width: 800px;
+}
 
-  .stats-row {
-    flex-direction: column;
-    gap: 15px;
-  }
+.product-detail {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+}
 
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
+.detail-images img {
+  width: 100%;
+  border-radius: 8px;
+}
+
+.detail-info h3 {
+  color: var(--text-accent);
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.detail-category,
+.detail-price,
+.detail-stock,
+.detail-status {
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.detail-description {
+  margin-top: 1.5rem;
+}
+
+.detail-description h4 {
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.detail-description p {
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
 @media (max-width: 768px) {
-  .admin-products {
-    padding: 10px;
-  }
-
   .page-header {
     flex-direction: column;
     align-items: stretch;
@@ -1573,81 +1262,26 @@ export default {
   
   .filter-section {
     flex-direction: column;
-    align-items: stretch;
   }
   
   .search-box {
     min-width: auto;
   }
   
-  .filters {
-    flex-wrap: wrap;
-  }
-  
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
   
-  .products-table {
-    font-size: 14px;
-  }
-  
-  .products-table th,
-  .products-table td {
-    padding: 10px 8px;
-  }
-  
-  .action-buttons {
-    flex-direction: column;
-    gap: 4px;
-  }
-  
-  .modal-content {
-    width: 95%;
-    margin: 10px;
-  }
-  
-  .modal-body {
-    padding: 15px;
-  }
-
-  .detail-grid {
+  .form-grid {
     grid-template-columns: 1fr;
   }
-
+  
   .form-actions {
     flex-direction: column;
   }
-}
-
-@media (max-width: 480px) {
-  .stats-grid {
+  
+  .product-detail {
     grid-template-columns: 1fr;
   }
-  
-  .stat-card {
-    padding: 15px;
-  }
-  
-  .stat-icon {
-    font-size: 2rem;
-  }
-  
-  .stat-info h3 {
-    font-size: 1.5rem;
-  }
-
-  .product-thumbnail {
-    width: 40px;
-    height: 40px;
-  }
-
-  .image-preview {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .preview-item img {
-    width: 80px;
-    height: 80px;
-  }
 }
+</style>

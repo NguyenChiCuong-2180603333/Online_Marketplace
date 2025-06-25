@@ -128,65 +128,6 @@
           </div>
         </div>
 
-        <!-- Charts Section -->
-        <div class="charts-section">
-          <div class="charts-grid">
-            <!-- Revenue Chart -->
-            <div class="chart-card space-card">
-              <div class="chart-header">
-                <h3>📈 Doanh thu theo thời gian</h3>
-                <div class="chart-controls">
-                  <select v-model="revenueChartType" @change="updateRevenueChart">
-                    <option value="daily">Theo ngày</option>
-                    <option value="weekly">Theo tuần</option>
-                    <option value="monthly">Theo tháng</option>
-                  </select>
-                </div>
-              </div>
-              <div class="chart-container">
-                <canvas ref="revenueChart" width="400" height="200"></canvas>
-              </div>
-            </div>
-
-            <!-- Orders Chart -->
-            <div class="chart-card space-card">
-              <div class="chart-header">
-                <h3>📊 Phân bố đơn hàng</h3>
-              </div>
-              <div class="chart-container">
-                <canvas ref="ordersChart" width="400" height="200"></canvas>
-              </div>
-            </div>
-          </div>
-
-          <!-- Products Performance -->
-          <div class="chart-card space-card">
-            <div class="chart-header">
-              <h3>🏆 Top sản phẩm bán chạy</h3>
-              <router-link to="/admin/products" class="view-all-link">Xem tất cả →</router-link>
-            </div>
-            <div class="products-list">
-              <div 
-                v-for="(product, index) in topProducts" 
-                :key="product.id"
-                class="product-item"
-              >
-                <div class="product-rank">{{ index + 1 }}</div>
-                <div class="product-image">
-                  <img :src="product.image || '/placeholder-product.jpg'" :alt="product.name">
-                </div>
-                <div class="product-info">
-                  <h4>{{ product.name }}</h4>
-                  <p>Đã bán: {{ product.soldCount }} • Doanh thu: {{ formatCurrency(product.revenue) }}</p>
-                </div>
-                <div class="product-trend" :class="{ positive: product.trend > 0, negative: product.trend < 0 }">
-                  {{ product.trend > 0 ? '↗' : '↘' }} {{ Math.abs(product.trend) }}%
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Recent Activity -->
         <div class="activity-section">
           <div class="activity-grid">
@@ -223,45 +164,6 @@
               </div>
             </div>
 
-            <!-- Low Stock Alerts -->
-            <div class="activity-card space-card">
-              <div class="activity-header">
-                <h3>⚠️ Sản phẩm sắp hết hàng</h3>
-                <router-link to="/admin/products?filter=low-stock" class="view-all-link">Xem tất cả →</router-link>
-              </div>
-              <div class="activity-list">
-                <div 
-                  v-for="product in lowStockProducts" 
-                  :key="product.id"
-                  class="activity-item"
-                >
-                  <div class="activity-icon">
-                    <span class="alert-icon">⚠️</span>
-                  </div>
-                  <div class="activity-content">
-                    <div class="activity-title">{{ product.name }}</div>
-                    <div class="activity-subtitle">
-                      Còn lại: {{ product.stock }} sản phẩm
-                    </div>
-                    <div class="activity-progress">
-                      <div class="progress-bar">
-                        <div 
-                          class="progress-fill" 
-                          :style="{ width: (product.stock / product.maxStock) * 100 + '%' }"
-                          :class="{ danger: product.stock < 10, warning: product.stock < 20 }"
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="activity-action">
-                    <button @click="restockProduct(product)" class="btn-restock">
-                      📦 Nhập hàng
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <!-- System Status -->
             <div class="activity-card space-card">
               <div class="activity-header">
@@ -279,28 +181,9 @@
                   <span class="status-value">Online</span>
                 </div>
                 <div class="status-item">
-                  <div class="status-indicator warning"></div>
-                  <span>Email Service</span>
-                  <span class="status-value">Slow</span>
-                </div>
-                <div class="status-item">
                   <div class="status-indicator active"></div>
                   <span>File Storage</span>
                   <span class="status-value">Online</span>
-                </div>
-                <div class="status-metrics">
-                  <div class="metric">
-                    <span class="metric-label">CPU Usage:</span>
-                    <span class="metric-value">{{ systemMetrics.cpu }}%</span>
-                  </div>
-                  <div class="metric">
-                    <span class="metric-label">Memory:</span>
-                    <span class="metric-value">{{ systemMetrics.memory }}%</span>
-                  </div>
-                  <div class="metric">
-                    <span class="metric-label">Storage:</span>
-                    <span class="metric-value">{{ systemMetrics.storage }}%</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -342,20 +225,15 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, nextTick } from 'vue'
-import { useAdminStore } from '@/stores/admin'
+import { ref, computed, onMounted } from 'vue'
 
 export default {
   name: 'AdminDashboard',
   setup() {
-    const adminStore = useAdminStore()
-    
     // Reactive data
     const selectedTimeRange = ref(30)
-    const revenueChartType = ref('daily')
     const showSupportModal = ref(false)
-    const revenueChart = ref(null)
-    const ordersChart = ref(null)
+    const loading = ref(false)
     
     // Mock data for demo
     const mockStats = ref({
@@ -366,87 +244,32 @@ export default {
       support: { pending: 8, avgResponseTime: '1.5h', satisfaction: 4.7 }
     })
     
-    const topProducts = ref([
-      {
-        id: 1,
-        name: 'Laptop Gaming Galactic Pro',
-        image: '/placeholder-product.jpg',
-        soldCount: 234,
-        revenue: 450000000,
-        trend: 15.2
-      },
-      {
-        id: 2,
-        name: 'Smartphone Cosmic X',
-        image: '/placeholder-product.jpg',
-        soldCount: 512,
-        revenue: 380000000,
-        trend: 8.7
-      },
-      {
-        id: 3,
-        name: 'Headphones Nebula Pro',
-        image: '/placeholder-product.jpg',
-        soldCount: 189,
-        revenue: 180000000,
-        trend: -3.2
-      }
-    ])
-    
     const recentOrders = ref([
       {
         id: 'ORD-2024-001',
         customerName: 'Nguyễn Văn A',
         total: 25000000,
         status: 'PENDING',
-        createdAt: new Date(Date.now() - 1000 * 60 * 15) // 15 minutes ago
+        createdAt: new Date(Date.now() - 1000 * 60 * 15)
       },
       {
         id: 'ORD-2024-002',
         customerName: 'Trần Thị B',
         total: 15000000,
         status: 'PROCESSING',
-        createdAt: new Date(Date.now() - 1000 * 60 * 45) // 45 minutes ago
+        createdAt: new Date(Date.now() - 1000 * 60 * 45)
       },
       {
         id: 'ORD-2024-003',
         customerName: 'Lê Minh C',
         total: 8500000,
         status: 'SHIPPED',
-        createdAt: new Date(Date.now() - 1000 * 60 * 120) // 2 hours ago
+        createdAt: new Date(Date.now() - 1000 * 60 * 120)
       }
     ])
-    
-    const lowStockProducts = ref([
-      {
-        id: 1,
-        name: 'Laptop Gaming Galactic Pro',
-        stock: 5,
-        maxStock: 50
-      },
-      {
-        id: 2,
-        name: 'Mouse Wireless Pro',
-        stock: 8,
-        maxStock: 100
-      },
-      {
-        id: 3,
-        name: 'Keyboard Mechanical RGB',
-        stock: 12,
-        maxStock: 80
-      }
-    ])
-    
-    const systemMetrics = ref({
-      cpu: 35,
-      memory: 68,
-      storage: 45
-    })
     
     // Computed properties
-    const loading = computed(() => adminStore.loading.dashboard)
-    const stats = computed(() => mockStats.value) // In real app: adminStore.dashboardStats
+    const stats = computed(() => mockStats.value)
     
     // Methods
     const formatNumber = (num) => {
@@ -465,12 +288,11 @@ export default {
       const diffMs = now - date
       const diffMins = Math.floor(diffMs / (1000 * 60))
       const diffHours = Math.floor(diffMins / 60)
-      const diffDays = Math.floor(diffHours / 24)
       
       if (diffMins < 1) return 'Vừa xong'
       if (diffMins < 60) return `${diffMins} phút trước`
       if (diffHours < 24) return `${diffHours} giờ trước`
-      return `${diffDays} ngày trước`
+      return 'Hôm qua'
     }
     
     const getOrderStatusClass = (status) => {
@@ -507,90 +329,29 @@ export default {
     }
     
     const refreshData = async () => {
-      try {
-        await adminStore.loadDashboard()
-        initCharts()
-      } catch (error) {
-        console.error('Error refreshing dashboard:', error)
-      }
+      loading.value = true
+      setTimeout(() => {
+        loading.value = false
+        console.log('✅ Dashboard refreshed')
+      }, 1000)
     }
     
     const loadDashboardData = () => {
-      // Load data based on selected time range
       refreshData()
-    }
-    
-    const updateRevenueChart = () => {
-      // Update chart based on selected type
-      initRevenueChart()
-    }
-    
-    const restockProduct = (product) => {
-      // TODO: Implement restock functionality
-      alert(`Nhập hàng cho sản phẩm: ${product.name}`)
-    }
-    
-    const initCharts = () => {
-      nextTick(() => {
-        initRevenueChart()
-        initOrdersChart()
-      })
-    }
-    
-    const initRevenueChart = () => {
-      if (!revenueChart.value) return
-      
-      const ctx = revenueChart.value.getContext('2d')
-      
-      // Mock chart data
-      const chartData = {
-        labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
-        datasets: [{
-          label: 'Doanh thu (VNĐ)',
-          data: [120000000, 190000000, 150000000, 220000000, 180000000, 240000000, 200000000],
-          borderColor: 'rgb(0, 212, 255)',
-          backgroundColor: 'rgba(0, 212, 255, 0.1)',
-          tension: 0.4,
-          fill: true
-        }]
-      }
-      
-      // Simple canvas drawing for demo
-      ctx.clearRect(0, 0, revenueChart.value.width, revenueChart.value.height)
-      ctx.fillStyle = 'rgba(0, 212, 255, 0.8)'
-      ctx.fillText('📈 Revenue Chart', 10, 20)
-      ctx.fillText('(Chart.js integration required)', 10, 40)
-    }
-    
-    const initOrdersChart = () => {
-      if (!ordersChart.value) return
-      
-      const ctx = ordersChart.value.getContext('2d')
-      
-      // Simple canvas drawing for demo
-      ctx.clearRect(0, 0, ordersChart.value.width, ordersChart.value.height)
-      ctx.fillStyle = 'rgba(0, 212, 255, 0.8)'
-      ctx.fillText('📊 Orders Chart', 10, 20)
-      ctx.fillText('(Chart.js integration required)', 10, 40)
     }
     
     // Lifecycle
     onMounted(() => {
+      console.log('🚀 Admin Dashboard mounted')
       refreshData()
     })
     
     return {
       selectedTimeRange,
-      revenueChartType,
       showSupportModal,
-      revenueChart,
-      ordersChart,
       loading,
       stats,
-      topProducts,
       recentOrders,
-      lowStockProducts,
-      systemMetrics,
       formatNumber,
       formatCurrency,
       getTimeAgo,
@@ -598,9 +359,7 @@ export default {
       getOrderStatusIcon,
       getOrderStatusText,
       refreshData,
-      loadDashboardData,
-      updateRevenueChart,
-      restockProduct
+      loadDashboardData
     }
   }
 }
@@ -642,518 +401,9 @@ export default {
   padding: 0.75rem 1rem;
   border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-.product-item:hover {
-  background: rgba(0, 212, 255, 0.1);
-}
-
-.product-rank {
-  background: var(--text-accent);
-  color: white;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.product-image {
-  width: 50px;
-  height: 50px;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.product-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.product-info {
-  flex: 1;
-}
-
-.product-info h4 {
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-  font-size: 1rem;
-}
-
-.product-info p {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-}
-
-.product-trend {
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.product-trend.positive {
-  color: var(--text-success);
-}
-
-.product-trend.negative {
-  color: var(--text-danger);
-}
-
-.activity-section {
-  margin-bottom: 3rem;
-}
-
-.activity-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 1.5rem;
-}
-
-.activity-card {
-  padding: 1.5rem;
-}
-
-.activity-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.activity-header h3 {
-  color: var(--text-accent);
-  font-size: 1.1rem;
-}
-
-.activity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.activity-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-.activity-item:hover {
-  background: rgba(0, 212, 255, 0.1);
-}
-
-.activity-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-}
-
-.status-icon {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.status-icon.warning {
-  background: rgba(255, 193, 7, 0.2);
-  color: var(--text-warning);
-}
-
-.status-icon.info {
-  background: rgba(0, 212, 255, 0.2);
-  color: var(--text-accent);
-}
-
-.status-icon.primary {
-  background: rgba(0, 123, 255, 0.2);
-  color: #007bff;
-}
-
-.status-icon.success {
-  background: rgba(16, 185, 129, 0.2);
-  color: var(--text-success);
-}
-
-.status-icon.danger {
-  background: rgba(239, 68, 68, 0.2);
-  color: var(--text-danger);
-}
-
-.alert-icon {
-  color: var(--text-warning);
-}
-
-.activity-content {
-  flex: 1;
-}
-
-.activity-title {
-  color: var(--text-primary);
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-
-.activity-subtitle {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin-bottom: 0.25rem;
-}
-
-.activity-time {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  opacity: 0.7;
-}
-
-.activity-status {
-  flex: none;
-}
-
-.status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.status-badge.warning {
-  background: rgba(255, 193, 7, 0.2);
-  color: var(--text-warning);
-}
-
-.status-badge.info {
-  background: rgba(0, 212, 255, 0.2);
-  color: var(--text-accent);
-}
-
-.status-badge.primary {
-  background: rgba(0, 123, 255, 0.2);
-  color: #007bff;
-}
-
-.status-badge.success {
-  background: rgba(16, 185, 129, 0.2);
-  color: var(--text-success);
-}
-
-.status-badge.danger {
-  background: rgba(239, 68, 68, 0.2);
-  color: var(--text-danger);
-}
-
-.activity-progress {
-  margin-top: 0.5rem;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 6px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--text-success);
-  border-radius: 3px;
-  transition: all 0.3s ease;
-}
-
-.progress-fill.warning {
-  background: var(--text-warning);
-}
-
-.progress-fill.danger {
-  background: var(--text-danger);
-}
-
-.activity-action {
-  flex: none;
-}
-
-.btn-restock {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--text-accent);
-  border-radius: 6px;
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--text-accent);
-  cursor: pointer;
-  font-size: 0.8rem;
-  transition: all 0.3s ease;
-}
-
-.btn-restock:hover {
-  background: var(--text-accent);
-  color: white;
-}
-
-.system-status {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.status-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
-}
-
-.status-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.status-indicator.active {
-  background: var(--text-success);
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-}
-
-.status-indicator.warning {
-  background: var(--text-warning);
-  box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
-}
-
-.status-indicator.danger {
-  background: var(--text-danger);
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-}
-
-.status-value {
-  margin-left: auto;
-  color: var(--text-accent);
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.status-metrics {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(0, 212, 255, 0.2);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-}
-
-.metric {
-  text-align: center;
-}
-
-.metric-label {
-  display: block;
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  margin-bottom: 0.25rem;
-}
-
-.metric-value {
-  color: var(--text-accent);
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  backdrop-filter: blur(5px);
-}
-
-.modal-content {
-  background: rgba(26, 26, 46, 0.95);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 12px;
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.modal-header h3 {
-  color: var(--text-accent);
-  margin: 0;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.25rem;
-  transition: color 0.3s ease;
-}
-
-.modal-close:hover {
-  color: var(--text-accent);
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.support-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.support-stat {
-  text-align: center;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-}
-
-.support-stat h4 {
-  color: var(--text-accent);
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.support-stat p {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.support-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  border: 1px solid;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-primary {
-  background: var(--text-accent);
-  border-color: var(--text-accent);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: rgba(0, 212, 255, 0.8);
-  transform: translateY(-2px);
-}
-
-.btn-secondary {
-  background: rgba(0, 212, 255, 0.1);
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.btn-secondary:hover {
-  background: var(--text-accent);
-  color: white;
-  transform: translateY(-2px);
-}
-
-@media (max-width: 768px) {
-  .dashboard-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .header-actions {
-    justify-content: space-between;
-  }
-  
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
-  
-  .quick-actions-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .charts-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .activity-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .support-actions {
-    flex-direction: column;
-  }
-}
-
-@media (max-width: 480px) {
-  .admin-dashboard {
-    padding: 1rem 0;
-  }
-  
-  .header-content h1 {
-    font-size: 2rem;
-  }
-  
-  .stat-card {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .activity-item {
-    flex-direction: column;
-    align-items: stretch;
-    text-align: center;
-  }
-  
-  .status-metrics {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
   background: rgba(26, 26, 46, 0.8);
   color: var(--text-primary);
-  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 .loading-container {
@@ -1217,6 +467,9 @@ export default {
   display: flex;
   align-items: center;
   gap: 1rem;
+  background: rgba(26, 26, 46, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 12px;
   transition: all 0.3s ease;
 }
 
@@ -1249,11 +502,11 @@ export default {
 }
 
 .stat-change.positive {
-  color: var(--text-success);
+  color: #10b981;
 }
 
 .stat-change.negative {
-  color: var(--text-danger);
+  color: #ef4444;
 }
 
 .quick-actions-section {
@@ -1277,6 +530,9 @@ export default {
   display: flex;
   align-items: center;
   gap: 1rem;
+  background: rgba(26, 26, 46, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 12px;
   transition: all 0.3s ease;
   text-decoration: none;
   color: inherit;
@@ -1315,138 +571,6 @@ export default {
   opacity: 0.7;
 }
 
-.charts-section {
-  margin-bottom: 3rem;
-}
-
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.chart-card {
-  padding: 1.5rem;
-}
-
-.chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.chart-header h3 {
-  color: var(--text-accent);
-  font-size: 1.2rem;
-}
-
-.view-all-link {
-  color: var(--text-accent);
-  text-decoration: none;
-  font-size: 0.9rem;
-  opacity: 0.8;
-  transition: opacity 0.3s ease;
-}
-
-.view-all-link:hover {
-  opacity: 1;
-}
-
-.chart-controls select {
-  padding: 0.5rem;
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 6px;
-  background: rgba(26, 26, 46, 0.8);
-  color: var(--text-primary);
-  font-size: 0.9rem;
-}
-
-.chart-container {
-  position: relative;
-  height: 200px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.products-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.product-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-.product-item:hover {
-  background: rgba(0, 212, 255, 0.1);
-}
-
-.product-rank {
-  background: var(--text-accent);
-  color: white;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.product-image {
-  width: 50px;
-  height: 50px;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.product-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.product-info {
-  flex: 1;
-}
-
-.product-info h4 {
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-  font-size: 1rem;
-}
-
-.product-info p {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-}
-
-.product-trend {
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.product-trend.positive {
-  color: var(--text-success);
-}
-
-.product-trend.negative {
-  color: var(--text-danger);
-}
-
 .activity-section {
   margin-bottom: 3rem;
 }
@@ -1459,6 +583,9 @@ export default {
 
 .activity-card {
   padding: 1.5rem;
+  background: rgba(26, 26, 46, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 12px;
 }
 
 .activity-header {
@@ -1473,6 +600,18 @@ export default {
 .activity-header h3 {
   color: var(--text-accent);
   font-size: 1.1rem;
+}
+
+.view-all-link {
+  color: var(--text-accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.view-all-link:hover {
+  opacity: 1;
 }
 
 .activity-list {
@@ -1516,7 +655,7 @@ export default {
 
 .status-icon.warning {
   background: rgba(255, 193, 7, 0.2);
-  color: var(--text-warning);
+  color: #ffc107;
 }
 
 .status-icon.info {
@@ -1531,16 +670,12 @@ export default {
 
 .status-icon.success {
   background: rgba(16, 185, 129, 0.2);
-  color: var(--text-success);
+  color: #10b981;
 }
 
 .status-icon.danger {
   background: rgba(239, 68, 68, 0.2);
-  color: var(--text-danger);
-}
-
-.alert-icon {
-  color: var(--text-warning);
+  color: #ef4444;
 }
 
 .activity-content {
@@ -1578,7 +713,7 @@ export default {
 
 .status-badge.warning {
   background: rgba(255, 193, 7, 0.2);
-  color: var(--text-warning);
+  color: #ffc107;
 }
 
 .status-badge.info {
@@ -1593,59 +728,12 @@ export default {
 
 .status-badge.success {
   background: rgba(16, 185, 129, 0.2);
-  color: var(--text-success);
+  color: #10b981;
 }
 
 .status-badge.danger {
   background: rgba(239, 68, 68, 0.2);
-  color: var(--text-danger);
-}
-
-.activity-progress {
-  margin-top: 0.5rem;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 6px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--text-success);
-  border-radius: 3px;
-  transition: all 0.3s ease;
-}
-
-.progress-fill.warning {
-  background: var(--text-warning);
-}
-
-.progress-fill.danger {
-  background: var(--text-danger);
-}
-
-.activity-action {
-  flex: none;
-}
-
-.btn-restock {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--text-accent);
-  border-radius: 6px;
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--text-accent);
-  cursor: pointer;
-  font-size: 0.8rem;
-  transition: all 0.3s ease;
-}
-
-.btn-restock:hover {
-  background: var(--text-accent);
-  color: white;
+  color: #ef4444;
 }
 
 .system-status {
@@ -1670,18 +758,13 @@ export default {
 }
 
 .status-indicator.active {
-  background: var(--text-success);
+  background: #10b981;
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
 }
 
 .status-indicator.warning {
-  background: var(--text-warning);
+  background: #ffc107;
   box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
-}
-
-.status-indicator.danger {
-  background: var(--text-danger);
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
 }
 
 .status-value {
@@ -1689,32 +772,6 @@ export default {
   color: var(--text-accent);
   font-weight: 600;
   font-size: 0.9rem;
-}
-
-.status-metrics {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(0, 212, 255, 0.2);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-}
-
-.metric {
-  text-align: center;
-}
-
-.metric-label {
-  display: block;
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  margin-bottom: 0.25rem;
-}
-
-.metric-value {
-  color: var(--text-accent);
-  font-weight: 600;
-  font-size: 1.1rem;
 }
 
 .modal-overlay {
@@ -1857,41 +914,12 @@ export default {
     grid-template-columns: 1fr;
   }
   
-  .charts-grid {
-    grid-template-columns: 1fr;
-  }
-  
   .activity-grid {
     grid-template-columns: 1fr;
   }
   
   .support-actions {
     flex-direction: column;
-  }
-}
-
-@media (max-width: 480px) {
-  .admin-dashboard {
-    padding: 1rem 0;
-  }
-  
-  .header-content h1 {
-    font-size: 2rem;
-  }
-  
-  .stat-card {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .activity-item {
-    flex-direction: column;
-    align-items: stretch;
-    text-align: center;
-  }
-  
-  .status-metrics {
-    grid-template-columns: 1fr;
   }
 }
 </style>

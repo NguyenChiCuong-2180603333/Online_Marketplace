@@ -95,7 +95,7 @@
                   class="user-avatar"
                   @error="handleAvatarError"
                 />
-                <span class="user-name">{{ authStore.user?.name }}</span>
+                <span class="user-name">{{ currentUser?.firstName }} {{ currentUser?.lastName }}</span>
                 <span class="dropdown-arrow">▼</span>
               </button>
               
@@ -110,8 +110,8 @@
                       @error="handleAvatarError"
                     />
                     <div class="user-details">
-                      <h4>{{ authStore.user?.name }}</h4>
-                      <p>{{ authStore.user?.email }}</p>
+                      <h4>{{ currentUser?.firstName }} {{ currentUser?.lastName }}</h4>
+                      <p>{{ currentUser?.email }}</p>
                       <span v-if="authStore.user?.isVip" class="vip-badge">👑 VIP</span>
                     </div>
                   </div>
@@ -147,7 +147,7 @@
                   
                   <!-- Admin Link (if user is admin) -->
                   <router-link
-                    v-if="authStore.user?.role === 'ADMIN'"
+                    v-if="isAdmin"
                     to="/admin"
                     class="dropdown-link admin-link"
                   >
@@ -272,7 +272,11 @@ export default {
     const router = useRouter()
     const authStore = useAuthStore()
     const cartStore = useCartStore()
-    const loyaltyStore = useLoyaltyStore() // NEW STORE
+    const loyaltyStore = useLoyaltyStore()
+
+    const isAuthenticated = computed(() => authStore.isAuthenticated)
+    const isAdmin = computed(() => authStore.isAdmin)  
+    const currentUser = computed(() => authStore.currentUser)
     
     // Refs
     const searchBoxRef = ref(null)
