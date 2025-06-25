@@ -35,16 +35,9 @@ public class UserService implements UserDetailsService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPassword())
-                .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole())))
-                .accountExpired(false)
-                .accountLocked(!user.isEnabled())
-                .credentialsExpired(false)
-                .disabled(!user.isEnabled())
-                .build();
+        return UserPrincipal.create(user);
     }
+
 
     public UserDetails loadUserById(String userId) {
         User user = getUserById(userId);
@@ -53,11 +46,12 @@ public class UserService implements UserDetailsService {
 
     public User createUser(User user) {
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-            throw new BadRequestException("Email đã được sử dụng");
+            throw new BadRequestException("Email đã được sử dụng bởi tài khoản khác");
         }
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-        user.setRole("USER");
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        
+        user.setRole(user.getRole() != null ? user.getRole() : "USER");
         user.setEnabled(true);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());

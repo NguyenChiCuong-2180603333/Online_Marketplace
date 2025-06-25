@@ -27,88 +27,90 @@
                 :class="{ 'removing': item.isRemoving }"
               >
                 <div class="item-image">
-                  <img :src="item.product.images?.[0] || '/placeholder-product.jpg'" :alt="item.product.name" />
-                  <div v-if="item.product.discount" class="discount-badge">
-                    -{{ item.product.discount }}%
-                  </div>
-                </div>
+  <img :src="item.productImage || '/placeholder-product.jpg'" :alt="item.productName" />
+  <div v-if="item.discount" class="discount-badge">
+    -{{ item.discount }}%
+  </div>
+</div>
 
                 <div class="item-details">
                   <div class="item-info">
-                    <h3 class="item-name">
-                      <router-link :to="`/products/${item.product.id}`">
-                        {{ item.product.name }}
-                      </router-link>
-                    </h3>
-                    <p class="item-category">{{ item.product.category?.name }}</p>
-                    
-                    <div class="item-features">
-                      <span v-for="feature in item.product.keyFeatures?.slice(0, 2)" :key="feature" class="feature-tag">
-                        {{ feature }}
-                      </span>
-                    </div>
+  <h3 class="item-name">
+    <router-link :to="`/products/${item.productId}`">
+      {{ item.productName }}
+    </router-link>
+  </h3>
+  <p class="item-category">{{ item.category?.name || 'Electronics' }}</p>
+  
+  <div class="item-features">
+    <span v-for="feature in item.keyFeatures?.slice(0, 2)" :key="feature" class="feature-tag">
+      {{ feature }}
+    </span>
+  </div>
 
-                    <div class="item-seller">
-                      <span class="seller-info">
-                        🏪 {{ item.product.seller?.name || 'Cosmic Store' }}
-                      </span>
-                      <span class="shipping-info">
-                        🚀 Giao hàng từ {{ item.product.seller?.location || 'Thiên hà Milky Way' }}
-                      </span>
-                    </div>
-                  </div>
+  <div class="item-seller">
+    <span class="seller-info">
+      🏪 {{ item.seller?.name || 'Cosmic Store' }}
+    </span>
+    <span class="shipping-info">
+      🚀 Giao hàng từ {{ item.seller?.location || 'Thiên hà Milky Way' }}
+    </span>
+  </div>
+</div>
+
 
                   <div class="item-actions">
                     <div class="quantity-controls">
-                      <label>Số lượng:</label>
-                      <div class="quantity-selector">
-                        <button 
-                          @click="updateQuantity(item.id, item.quantity - 1)"
-                          :disabled="item.quantity <= 1 || item.updating"
-                          class="quantity-btn"
-                        >
-                          -
-                        </button>
-                        <input 
-                          v-model.number="item.quantity"
-                          @change="updateQuantity(item.id, item.quantity)"
-                          type="number" 
-                          min="1" 
-                          :max="item.product.stock"
-                          class="quantity-input"
-                          :disabled="item.updating"
-                        />
-                        <button 
-                          @click="updateQuantity(item.id, item.quantity + 1)"
-                          :disabled="item.quantity >= item.product.stock || item.updating"
-                          class="quantity-btn"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
+  <label>Số lượng:</label>
+  <div class="quantity-selector">
+    <button 
+      @click="updateQuantity(item.productId, item.quantity - 1)"
+      :disabled="item.quantity <= 1 || loading"
+      class="quantity-btn"
+    >
+      -
+    </button>
+    <input 
+      v-model.number="item.quantity"
+      @change="updateQuantity(item.productId, item.quantity)"
+      type="number" 
+      min="1" 
+      :max="item.stock || 100"
+      class="quantity-input"
+      :disabled="loading"
+    />
+    <button 
+      @click="updateQuantity(item.productId, item.quantity + 1)"
+      :disabled="item.quantity >= (item.stock || 100) || loading"
+      class="quantity-btn"
+    >
+      +
+    </button>
+  </div>
+</div>
+
 
                     <div class="item-price-section">
-                      <div class="price-details">
-                        <span v-if="item.product.originalPrice && item.product.originalPrice > item.product.price" 
-                              class="original-price">
-                          {{ formatCurrency(item.product.originalPrice) }}
-                        </span>
-                        <span class="unit-price">{{ formatCurrency(item.product.price) }}</span>
-                      </div>
-                      <div class="total-price">
-                        {{ formatCurrency(item.product.price * item.quantity) }}
-                      </div>
-                    </div>
+  <div class="price-details">
+    <span v-if="item.originalPrice && item.originalPrice > item.productPrice" 
+          class="original-price">
+      {{ formatCurrency(item.originalPrice) }}
+    </span>
+    <span class="unit-price">{{ formatCurrency(item.productPrice) }}</span>
+  </div>
+  <div class="total-price">
+    {{ formatCurrency(item.subtotal) }}
+  </div>
+</div>
 
                     <div class="item-controls">
-                      <button @click="saveForLater(item.id)" class="action-btn">
-                        💾 Lưu lại sau
-                      </button>
-                      <button @click="removeItem(item.id)" class="action-btn remove-btn" :disabled="item.removing">
-                        {{ item.removing ? '🔄' : '🗑️' }} Xóa
-                      </button>
-                    </div>
+  <button @click="saveForLater(item.productId)" class="action-btn">
+    💾 Lưu lại sau
+  </button>
+  <button @click="removeItem(item.productId)" class="action-btn remove-btn" :disabled="loading">
+    {{ loading ? '🔄' : '🗑️' }} Xóa
+  </button>
+</div>
                   </div>
                 </div>
 
@@ -334,44 +336,11 @@ export default {
     const promoError = ref(false)
     const freeShippingThreshold = ref(1000000) // 1M VND
     
-    // Mock data
-    const cartItems = ref([
-      {
-        id: 1,
-        quantity: 2,
-        updating: false,
-        removing: false,
-        product: {
-          id: 1,
-          name: 'Laptop Gaming Galactic Pro',
-          price: 25000000,
-          originalPrice: 30000000,
-          stock: 15,
-          discount: 17,
-          category: { name: 'Công nghệ' },
-          images: ['/placeholder-product.jpg'],
-          keyFeatures: ['RTX 4080', 'Intel i9', '32GB RAM'],
-          seller: { name: 'Cosmic Tech Store', location: 'Hệ mặt trời' }
-        }
-      },
-      {
-        id: 2,
-        quantity: 1,
-        updating: false,
-        removing: false,
-        product: {
-          id: 2,
-          name: 'Gaming Mouse Nebula',
-          price: 1500000,
-          stock: 50,
-          category: { name: 'Phụ kiện' },
-          images: ['/placeholder-product.jpg'],
-          keyFeatures: ['RGB LED', 'Wireless'],
-          seller: { name: 'Nebula Gaming', location: 'Sao Hỏa' }
-        }
-      }
-    ])
+    // ✅ FIX: Use real cart data from store
+    const cartItems = computed(() => cartStore.items || [])
+    const isEmpty = computed(() => cartStore.isEmpty)
     
+    // Keep some mock data for features not yet implemented
     const savedItems = ref([
       {
         id: 3,
@@ -397,14 +366,9 @@ export default {
       { id: 4, name: 'Sách', slug: 'books', icon: '📚' }
     ])
     
-    // Computed properties
-    const totalItems = computed(() => {
-      return cartItems.value.reduce((total, item) => total + item.quantity, 0)
-    })
-    
-    const subtotal = computed(() => {
-      return cartItems.value.reduce((total, item) => total + (item.product.price * item.quantity), 0)
-    })
+    // ✅ FIX: Use real computed properties from store
+    const totalItems = computed(() => cartStore.totalItems || 0)
+    const subtotal = computed(() => cartStore.totalAmount || 0)
     
     const shippingFee = computed(() => {
       return subtotal.value >= freeShippingThreshold.value ? 0 : 50000
@@ -420,8 +384,8 @@ export default {
     })
     
     const hasOutOfStockItems = computed(() => {
-      return cartItems.value.some(item => item.quantity > item.product.stock)
-    })
+  return cartItems.value.some(item => item.quantity > (item.stock || 100))
+})
     
     // Methods
     const formatCurrency = (amount) => {
@@ -431,114 +395,107 @@ export default {
       }).format(amount)
     }
     
-    const updateQuantity = async (itemId, newQuantity) => {
-      if (newQuantity < 1) return
-      
-      const item = cartItems.value.find(item => item.id === itemId)
-      if (!item) return
-      
-      if (newQuantity > item.product.stock) {
-        alert(`Chỉ còn ${item.product.stock} sản phẩm trong kho`)
-        return
-      }
-      
-      item.updating = true
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500))
-        item.quantity = newQuantity
-        
-        // Update cart store
-        await cartStore.updateQuantity(itemId, newQuantity)
-      } catch (error) {
-        console.error('Error updating quantity:', error)
-        alert('Có lỗi xảy ra khi cập nhật số lượng')
-      } finally {
-        item.updating = false
-      }
-    }
+    const updateQuantity = async (productId, newQuantity) => {
+  console.log('🔄 Update quantity called:', { productId, newQuantity })
+  
+  if (newQuantity < 1) {
+    console.log('❌ Invalid quantity:', newQuantity)
+    return
+  }
+  
+  try {
+    loading.value = true
+    console.log('📡 Calling cartStore.updateItemQuantity...')
     
-    const removeItem = async (itemId) => {
-      const item = cartItems.value.find(item => item.id === itemId)
-      if (!item) return
-      
-      if (!confirm('Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?')) return
-      
-      item.removing = true
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        const index = cartItems.value.findIndex(item => item.id === itemId)
-        if (index > -1) {
-          cartItems.value.splice(index, 1)
-        }
-        
-        // Update cart store
-        await cartStore.removeItem(itemId)
-      } catch (error) {
-        console.error('Error removing item:', error)
-        alert('Có lỗi xảy ra khi xóa sản phẩm')
-        item.removing = false
-      }
-    }
+    await cartStore.updateItemQuantity(productId, newQuantity)
     
+    console.log('✅ Quantity updated successfully')
+    
+    await cartStore.loadCart()
+    
+  } catch (error) {
+    console.error('❌ Error updating quantity:', error)
+    console.error('Error details:', error.response?.data)
+    alert('Có lỗi xảy ra khi cập nhật số lượng: ' + (error.response?.data?.message || error.message))
+  } finally {
+    loading.value = false
+  }
+}
+    
+    const removeItem = async (productId) => {
+  console.log('🗑️ Remove item called:', { productId })
+  
+  if (!confirm('Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?')) return
+  
+  try {
+    loading.value = true
+    console.log('📡 Calling cartStore.removeItem...')
+    
+    await cartStore.removeItem(productId)
+    
+    console.log('✅ Item removed successfully')
+    
+    await cartStore.loadCart()
+    
+  } catch (error) {
+    console.error('❌ Error removing item:', error)
+    console.error('Error details:', error.response?.data)
+    alert('Có lỗi xảy ra khi xóa sản phẩm: ' + (error.response?.data?.message || error.message))
+  } finally {
+    loading.value = false
+  }
+}
+    
+    // ✅ FIX: Real API call for clear cart
     const clearCart = async () => {
       if (!confirm('Bạn có chắc muốn xóa tất cả sản phẩm trong giỏ hàng?')) return
       
       try {
         loading.value = true
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        cartItems.value = []
         await cartStore.clearCart()
-        
+        console.log('✅ Cart cleared')
         alert('Đã xóa tất cả sản phẩm khỏi giỏ hàng')
       } catch (error) {
-        console.error('Error clearing cart:', error)
+        console.error('❌ Error clearing cart:', error)
         alert('Có lỗi xảy ra khi xóa giỏ hàng')
       } finally {
         loading.value = false
       }
     }
     
-    const saveForLater = async (itemId) => {
-      const item = cartItems.value.find(item => item.id === itemId)
-      if (!item) return
-      
-      try {
-        // Move item to saved items
-        savedItems.value.push({
-          id: itemId,
-          product: item.product
-        })
-        
-        // Remove from cart
-        const index = cartItems.value.findIndex(item => item.id === itemId)
-        if (index > -1) {
-          cartItems.value.splice(index, 1)
-        }
-        
-        alert('Đã lưu sản phẩm để mua sau')
-      } catch (error) {
-        console.error('Error saving item:', error)
-        alert('Có lỗi xảy ra khi lưu sản phẩm')
-      }
+    const saveForLater = async (productId) => {
+  const item = cartItems.value.find(item => item.productId === productId)
+  if (!item) return
+  
+  try {
+    const productObj = {
+      id: item.productId,
+      name: item.productName,
+      price: item.productPrice,
+      images: [item.productImage || '/placeholder-product.jpg']
     }
+    
+    savedItems.value.push({
+      id: productId,
+      product: productObj
+    })
+    
+    await removeItem(productId)
+    
+    alert('Đã lưu sản phẩm để mua sau')
+  } catch (error) {
+    console.error('Error saving item:', error)
+    alert('Có lỗi xảy ra khi lưu sản phẩm')
+  }
+}
     
     const moveToCart = async (itemId) => {
       const savedItem = savedItems.value.find(item => item.id === itemId)
       if (!savedItem) return
       
       try {
-        // Add to cart
-        cartItems.value.push({
-          id: itemId,
-          quantity: 1,
-          updating: false,
-          removing: false,
-          product: savedItem.product
-        })
+        // Add to cart via store
+        await cartStore.addItem(savedItem.product.id, 1)
         
         // Remove from saved items
         const index = savedItems.value.findIndex(item => item.id === itemId)
@@ -616,40 +573,39 @@ export default {
     }
     
     const addRecommendedToCart = async (product) => {
-      try {
-        // Check if product already in cart
-        const existingItem = cartItems.value.find(item => item.product.id === product.id)
-        if (existingItem) {
-          await updateQuantity(existingItem.id, existingItem.quantity + 1)
-        } else {
-          // Add new item to cart
-          const newItem = {
-            id: Date.now(),
-            quantity: 1,
-            updating: false,
-            removing: false,
-            product: product
-          }
-          cartItems.value.push(newItem)
-          await cartStore.addToCart(product.id, 1)
-        }
-        
-        alert('Đã thêm sản phẩm vào giỏ hàng!')
-      } catch (error) {
-        console.error('Error adding recommended product:', error)
-        alert('Có lỗi xảy ra khi thêm sản phẩm')
-      }
-    }
+  try {
+    await cartStore.addItem(product.id, 1)
+    alert('Đã thêm sản phẩm vào giỏ hàng!')
+  } catch (error) {
+    console.error('Error adding recommended product:', error)
+    alert('Có lỗi xảy ra khi thêm sản phẩm')
+  }
+}
     
-    // Lifecycle
-    onMounted(() => {
-      // Load cart data from store or API
-      console.log('Cart page mounted')
+    // ✅ FIX: Load real cart data on mount
+    onMounted(async () => {
+      console.log('Cart page mounted - loading real cart data...')
+      
+      if (authStore.isAuthenticated) {
+        try {
+          loading.value = true
+          await cartStore.loadCart()
+          console.log('✅ Cart data loaded:', cartStore.items)
+        } catch (error) {
+          console.error('❌ Error loading cart:', error)
+        } finally {
+          loading.value = false
+        }
+      } else {
+        console.log('User not authenticated, redirecting to login')
+        router.push('/login')
+      }
     })
     
     return {
       loading,
       cartItems,
+      isEmpty,
       savedItems,
       recommendedProducts,
       popularCategories,

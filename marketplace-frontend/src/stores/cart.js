@@ -17,19 +17,20 @@ export const useCartStore = defineStore('cart', {
 
   actions: {
     async loadCart() {
-      this.loading = true
-      this.error = null
-      
-      try {
-        const response = await cartAPI.get()
-        this.cart = response.data
-      } catch (error) {
-        this.error = error.response?.data?.message || 'Không thể tải giỏ hàng'
-        console.error('Load cart error:', error)
-      } finally {
-        this.loading = false
-      }
-    },
+  this.loading = true
+  this.error = null
+  
+  try {
+    const response = await cartAPI.getCart() 
+    this.cart = response.data
+    console.log('✅ Cart loaded from API:', response.data)
+  } catch (error) {
+    this.error = error.response?.data?.message || 'Không thể tải giỏ hàng'
+    console.error('❌ Load cart error:', error)
+  } finally {
+    this.loading = false
+  }
+},
 
     async addItem(productId, quantity = 1) {
       this.loading = true

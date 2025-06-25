@@ -18,7 +18,7 @@
               class="search-input"
               @keyup.enter="performSearch"
             />
-            <button @click="performSearch" class="search-btn">
+            <button @click="performSearch" class="search-btn" :disabled="loading">
               🔍 Tìm kiếm
             </button>
           </div>
@@ -30,10 +30,9 @@
             <label for="category">Danh mục:</label>
             <select id="category" v-model="filters.category" @change="applyFilters" class="filter-select">
               <option value="">Tất cả danh mục</option>
-              <option value="tech">💻 Công nghệ</option>
-              <option value="fashion">👗 Thời trang</option>
-              <option value="home">🏠 Gia đình</option>
-              <option value="books">📚 Sách</option>
+              <option v-for="category in categories" :key="category.id" :value="category.name">
+                {{ category.name }}
+              </option>
             </select>
           </div>
 
@@ -104,17 +103,18 @@
           >
             <div class="product-image">
               <img 
-                :src="product.images?.[0] || '/placeholder-product.jpg'" 
+                :src="product.imageUrl || product.images?.[0] || '/placeholder-product.jpg'" 
                 :alt="product.name"
                 loading="lazy"
+                @error="handleImageError"
               />
               <div class="product-badges">
-                <span v-if="product.isNew" class="badge new-badge">🆕 Mới</span>
-                <span v-if="product.discount" class="badge discount-badge">
+                <span v-if="isNewProduct(product)" class="badge new-badge">🆕 Mới</span>
+                <span v-if="product.discount && product.discount > 0" class="badge discount-badge">
                   -{{ product.discount }}%
                 </span>
-                <span v-if="product.isBestSeller" class="badge bestseller-badge">
-                  🔥 Bán chạy
+                <span v-if="product.featured" class="badge bestseller-badge">
+                  🔥 Nổi bật
                 </span>
               </div>
               <div class="product-actions-overlay">
@@ -137,14 +137,14 @@
             </div>
 
             <div class="product-info">
-              <div class="product-category">{{ product.category?.name }}</div>
+              <div class="product-category">{{ product.category }}</div>
               <h3 class="product-title">{{ product.name }}</h3>
               
               <div class="product-rating">
                 <div class="rating-stars">
-                  <span v-for="i in 5" :key="i" class="star" :class="[i <= product.rating ? 'filled' : '']">⭐</span>
+                  <span v-for="i in 5" :key="i" class="star" :class="[i <= Math.round(product.rating || 0) ? 'filled' : '']">⭐</span>
                 </div>
-                <span class="rating-text">({{ product.reviewCount }})</span>
+                <span class="rating-text">({{ product.reviewCount || 0 }})</span>
               </div>
               
               <p class="product-description">{{ truncateText(product.description, 80) }}</p>
@@ -160,12 +160,16 @@
                 <button 
                   @click.stop="addToCart(product)" 
                   class="btn btn-primary" 
-                  :disabled="cartLoading"
+                  :disabled="cartLoading || product.stock <= 0"
                   :class="{ 'loading': cartLoading }"
                 >
-                  🛒 Thêm vào giỏ
+                  {{ product.stock <= 0 ? '🚫 Hết hàng' : '🛒 Thêm vào giỏ' }}
                 </button>
-                <button @click.stop="buyNow(product)" class="btn btn-secondary">
+                <button 
+                  @click.stop="buyNow(product)" 
+                  class="btn btn-secondary"
+                  :disabled="product.stock <= 0"
+                >
                   🚀 Mua ngay
                 </button>
               </div>
@@ -184,6 +188,16 @@
         <p>Đang khám phá vũ trụ sản phẩm...</p>
       </div>
 
+      <!-- Error State -->
+      <div v-else-if="error" class="error-container">
+        <div class="error-content space-card">
+          <div class="error-icon">⚠️</div>
+          <h3>Có lỗi xảy ra</h3>
+          <p>{{ error }}</p>
+          <button @click="loadProducts" class="btn btn-primary">🔄 Thử lại</button>
+        </div>
+      </div>
+
       <!-- No Results -->
       <div v-else class="no-results">
         <div class="no-results-content space-card">
@@ -195,7 +209,7 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="pagination-container">
+      <div v-if="totalPages > 1 && !loading" class="pagination-container">
         <div class="pagination">
           <button 
             @click="goToPage(currentPage - 1)" 
@@ -240,7 +254,7 @@
         <div v-if="selectedProduct" class="quick-view-content">
           <div class="quick-view-image">
             <img 
-              :src="selectedProduct.images?.[0] || '/placeholder-product.jpg'" 
+              :src="selectedProduct.imageUrl || selectedProduct.images?.[0] || '/placeholder-product.jpg'" 
               :alt="selectedProduct.name" 
             />
           </div>
@@ -248,9 +262,9 @@
             <h3>{{ selectedProduct.name }}</h3>
             <div class="quick-view-rating">
               <div class="rating-stars">
-                <span v-for="i in 5" :key="i" class="star" :class="[i <= selectedProduct.rating ? 'filled' : '']">⭐</span>
+                <span v-for="i in 5" :key="i" class="star" :class="[i <= Math.round(selectedProduct.rating || 0) ? 'filled' : '']">⭐</span>
               </div>
-              <span>({{ selectedProduct.reviewCount }} đánh giá)</span>
+              <span>({{ selectedProduct.reviewCount || 0 }} đánh giá)</span>
             </div>
             <div class="quick-view-price">
               <span v-if="selectedProduct.originalPrice && selectedProduct.originalPrice > selectedProduct.price" class="original-price">
@@ -260,8 +274,12 @@
             </div>
             <p class="quick-view-description">{{ selectedProduct.description }}</p>
             <div class="quick-view-actions">
-              <button @click="addToCart(selectedProduct)" class="btn btn-primary">
-                🛒 Thêm vào giỏ
+              <button 
+                @click="addToCart(selectedProduct)" 
+                class="btn btn-primary"
+                :disabled="selectedProduct.stock <= 0"
+              >
+                {{ selectedProduct.stock <= 0 ? '🚫 Hết hàng' : '🛒 Thêm vào giỏ' }}
               </button>
               <router-link :to="`/products/${selectedProduct.id}`" class="btn btn-secondary">
                 📋 Xem chi tiết
@@ -278,6 +296,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
+import { productAPI, categoryAPI } from '@/services/api'
 
 export default {
   name: 'Products',
@@ -289,6 +308,7 @@ export default {
     // Reactive data
     const loading = ref(false)
     const cartLoading = ref(false)
+    const error = ref(null)
     const searchQuery = ref('')
     const viewMode = ref('grid')
     const showQuickView = ref(false)
@@ -305,145 +325,11 @@ export default {
     const itemsPerPage = ref(12)
     const totalResults = ref(0)
     
-    // Mock products data
-    const allProducts = ref([
-      {
-        id: 1,
-        name: 'Laptop Gaming Galactic Pro',
-        description: 'Laptop gaming cao cấp với hiệu năng vượt trội, thiết kế futuristic và công nghệ tiên tiến từ tương lai.',
-        price: 25000000,
-        originalPrice: 30000000,
-        discount: 17,
-        rating: 4.5,
-        reviewCount: 128,
-        category: { name: 'Công nghệ' },
-        images: ['/placeholder-product.jpg'],
-        isNew: true,
-        isBestSeller: true
-      },
-      {
-        id: 2,
-        name: 'Gaming Mouse Nebula',
-        description: 'Chuột gaming với độ chính xác cao, RGB đa màu và thiết kế ergonomic.',
-        price: 1500000,
-        rating: 4.3,
-        reviewCount: 89,
-        category: { name: 'Công nghệ' },
-        images: ['/placeholder-product.jpg'],
-        isNew: false,
-        isBestSeller: false
-      },
-      {
-        id: 3,
-        name: 'Mechanical Keyboard Cosmos',
-        description: 'Bàn phím cơ với switch cherry, đèn LED RGB và thiết kế compact.',
-        price: 2200000,
-        rating: 4.7,
-        reviewCount: 156,
-        category: { name: 'Công nghệ' },
-        images: ['/placeholder-product.jpg'],
-        isNew: true,
-        isBestSeller: false
-      },
-      {
-        id: 4,
-        name: 'Gaming Headset Galaxy',
-        description: 'Tai nghe gaming với âm thanh 7.1 surround và micro chống ồn.',
-        price: 1800000,
-        rating: 4.2,
-        reviewCount: 67,
-        category: { name: 'Công nghệ' },
-        images: ['/placeholder-product.jpg'],
-        isNew: false,
-        isBestSeller: true
-      },
-      {
-        id: 5,
-        name: 'Áo khoác Nebula Style',
-        description: 'Áo khoác thời trang với họa tiết thiên hà độc đáo.',
-        price: 1200000,
-        originalPrice: 1500000,
-        discount: 20,
-        rating: 4.4,
-        reviewCount: 93,
-        category: { name: 'Thời trang' },
-        images: ['/placeholder-product.jpg'],
-        isNew: true,
-        isBestSeller: false
-      },
-      {
-        id: 6,
-        name: 'Đèn LED Galaxy',
-        description: 'Đèn LED trang trí với hiệu ứng thiên hà tuyệt đẹp.',
-        price: 800000,
-        rating: 4.6,
-        reviewCount: 201,
-        category: { name: 'Gia đình' },
-        images: ['/placeholder-product.jpg'],
-        isNew: false,
-        isBestSeller: true
-      }
-    ])
+    // Data from API
+    const products = ref([])
+    const categories = ref([])
     
     // Computed properties
-    const products = computed(() => {
-      let filtered = [...allProducts.value]
-      
-      // Apply search filter
-      if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase()
-        filtered = filtered.filter(product => 
-          product.name.toLowerCase().includes(query) ||
-          product.description.toLowerCase().includes(query)
-        )
-      }
-      
-      // Apply category filter
-      if (filters.value.category) {
-        filtered = filtered.filter(product => 
-          product.category.name.toLowerCase().includes(filters.value.category)
-        )
-      }
-      
-      // Apply price range filter
-      if (filters.value.priceRange) {
-        const [min, max] = filters.value.priceRange.split('-').map(Number)
-        if (max) {
-          filtered = filtered.filter(product => product.price >= min && product.price <= max)
-        } else {
-          filtered = filtered.filter(product => product.price >= min)
-        }
-      }
-      
-      // Apply sorting
-      switch (filters.value.sortBy) {
-        case 'price-asc':
-          filtered.sort((a, b) => a.price - b.price)
-          break
-        case 'price-desc':
-          filtered.sort((a, b) => b.price - a.price)
-          break
-        case 'rating':
-          filtered.sort((a, b) => b.rating - a.rating)
-          break
-        case 'popular':
-          filtered.sort((a, b) => b.reviewCount - a.reviewCount)
-          break
-        case 'newest':
-        default:
-          filtered.sort((a, b) => b.id - a.id)
-          break
-      }
-      
-      // Update total results
-      totalResults.value = filtered.length
-      
-      // Apply pagination
-      const start = (currentPage.value - 1) * itemsPerPage.value
-      const end = start + itemsPerPage.value
-      return filtered.slice(start, end)
-    })
-    
     const totalPages = computed(() => {
       return Math.ceil(totalResults.value / itemsPerPage.value)
     })
@@ -478,7 +364,83 @@ export default {
       return pages
     })
     
-    // Methods
+    // API Methods
+    const loadProducts = async () => {
+      try {
+        loading.value = true
+        error.value = null
+        
+        // Prepare API parameters
+        const params = {
+          page: currentPage.value - 1, // Backend uses 0-based pagination
+          size: itemsPerPage.value
+        }
+        
+        // Add search query
+        if (searchQuery.value.trim()) {
+          params.search = searchQuery.value.trim()
+        }
+        
+        // Add category filter
+        if (filters.value.category) {
+          params.category = filters.value.category
+        }
+        
+        // Add price range filter
+        if (filters.value.priceRange) {
+          const [min, max] = filters.value.priceRange.split('-').map(Number)
+          params.minPrice = min
+          if (max) {
+            params.maxPrice = max
+          }
+        }
+        
+        // Add sorting
+        if (filters.value.sortBy) {
+          params.sort = filters.value.sortBy
+        }
+        
+        console.log('Loading products with params:', params)
+        
+        const response = await productAPI.getAll(params)
+        
+        // Handle different response formats
+        if (response.data.content) {
+          // Paginated response
+          products.value = response.data.content
+          totalResults.value = response.data.totalElements
+        } else if (Array.isArray(response.data)) {
+          // Simple array response
+          products.value = response.data
+          totalResults.value = response.data.length
+        } else {
+          products.value = []
+          totalResults.value = 0
+        }
+        
+        console.log('Loaded products:', products.value)
+        
+      } catch (err) {
+        console.error('Error loading products:', err)
+        error.value = err.response?.data?.message || 'Không thể tải danh sách sản phẩm'
+        products.value = []
+        totalResults.value = 0
+      } finally {
+        loading.value = false
+      }
+    }
+    
+    const loadCategories = async () => {
+      try {
+        const response = await categoryAPI.getAll()
+        categories.value = response.data || []
+      } catch (err) {
+        console.error('Error loading categories:', err)
+        categories.value = []
+      }
+    }
+    
+    // Utility Methods
     const formatCurrency = (amount) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
@@ -487,17 +449,31 @@ export default {
     }
     
     const truncateText = (text, length) => {
+      if (!text) return ''
       return text.length > length ? text.substring(0, length) + '...' : text
     }
     
+    const isNewProduct = (product) => {
+      if (!product.createdAt) return false
+      const createdDate = new Date(product.createdAt)
+      const now = new Date()
+      const daysDiff = (now - createdDate) / (1000 * 60 * 60 * 24)
+      return daysDiff <= 7 // Products created within 7 days are considered "new"
+    }
+    
+    const handleImageError = (event) => {
+      event.target.src = '/placeholder-product.jpg'
+    }
+    
+    // Filter & Search Methods
     const performSearch = () => {
       currentPage.value = 1
-      // The search will be automatically applied through computed property
+      loadProducts()
     }
     
     const applyFilters = () => {
       currentPage.value = 1
-      // Filters will be automatically applied through computed property
+      loadProducts()
     }
     
     const clearAllFilters = () => {
@@ -508,11 +484,14 @@ export default {
         sortBy: 'newest'
       }
       currentPage.value = 1
+      loadProducts()
     }
     
+    // Navigation Methods
     const goToPage = (page) => {
       if (page >= 1 && page <= totalPages.value) {
         currentPage.value = page
+        loadProducts()
         // Scroll to top
         window.scrollTo({ top: 0, behavior: 'smooth' })
       }
@@ -522,6 +501,7 @@ export default {
       router.push(`/products/${productId}`)
     }
     
+    // Modal Methods
     const quickView = (product) => {
       selectedProduct.value = product
       showQuickView.value = true
@@ -532,25 +512,37 @@ export default {
       selectedProduct.value = null
     }
     
+    // Cart Methods
     const addToCart = async (product) => {
+      if (cartLoading.value || product.stock <= 0) return
+      
       try {
         cartLoading.value = true
         await cartStore.addToCart(product.id, 1)
-        alert('Đã thêm sản phẩm vào giỏ hàng!')
+        
+        // Show success message
+        const message = `Đã thêm "${product.name}" vào giỏ hàng!`
+        alert(message) // Replace with toast notification
+        
       } catch (error) {
         console.error('Error adding to cart:', error)
-        alert('Có lỗi xảy ra khi thêm vào giỏ hàng')
+        const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng'
+        alert(errorMessage)
       } finally {
         cartLoading.value = false
       }
     }
     
-    const buyNow = (product) => {
-      addToCart(product).then(() => {
+    const buyNow = async (product) => {
+      if (product.stock <= 0) return
+      
+      await addToCart(product)
+      if (!cartLoading.value) {
         router.push('/cart')
-      })
+      }
     }
     
+    // Wishlist Methods
     const toggleWishlist = (productId) => {
       const index = wishlist.value.indexOf(productId)
       if (index > -1) {
@@ -558,36 +550,54 @@ export default {
       } else {
         wishlist.value.push(productId)
       }
+      // TODO: Persist to backend
     }
     
     const isInWishlist = (productId) => {
       return wishlist.value.includes(productId)
     }
     
-    // Lifecycle
-    onMounted(() => {
-      // Load products from route query if any
+    // Lifecycle hooks
+    onMounted(async () => {
+      // Load initial data
+      await Promise.all([
+        loadCategories(),
+        loadProducts()
+      ])
+      
+      // Load from route query parameters
       if (route.query.search) {
         searchQuery.value = route.query.search
       }
       if (route.query.category) {
         filters.value.category = route.query.category
       }
+      
+      // Reload products if query params exist
+      if (route.query.search || route.query.category) {
+        await loadProducts()
+      }
     })
     
     // Watch for route changes
-    watch(() => route.query, (newQuery) => {
-      if (newQuery.search) {
-        searchQuery.value = newQuery.search
+    watch(() => route.query, async (newQuery) => {
+      if (newQuery.search !== searchQuery.value) {
+        searchQuery.value = newQuery.search || ''
       }
-      if (newQuery.category) {
-        filters.value.category = newQuery.category
+      if (newQuery.category !== filters.value.category) {
+        filters.value.category = newQuery.category || ''
       }
+      
+      // Reload products when route query changes
+      currentPage.value = 1
+      await loadProducts()
     })
     
     return {
+      // State
       loading,
       cartLoading,
+      error,
       searchQuery,
       viewMode,
       showQuickView,
@@ -597,10 +607,17 @@ export default {
       currentPage,
       totalResults,
       products,
+      categories,
+      
+      // Computed
       totalPages,
       visiblePages,
+      
+      // Methods
       formatCurrency,
       truncateText,
+      isNewProduct,
+      handleImageError,
       performSearch,
       applyFilters,
       clearAllFilters,
@@ -611,7 +628,8 @@ export default {
       addToCart,
       buyNow,
       toggleWishlist,
-      isInWishlist
+      isInWishlist,
+      loadProducts
     }
   }
 }

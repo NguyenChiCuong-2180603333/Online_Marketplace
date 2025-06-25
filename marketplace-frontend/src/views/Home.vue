@@ -333,6 +333,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from '@/stores/user'
+import { useCartStore } from '@/stores/cart'
 import { productAPI } from '@/services/api'
 import RecommendedProducts from '@/components/RecommendedProducts.vue'
 import TrendingProducts from '@/components/TrendingProducts.vue'
@@ -349,6 +350,7 @@ export default {
     const router = useRouter()
     const authStore = useAuthStore()
     const userStore = useUserStore()
+    const cartStore = useCartStore()
     
     // Reactive state
     const heroSearchQuery = ref('')
@@ -429,45 +431,54 @@ export default {
       })
     }
     
-    // Handle product click
     const handleProductClick = (product) => {
-      // Track product view
       recommendationService.trackView(product.id, 'featured_products')
       
-      // Navigate to product detail
       router.push(`/products/${product.id}`)
     }
     
-    // Handle add to cart
     const handleAddToCart = async (product) => {
       try {
-        // Track add to cart
+        if (!authStore.isAuthenticated) {
+          if (confirm('Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng. Chuyển đến trang đăng nhập?')) {
+            router.push('/login')
+          }
+          return
+        }
+        
         await recommendationService.trackAddToCart(product.id, 1)
         
-        // TODO: Add actual cart logic here
-        console.log('Added to cart:', product.name)
+        await cartStore.addItem(product.id, 1)
         
-        // Show success notification
-        // TODO: Add notification system
+        
+        console.log('✅ Added to cart:', product.name)
+        alert(`Đã thêm "${product.name}" vào giỏ hàng!`)
         
       } catch (error) {
-        console.error('Error adding to cart:', error)
+        console.error('❌ Error adding to cart:', error)
+        alert('Có lỗi xảy ra khi thêm vào giỏ hàng. Vui lòng thử lại!')
       }
     }
     
-    // Handle add to wishlist
     const handleAddToWishlist = async (product) => {
       try {
-        // Track wishlist action
+        if (!authStore.isAuthenticated) {
+          if (confirm('Bạn cần đăng nhập để thêm vào wishlist. Chuyển đến trang đăng nhập?')) {
+            router.push('/login')
+          }
+          return
+        }
+        
         await recommendationService.trackInteraction(product.id, 'ADD_TO_WISHLIST', {
           source: 'home_page'
         })
         
-        // TODO: Add actual wishlist logic here
-        console.log('Added to wishlist:', product.name)
+        console.log('✅ Added to wishlist:', product.name)
+        alert(`Đã thêm "${product.name}" vào danh sách yêu thích!`)
         
       } catch (error) {
-        console.error('Error adding to wishlist:', error)
+        console.error('❌ Error adding to wishlist:', error)
+        alert('Có lỗi xảy ra khi thêm vào wishlist.')
       }
     }
     

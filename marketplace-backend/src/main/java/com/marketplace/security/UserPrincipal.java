@@ -12,12 +12,14 @@ public class UserPrincipal implements UserDetails {
     private String id;
     private String email;
     private String password;
+    private boolean enabled; 
     private Collection<? extends GrantedAuthority> authorities;
 
-    public UserPrincipal(String id, String email, String password, Collection<? extends GrantedAuthority> authorities) {
+    public UserPrincipal(String id, String email, String password, boolean enabled, Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.email = email;
         this.password = password;
+        this.enabled = enabled; 
         this.authorities = authorities;
     }
 
@@ -28,6 +30,7 @@ public class UserPrincipal implements UserDetails {
                 user.getId(),
                 user.getEmail(),
                 user.getPassword(),
+                user.isEnabled(), 
                 Collections.singletonList(authority)
         );
     }
@@ -58,7 +61,7 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return enabled; 
     }
 
     @Override
@@ -68,6 +71,6 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled; 
     }
 }
