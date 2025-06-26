@@ -17,7 +17,7 @@
 
         <!-- Search Bar - New SearchBox Component -->
         <div class="search-section">
-          <SearchBox 
+          <SearchBox
             placeholder="Tìm kiếm sản phẩm, thương hiệu..."
             :show-voice-search="true"
             :max-suggestions="6"
@@ -34,14 +34,14 @@
             <span class="nav-icon">🏪</span>
             <span class="nav-text">Danh mục</span>
           </router-link>
-          
+
           <router-link to="/products" class="nav-link">
             <span class="nav-icon">📦</span>
             <span class="nav-text">Sản phẩm</span>
           </router-link>
-          
+
           <div class="nav-divider"></div>
-          
+
           <!-- User Authentication -->
           <div v-if="authStore.isAuthenticated" class="user-section">
             <!-- Cart -->
@@ -49,17 +49,19 @@
               <span class="nav-icon cart-icon">🛒</span>
               <span v-if="cartStore.totalItems" class="cart-badge">{{ cartStore.totalItems }}</span>
             </router-link>
-            
+
             <!-- Points Display - NEW INTEGRATION -->
             <PointsDisplay />
-            
+
             <!-- Notifications -->
             <div class="notification-dropdown">
               <button @click="toggleNotifications" class="nav-link notification-btn">
                 <span class="nav-icon">🔔</span>
-                <span v-if="unreadNotifications" class="notification-badge">{{ unreadNotifications }}</span>
+                <span v-if="unreadNotifications" class="notification-badge">{{
+                  unreadNotifications
+                }}</span>
               </button>
-              
+
               <!-- Notification Dropdown -->
               <div v-if="showNotifications" class="dropdown-menu notification-menu">
                 <div class="dropdown-header">
@@ -76,7 +78,9 @@
                     <div class="notification-icon">{{ notification.icon }}</div>
                     <div class="notification-content">
                       <p class="notification-message">{{ notification.message }}</p>
-                      <span class="notification-time">{{ formatTime(notification.createdAt) }}</span>
+                      <span class="notification-time">{{
+                        formatTime(notification.createdAt)
+                      }}</span>
                     </div>
                   </div>
                 </div>
@@ -85,7 +89,7 @@
                 </div>
               </div>
             </div>
-            
+
             <!-- User Profile Dropdown -->
             <div class="user-dropdown">
               <button @click="toggleUserMenu" class="user-btn">
@@ -95,10 +99,12 @@
                   class="user-avatar"
                   @error="handleAvatarError"
                 />
-                <span class="user-name">{{ currentUser?.firstName }} {{ currentUser?.lastName }}</span>
+                <span class="user-name"
+                  >{{ currentUser?.firstName }} {{ currentUser?.lastName }}</span
+                >
                 <span class="dropdown-arrow">▼</span>
               </button>
-              
+
               <!-- User Dropdown Menu -->
               <div v-if="showUserMenu" class="dropdown-menu user-menu">
                 <div class="dropdown-header">
@@ -116,30 +122,30 @@
                     </div>
                   </div>
                 </div>
-                
+
                 <div class="dropdown-links">
                   <router-link to="/profile" class="dropdown-link">
                     <span class="link-icon">👤</span>
                     <span>Hồ sơ cá nhân</span>
                   </router-link>
-                  
+
                   <router-link to="/orders" class="dropdown-link">
                     <span class="link-icon">📋</span>
                     <span>Đơn hàng của tôi</span>
                   </router-link>
-                  
+
                   <!-- Loyalty Link - NEW INTEGRATION -->
                   <router-link to="/loyalty" class="dropdown-link loyalty-link">
                     <span class="link-icon">⭐</span>
                     <span>Điểm thưởng</span>
                     <div class="loyalty-points-badge">{{ loyaltyStore.formattedPoints }}</div>
                   </router-link>
-                  
+
                   <router-link to="/wishlist" class="dropdown-link">
                     <span class="link-icon">❤️</span>
                     <span>Yêu thích</span>
                   </router-link>
-                  
+
                   <!-- 🆕 NEW: Seller Dashboard Link -->
                   <div class="dropdown-divider"></div>
                   <router-link to="/seller/dashboard" class="dropdown-link seller-link">
@@ -147,23 +153,19 @@
                     <span>Seller Dashboard</span>
                     <span class="seller-badge">Bán hàng</span>
                   </router-link>
-                  
+
                   <router-link to="/settings" class="dropdown-link">
                     <span class="link-icon">⚙️</span>
                     <span>Cài đặt</span>
                   </router-link>
-                  
+
                   <!-- Admin Link (if user is admin) -->
-                  <router-link
-                    v-if="isAdmin"
-                    to="/admin"
-                    class="dropdown-link admin-link"
-                  >
+                  <router-link v-if="isAdmin" to="/admin" class="dropdown-link admin-link">
                     <span class="link-icon">👑</span>
                     <span>Quản trị</span>
                   </router-link>
                 </div>
-                
+
                 <div class="dropdown-footer">
                   <button @click="logout" class="logout-btn">
                     <span class="link-icon">🚪</span>
@@ -173,14 +175,14 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Guest User (Not Authenticated) -->
           <div v-else class="auth-section">
             <router-link to="/login" class="nav-link auth-link">
               <span class="nav-icon">🔑</span>
               <span class="nav-text">Đăng nhập</span>
             </router-link>
-            
+
             <router-link to="/register" class="btn btn-primary signup-btn">
               🚀 Đăng ký
             </router-link>
@@ -200,7 +202,7 @@
     <div v-if="showMobileMenu" class="mobile-menu">
       <div class="mobile-search">
         <!-- Mobile SearchBox -->
-        <SearchBox 
+        <SearchBox
           placeholder="Tìm kiếm sản phẩm..."
           :show-voice-search="false"
           :max-suggestions="4"
@@ -209,7 +211,7 @@
           @select-category="handleMobileSelectCategory"
         />
       </div>
-      
+
       <div class="mobile-nav-links">
         <router-link to="/categories" class="mobile-nav-link" @click="closeMobileMenu">
           🏪 Danh mục
@@ -217,40 +219,47 @@
         <router-link to="/products" class="mobile-nav-link" @click="closeMobileMenu">
           📦 Sản phẩm
         </router-link>
-        
+
         <div v-if="authStore.isAuthenticated" class="mobile-user-section">
           <router-link to="/cart" class="mobile-nav-link" @click="closeMobileMenu">
-            🛒 Giỏ hàng <span v-if="cartStore.totalItems" class="mobile-badge">{{ cartStore.totalItems }}</span>
+            🛒 Giỏ hàng
+            <span v-if="cartStore.totalItems" class="mobile-badge">{{ cartStore.totalItems }}</span>
           </router-link>
-          
+
           <!-- Mobile Points Display - NEW INTEGRATION -->
-          <router-link to="/loyalty" class="mobile-nav-link loyalty-mobile" @click="closeMobileMenu">
+          <router-link
+            to="/loyalty"
+            class="mobile-nav-link loyalty-mobile"
+            @click="closeMobileMenu"
+          >
             <span class="mobile-loyalty-content">
-              ⭐ Điểm thưởng 
+              ⭐ Điểm thưởng
               <span class="mobile-points-badge">{{ loyaltyStore.formattedPoints }}</span>
               <span class="mobile-tier-badge" :style="{ color: loyaltyStore.tierColor }">
                 {{ loyaltyStore.userPoints.tier }}
               </span>
             </span>
           </router-link>
-          
+
           <router-link to="/profile" class="mobile-nav-link" @click="closeMobileMenu">
             👤 Hồ sơ
           </router-link>
           <router-link to="/orders" class="mobile-nav-link" @click="closeMobileMenu">
             📋 Đơn hàng
           </router-link>
-          
+
           <!-- 🆕 NEW: Mobile Seller Dashboard Link -->
-          <router-link to="/seller/dashboard" class="mobile-nav-link seller-mobile" @click="closeMobileMenu">
+          <router-link
+            to="/seller/dashboard"
+            class="mobile-nav-link seller-mobile"
+            @click="closeMobileMenu"
+          >
             🏪 Seller Dashboard
           </router-link>
-          
-          <button @click="logout" class="mobile-nav-link logout-mobile">
-            🚪 Đăng xuất
-          </button>
+
+          <button @click="logout" class="mobile-nav-link logout-mobile">🚪 Đăng xuất</button>
         </div>
-        
+
         <div v-else class="mobile-auth-section">
           <router-link to="/login" class="mobile-nav-link" @click="closeMobileMenu">
             🔑 Đăng nhập
@@ -281,7 +290,7 @@ export default {
   name: 'Header',
   components: {
     SearchBox,
-    PointsDisplay // NEW COMPONENT
+    PointsDisplay, // NEW COMPONENT
   },
   setup() {
     const router = useRouter()
@@ -291,23 +300,23 @@ export default {
     const sellerStore = useSellerStore() // 🆕 NEW STORE
 
     const isAuthenticated = computed(() => authStore.isAuthenticated)
-    const isAdmin = computed(() => authStore.isAdmin)  
+    const isAdmin = computed(() => authStore.isAdmin)
     const currentUser = computed(() => authStore.currentUser)
-    
+
     // 🆕 NEW: Check if user has any products (is a seller)
     const isSeller = computed(() => {
       return sellerStore.stats.totalProducts > 0
     })
-    
+
     // Refs
     const searchBoxRef = ref(null)
-    
+
     // Reactive data
     const showNotifications = ref(false)
     const showUserMenu = ref(false)
     const showMobileMenu = ref(false)
     const unreadNotifications = ref(3)
-    
+
     // Sample notifications - Updated with loyalty notifications
     const notifications = ref([
       {
@@ -315,89 +324,89 @@ export default {
         icon: '📦',
         message: 'Đơn hàng #12345 đã được giao thành công',
         createdAt: '2024-12-22T10:30:00',
-        read: false
+        read: false,
       },
       {
         id: 2,
         icon: '⭐',
         message: 'Bạn vừa nhận được 50 điểm thưởng từ đánh giá sản phẩm!',
         createdAt: '2024-12-22T09:45:00',
-        read: false
+        read: false,
       },
       {
         id: 3,
         icon: '💰',
         message: 'Giảm giá 50% cho tất cả sản phẩm điện tử',
         createdAt: '2024-12-22T09:15:00',
-        read: false
+        read: false,
       },
       {
         id: 4,
         icon: '🎉',
         message: 'Chúc mừng! Bạn đã thăng hạng lên Silver',
         createdAt: '2024-12-21T14:20:00',
-        read: true
-      }
+        read: true,
+      },
     ])
-    
+
     // SearchBox Event Handlers
     const handleSearch = (query) => {
       router.push({
         path: '/products',
-        query: { q: query }
+        query: { q: query },
       })
     }
-    
+
     const handleSelectProduct = (product) => {
       router.push(`/products/${product.id}`)
     }
-    
+
     const handleSelectCategory = (category) => {
       router.push(`/categories?category=${category.id}`)
     }
-    
+
     // Mobile Search Handlers
     const handleMobileSearch = (query) => {
       handleSearch(query)
       closeMobileMenu()
     }
-    
+
     const handleMobileSelectProduct = (product) => {
       handleSelectProduct(product)
       closeMobileMenu()
     }
-    
+
     const handleMobileSelectCategory = (category) => {
       handleSelectCategory(category)
       closeMobileMenu()
     }
-    
+
     // Existing Methods
     const toggleNotifications = () => {
       showNotifications.value = !showNotifications.value
       showUserMenu.value = false
     }
-    
+
     const toggleUserMenu = () => {
       showUserMenu.value = !showUserMenu.value
       showNotifications.value = false
     }
-    
+
     const toggleMobileMenu = () => {
       showMobileMenu.value = !showMobileMenu.value
     }
-    
+
     const closeMobileMenu = () => {
       showMobileMenu.value = false
     }
-    
+
     const markAllAsRead = () => {
-      notifications.value.forEach(notification => {
+      notifications.value.forEach((notification) => {
         notification.read = true
       })
       unreadNotifications.value = 0
     }
-    
+
     const formatTime = (dateString) => {
       const date = new Date(dateString)
       const now = new Date()
@@ -405,16 +414,16 @@ export default {
       const minutes = Math.floor(diff / 60000)
       const hours = Math.floor(diff / 3600000)
       const days = Math.floor(diff / 86400000)
-      
+
       if (minutes < 60) return `${minutes} phút trước`
       if (hours < 24) return `${hours} giờ trước`
       return `${days} ngày trước`
     }
-    
+
     const handleAvatarError = (event) => {
       event.target.src = '/default-avatar.jpg'
     }
-    
+
     const logout = async () => {
       try {
         await authStore.logout()
@@ -429,7 +438,7 @@ export default {
         console.error('Logout error:', error)
       }
     }
-    
+
     // Close dropdowns when clicking outside
     const handleClickOutside = (event) => {
       if (!event.target.closest('.notification-dropdown')) {
@@ -439,27 +448,27 @@ export default {
         showUserMenu.value = false
       }
     }
-    
+
     // Focus search shortcut (Ctrl/Cmd + K)
     const handleKeyboardShortcut = (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
         event.preventDefault()
         searchBoxRef.value?.focus()
       }
-      
+
       // Escape to close mobile menu
       if (event.key === 'Escape' && showMobileMenu.value) {
         closeMobileMenu()
       }
     }
-    
+
     // NEW: Initialize loyalty data when user logs in
     const initializeLoyaltyData = async () => {
       if (authStore.isAuthenticated) {
         await loyaltyStore.initializeLoyalty()
       }
     }
-    
+
     // 🆕 NEW: Initialize seller data when user logs in
     const initializeSellerData = async () => {
       if (authStore.isAuthenticated) {
@@ -470,7 +479,7 @@ export default {
         }
       }
     }
-    
+
     // NEW: Watch for authentication changes
     watchEffect(() => {
       if (authStore.isAuthenticated) {
@@ -482,12 +491,12 @@ export default {
         sellerStore.resetSeller() // 🆕 NEW
       }
     })
-    
+
     // Lifecycle
     onMounted(() => {
       document.addEventListener('click', handleClickOutside)
       document.addEventListener('keydown', handleKeyboardShortcut)
-      
+
       // Initialize data if user is already authenticated
       if (authStore.isAuthenticated) {
         initializeLoyaltyData()
@@ -495,34 +504,34 @@ export default {
         cartStore.loadCart()
       }
     })
-    
+
     onUnmounted(() => {
       document.removeEventListener('click', handleClickOutside)
       document.removeEventListener('keydown', handleKeyboardShortcut)
     })
-    
+
     return {
       // Stores
       authStore,
       cartStore,
       loyaltyStore, // NEW STORE EXPOSE
       sellerStore, // 🆕 NEW STORE EXPOSE
-      
+
       // Computed
       isAdmin,
       currentUser,
       isSeller, // 🆕 NEW
-      
+
       // Refs
       searchBoxRef,
-      
+
       // Data
       showNotifications,
       showUserMenu,
       showMobileMenu,
       unreadNotifications,
       notifications,
-      
+
       // SearchBox handlers
       handleSearch,
       handleSelectProduct,
@@ -530,7 +539,7 @@ export default {
       handleMobileSearch,
       handleMobileSelectProduct,
       handleMobileSelectCategory,
-      
+
       // Other methods
       toggleNotifications,
       toggleUserMenu,
@@ -539,9 +548,9 @@ export default {
       markAllAsRead,
       formatTime,
       handleAvatarError,
-      logout
+      logout,
     }
-  }
+  },
 }
 </script>
 
@@ -760,7 +769,7 @@ export default {
 }
 
 .loyalty-points-badge {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
+  background: linear-gradient(135deg, #ffd700, #ffa500);
   color: #1a1a2e;
   font-size: 0.7rem;
   font-weight: 600;
@@ -800,7 +809,7 @@ export default {
 
 /* NEW: Mobile Loyalty Styles */
 .loyalty-mobile {
-  border-left: 3px solid #FFD700 !important;
+  border-left: 3px solid #ffd700 !important;
   background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent) !important;
 }
 
@@ -812,7 +821,7 @@ export default {
 }
 
 .mobile-points-badge {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
+  background: linear-gradient(135deg, #ffd700, #ffa500);
   color: #1a1a2e;
   font-size: 0.7rem;
   font-weight: 600;
@@ -1170,19 +1179,19 @@ export default {
   .container {
     gap: 1rem;
   }
-  
+
   .search-section {
     max-width: 300px;
   }
-  
+
   .nav-text {
     display: none;
   }
-  
+
   .user-name {
     display: none;
   }
-  
+
   /* Hide points text on smaller screens, keep only icon */
   .user-section :deep(.points-info .text-sm) {
     display: none;
@@ -1193,19 +1202,19 @@ export default {
   .navbar-nav {
     display: none;
   }
-  
+
   .mobile-menu-btn {
     display: flex;
   }
-  
+
   .search-section {
     max-width: 200px;
   }
-  
+
   .brand-text h1 {
     font-size: 1.2rem;
   }
-  
+
   .tagline {
     display: none;
   }
@@ -1216,19 +1225,19 @@ export default {
     padding: 0 0.5rem;
     gap: 0.5rem;
   }
-  
+
   .search-section {
     display: none;
   }
-  
+
   .logo-container {
     gap: 0.5rem;
   }
-  
+
   .logo-icon {
     font-size: 1.5rem;
   }
-  
+
   .brand-text h1 {
     font-size: 1rem;
   }
@@ -1272,7 +1281,7 @@ export default {
   .app-header {
     background: rgba(16, 16, 24, 0.95);
   }
-  
+
   .dropdown-menu,
   .mobile-menu {
     background: rgba(16, 16, 24, 0.95);
@@ -1285,7 +1294,7 @@ export default {
   .dropdown-link {
     border: 1px solid transparent;
   }
-  
+
   .nav-link:hover,
   .dropdown-link:hover {
     border-color: var(--text-accent);
@@ -1301,7 +1310,7 @@ export default {
 
 /* SearchBox keyboard shortcut hint */
 .search-section::after {
-  content: "Ctrl+K";
+  content: 'Ctrl+K';
   position: absolute;
   right: 3rem;
   top: 50%;

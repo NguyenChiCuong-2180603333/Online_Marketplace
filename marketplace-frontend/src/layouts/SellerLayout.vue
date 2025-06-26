@@ -1,24 +1,22 @@
 <template>
   <div class="seller-layout">
     <!-- Seller Sidebar -->
-    <aside class="seller-sidebar" :class="{ 'collapsed': sidebarCollapsed }">
+    <aside class="seller-sidebar" :class="{ collapsed: sidebarCollapsed }">
       <!-- Seller Profile Section -->
       <div class="seller-profile">
         <div class="profile-avatar">
-          <img 
-            :src="user?.avatar || '/placeholder-avatar.jpg'" 
-            :alt="user?.name || 'Seller Avatar'" 
+          <img
+            :src="user?.avatar || '/placeholder-avatar.jpg'"
+            :alt="user?.name || 'Seller Avatar'"
             class="avatar-image"
           />
           <div class="status-indicator online"></div>
         </div>
-        
+
         <div class="profile-info" v-if="!sidebarCollapsed">
           <h3 class="seller-name">{{ getSellerName() }}</h3>
           <p class="seller-stats">
-            <span class="stat-item">
-              📦 {{ sellerStats.totalProducts || 0 }} sản phẩm
-            </span>
+            <span class="stat-item"> 📦 {{ sellerStats.totalProducts || 0 }} sản phẩm </span>
           </p>
           <div class="seller-badge">
             <span class="badge-icon">⭐</span>
@@ -36,7 +34,7 @@
               <span class="nav-text" v-if="!sidebarCollapsed">Dashboard</span>
             </router-link>
           </li>
-          
+
           <li class="nav-item">
             <router-link to="/seller/products" class="nav-link">
               <span class="nav-icon">📦</span>
@@ -46,14 +44,14 @@
               </span>
             </router-link>
           </li>
-          
+
           <li class="nav-item">
             <router-link to="/seller/products/create" class="nav-link">
               <span class="nav-icon">➕</span>
               <span class="nav-text" v-if="!sidebarCollapsed">Tạo sản phẩm</span>
             </router-link>
           </li>
-          
+
           <li class="nav-item">
             <router-link to="/seller/orders" class="nav-link">
               <span class="nav-icon">📋</span>
@@ -63,16 +61,16 @@
               </span>
             </router-link>
           </li>
-          
+
           <li class="nav-item">
             <router-link to="/seller/analytics" class="nav-link">
               <span class="nav-icon">📈</span>
               <span class="nav-text" v-if="!sidebarCollapsed">Thống kê</span>
             </router-link>
           </li>
-          
+
           <li class="nav-divider" v-if="!sidebarCollapsed"></li>
-          
+
           <li class="nav-item">
             <router-link to="/seller/settings" class="nav-link">
               <span class="nav-icon">⚙️</span>
@@ -95,8 +93,8 @@
       </div>
 
       <!-- Collapse Toggle -->
-      <button 
-        @click="toggleSidebar" 
+      <button
+        @click="toggleSidebar"
         class="sidebar-toggle"
         :title="sidebarCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
       >
@@ -124,10 +122,14 @@
           <!-- Quick Actions -->
           <div class="quick-actions">
             <button @click="refreshData" class="action-btn" title="Làm mới dữ liệu">
-              <span :class="{ 'spinning': refreshing }">🔄</span>
+              <span :class="{ spinning: refreshing }">🔄</span>
             </button>
-            
-            <router-link to="/seller/products/create" class="action-btn primary" title="Tạo sản phẩm mới">
+
+            <router-link
+              to="/seller/products/create"
+              class="action-btn primary"
+              title="Tạo sản phẩm mới"
+            >
               ➕ Tạo sản phẩm
             </router-link>
           </div>
@@ -140,24 +142,24 @@
                 {{ notificationCount }}
               </span>
             </button>
-            
+
             <!-- Notification Dropdown -->
             <div v-if="showNotifications" class="notification-dropdown">
               <div class="notification-header">
                 <h3>Thông báo</h3>
                 <button @click="markAllAsRead" class="mark-read-btn">Đánh dấu đã đọc</button>
               </div>
-              
+
               <div class="notification-list">
                 <div v-if="notifications.length === 0" class="no-notifications">
                   <p>Không có thông báo mới</p>
                 </div>
-                
-                <div 
-                  v-for="notification in notifications" 
+
+                <div
+                  v-for="notification in notifications"
                   :key="notification.id"
                   class="notification-item"
-                  :class="{ 'unread': !notification.read }"
+                  :class="{ unread: !notification.read }"
                 >
                   <div class="notification-icon">{{ notification.icon }}</div>
                   <div class="notification-content">
@@ -173,9 +175,9 @@
           <!-- User Menu -->
           <div class="user-menu">
             <button @click="showUserMenu = !showUserMenu" class="user-menu-btn">
-              <img 
-                :src="user?.avatar || '/placeholder-avatar.jpg'" 
-                :alt="user?.name || 'User'" 
+              <img
+                :src="user?.avatar || '/placeholder-avatar.jpg'"
+                :alt="user?.name || 'User'"
                 class="user-avatar"
               />
               <span class="user-name">{{ user?.firstName || 'User' }}</span>
@@ -184,16 +186,10 @@
 
             <!-- User Dropdown -->
             <div v-if="showUserMenu" class="user-dropdown">
-              <router-link to="/profile" class="dropdown-item">
-                👤 Hồ sơ cá nhân
-              </router-link>
-              <router-link to="/" class="dropdown-item">
-                🏪 Về trang chủ
-              </router-link>
+              <router-link to="/profile" class="dropdown-item"> 👤 Hồ sơ cá nhân </router-link>
+              <router-link to="/" class="dropdown-item"> 🏪 Về trang chủ </router-link>
               <div class="dropdown-divider"></div>
-              <button @click="logout" class="dropdown-item logout">
-                🚪 Đăng xuất
-              </button>
+              <button @click="logout" class="dropdown-item logout">🚪 Đăng xuất</button>
             </div>
           </div>
         </div>
@@ -240,7 +236,7 @@ const notifications = ref([
     title: 'Đơn hàng mới',
     message: 'Bạn có 1 đơn hàng mới cần xử lý',
     createdAt: new Date(),
-    read: false
+    read: false,
   },
   {
     id: 2,
@@ -248,8 +244,8 @@ const notifications = ref([
     title: 'Sản phẩm sắp hết hàng',
     message: 'iPhone 15 Pro chỉ còn 2 sản phẩm trong kho',
     createdAt: new Date(Date.now() - 1000 * 60 * 30),
-    read: false
-  }
+    read: false,
+  },
 ])
 
 // Computed
@@ -257,9 +253,7 @@ const user = computed(() => authStore.user)
 const sellerStats = computed(() => sellerStore.stats)
 const loading = computed(() => sellerStore.loading)
 
-const notificationCount = computed(() => 
-  notifications.value.filter(n => !n.read).length
-)
+const notificationCount = computed(() => notifications.value.filter((n) => !n.read).length)
 
 // Methods
 const getSellerName = () => {
@@ -272,13 +266,13 @@ const getSellerName = () => {
 
 const getCurrentPageTitle = () => {
   const titles = {
-    'SellerDashboard': '📊 Dashboard',
-    'SellerProducts': '📦 Sản phẩm của tôi',
-    'CreateProduct': '➕ Tạo sản phẩm mới',
-    'EditProduct': '✏️ Chỉnh sửa sản phẩm',
-    'SellerOrders': '📋 Quản lý đơn hàng',
-    'SellerAnalytics': '📈 Thống kê',
-    'SellerSettings': '⚙️ Cài đặt'
+    SellerDashboard: '📊 Dashboard',
+    SellerProducts: '📦 Sản phẩm của tôi',
+    CreateProduct: '➕ Tạo sản phẩm mới',
+    EditProduct: '✏️ Chỉnh sửa sản phẩm',
+    SellerOrders: '📋 Quản lý đơn hàng',
+    SellerAnalytics: '📈 Thống kê',
+    SellerSettings: '⚙️ Cài đặt',
   }
   return titles[route.name] || 'Seller Dashboard'
 }
@@ -300,7 +294,7 @@ const refreshData = async () => {
 }
 
 const markAllAsRead = () => {
-  notifications.value.forEach(n => n.read = true)
+  notifications.value.forEach((n) => (n.read = true))
 }
 
 const logout = async () => {
@@ -316,7 +310,7 @@ const formatTime = (date) => {
   const now = new Date()
   const diff = now - new Date(date)
   const minutes = Math.floor(diff / 60000)
-  
+
   if (minutes < 1) return 'Vừa xong'
   if (minutes < 60) return `${minutes} phút trước`
   if (minutes < 1440) return `${Math.floor(minutes / 60)} giờ trước`
@@ -885,13 +879,22 @@ onUnmounted(() => {
 
 /* Animations */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .spinning {
@@ -903,7 +906,7 @@ onUnmounted(() => {
   .seller-layout {
     flex-direction: column;
   }
-  
+
   .seller-sidebar {
     width: 100%;
     height: auto;
@@ -914,27 +917,27 @@ onUnmounted(() => {
     transform: translateY(-100%);
     transition: transform 0.3s ease;
   }
-  
+
   .seller-sidebar.open {
     transform: translateY(0);
   }
-  
+
   .seller-main {
     margin-top: 0;
   }
-  
+
   .seller-header {
     padding: 1rem;
   }
-  
+
   .seller-content {
     padding: 1rem;
   }
-  
+
   .header-right {
     gap: 0.5rem;
   }
-  
+
   .user-name {
     display: none;
   }
