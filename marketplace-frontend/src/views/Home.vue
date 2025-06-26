@@ -334,6 +334,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
+import { useWishlistStore } from '@/stores/wishlist'
 import { productAPI } from '@/services/api'
 import RecommendedProducts from '@/components/RecommendedProducts.vue'
 import TrendingProducts from '@/components/TrendingProducts.vue'
@@ -351,6 +352,7 @@ export default {
     const authStore = useAuthStore()
     const userStore = useUserStore()
     const cartStore = useCartStore()
+    const wishlistStore = useWishlistStore()
     
     // Reactive state
     const heroSearchQuery = ref('')
@@ -483,8 +485,8 @@ export default {
     }
     
     // Toggle wishlist
-    const toggleWishlist = async (product) => {
-      await handleAddToWishlist(product)
+    const toggleWishlist = (product) => {
+      wishlistStore.toggleWishlist(product)
     }
     
     // Navigate to category
@@ -549,7 +551,7 @@ export default {
     }
     
     const isInWishlist = (productId) => {
-      return userStore.wishlist?.some(item => item.id === productId) || false
+      return wishlistStore.isInWishlist(productId)
     }
     
     // Lifecycle

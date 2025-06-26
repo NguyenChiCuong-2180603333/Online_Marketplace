@@ -382,6 +382,7 @@ export const guardConfigs = {
   ])
 }
 
+// Global guards that apply to all routes
 export const globalGuards = [
   maintenanceGuard,
   browserSupportGuard

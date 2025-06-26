@@ -12,6 +12,7 @@ export const useAuthStore = defineStore('auth', {
 
   getters: {
     isAdmin: (state) => state.user?.role === 'ADMIN',
+    isSeller: (state) => state.user?.role === 'SELLER' || state.user?.role === 'ADMIN',
     currentUser: (state) => state.user,
     userName: (state) => state.user ? `${state.user.firstName} ${state.user.lastName}` : ''
   },
@@ -79,7 +80,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         await authAPI.logout()
       } catch (error) {
-        console.warn('Logout API error (ignored):', error)
+        console.error('Logout API error:', error)
       } finally {
         this.token = null
         this.user = null
@@ -88,8 +89,42 @@ export const useAuthStore = defineStore('auth', {
         
         localStorage.removeItem('token')
         localStorage.removeItem('user')
+      }
+    },
 
-        console.log('Logged out successfully')
+    async refreshToken() {
+      try {
+        const response = await authAPI.refreshToken()
+        const { token } = response.data
+        
+        this.token = token
+        localStorage.setItem('token', token)
+        
+        return token
+      } catch (error) {
+        console.error('Token refresh failed:', error)
+        this.logout()
+        throw error
+      }
+    },
+
+    async forgotPassword(email) {
+      try {
+        const response = await authAPI.forgotPassword(email)
+        return response.data
+      } catch (error) {
+        this.error = error.response?.data?.message || 'Gửi email thất bại'
+        throw error
+      }
+    },
+
+    async resetPassword(token, password) {
+      try {
+        const response = await authAPI.resetPassword(token, password)
+        return response.data
+      } catch (error) {
+        this.error = error.response?.data?.message || 'Đặt lại mật khẩu thất bại'
+        throw error
       }
     },
 
