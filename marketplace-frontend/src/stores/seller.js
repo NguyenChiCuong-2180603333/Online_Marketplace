@@ -1,5 +1,33 @@
+// stores/seller.js - Enhanced with Real API Integration
 import { defineStore } from 'pinia'
 import { profileAPI } from '@/services/api'
+import axios from 'axios'
+
+// Create seller-specific API instance
+const sellerAPI = {
+  // Orders APIs
+  getSellerOrders: () => axios.get('/api/dashboard/seller/orders'),
+  updateOrderStatus: (orderId, status) => axios.put(`/api/orders/${orderId}/status`, { status }),
+  getOrderDetails: (orderId) => axios.get(`/api/orders/${orderId}`),
+  getOrderMessages: (orderId) => axios.get(`/api/orders/${orderId}/messages`),
+  sendOrderMessage: (orderId, message) => axios.post(`/api/orders/${orderId}/messages`, { message }),
+  
+  // Analytics APIs  
+  getSellerAnalytics: (period = '30d') => axios.get(`/api/dashboard/seller/analytics?period=${period}`),
+  getRevenueData: (period = '30d') => axios.get(`/api/dashboard/seller/revenue?period=${period}`),
+  getProductStats: () => axios.get(`/api/dashboard/seller/products`),
+  
+  // Dashboard APIs
+  getSellerOverview: () => axios.get('/api/dashboard/seller/overview'),
+  
+  // Export APIs
+  exportOrdersReport: (filters) => axios.post('/api/reports/orders/export', filters, {
+    responseType: 'blob'
+  }),
+  exportAnalyticsReport: (period) => axios.get(`/api/reports/analytics/export?period=${period}`, {
+    responseType: 'blob'
+  })
+}
 
 export const useSellerStore = defineStore('seller', {
   state: () => ({
@@ -9,10 +37,14 @@ export const useSellerStore = defineStore('seller', {
       activeProducts: 0,
       totalOrders: 0,
       pendingOrders: 0,
+      processingOrders: 0,
+      shippedOrders: 0,
+      deliveredOrders: 0,
       totalRevenue: 0,
       monthlyRevenue: 0,
       revenueGrowth: 0,
-      averageOrderValue: 0
+      averageOrderValue: 0,
+      lowStockProducts: 0
     },
     
     // Products Management
@@ -21,7 +53,8 @@ export const useSellerStore = defineStore('seller', {
       total: 0,
       active: 0,
       inactive: 0,
-      lowStock: 0
+      lowStock: 0,
+      outOfStock: 0
     },
     
     // Orders Management
@@ -34,13 +67,18 @@ export const useSellerStore = defineStore('seller', {
       delivered: 0,
       cancelled: 0
     },
+    selectedOrders: [], // For bulk operations
+    orderMessages: {}, // Store messages by orderId
     
     // Analytics
     analytics: {
       salesChart: [],
       topProducts: [],
       categoryBreakdown: [],
-      monthlyStats: []
+      monthlyStats: [],
+      customerInsights: {},
+      revenueData: {},
+      periodComparison: {}
     },
     
     // Loading states
@@ -48,7 +86,9 @@ export const useSellerStore = defineStore('seller', {
       dashboard: false,
       products: false,
       orders: false,
-      analytics: false
+      analytics: false,
+      orderUpdate: {},
+      export: false
     },
     
     // Error states
@@ -59,47 +99,95 @@ export const useSellerStore = defineStore('seller', {
       analytics: null
     },
     
-    // Product form data
-    productForm: {
-      id: null,
-      name: '',
-      description: '',
-      category: '',
-      price: 0,
-      stockQuantity: 0,
-      images: [],
-      tags: [],
-      seoTitle: '',
-      seoDescription: '',
-      weight: 0,
-      dimensions: {
-        length: 0,
-        width: 0,
-        height: 0
-      },
-      shippingInfo: {
-        freeShipping: false,
-        shippingCost: 0,
-        processingTime: '1-2 days'
-      },
-      variants: [],
-      isActive: true
-    }
+    // Filters & Search
+    orderFilters: {
+      status: 'all',
+      search: '',
+      dateRange: 'all',
+      sortBy: 'createdAt',
+      sortOrder: 'desc'
+    },
+    
+    // Notifications
+    notifications: [],
+    
+    // Real-time updates
+    lastSyncTime: null,
+    autoRefresh: true
   }),
 
   getters: {
     // Dashboard getters
-    totalRevenue: (state) => state.dashboardStats.totalRevenue,
-    monthlyGrowth: (state) => state.dashboardStats.revenueGrowth,
+    totalRevenue: (state) => state.dashboardStats.totalRevenue || 0,
+    monthlyGrowth: (state) => state.dashboardStats.revenueGrowth || 0,
     
     // Product getters
     activeProducts: (state) => state.products.filter(p => p.isActive),
     inactiveProducts: (state) => state.products.filter(p => !p.isActive),
     lowStockProducts: (state) => state.products.filter(p => p.stockQuantity < 10),
+    outOfStockProducts: (state) => state.products.filter(p => p.stockQuantity === 0),
     
     // Order getters
-    pendingOrders: (state) => state.orders.filter(o => o.status === 'pending'),
-    processingOrders: (state) => state.orders.filter(o => o.status === 'processing'),
+    filteredOrders: (state) => {
+      let filtered = [...state.orders]
+      
+      // Filter by status
+      if (state.orderFilters.status !== 'all') {
+        filtered = filtered.filter(order => 
+          order.status.toLowerCase() === state.orderFilters.status.toLowerCase()
+        )
+      }
+      
+      // Search filter
+      if (state.orderFilters.search) {
+        const search = state.orderFilters.search.toLowerCase()
+        filtered = filtered.filter(order => 
+          order.id.toLowerCase().includes(search) ||
+          order.customerName.toLowerCase().includes(search) ||
+          order.customerEmail.toLowerCase().includes(search)
+        )
+      }
+      
+      // Date range filter
+      if (state.orderFilters.dateRange !== 'all') {
+        const now = new Date()
+        const days = {
+          'today': 1,
+          'week': 7,
+          'month': 30,
+          'quarter': 90
+        }
+        
+        if (days[state.orderFilters.dateRange]) {
+          const cutoff = new Date(now.getTime() - days[state.orderFilters.dateRange] * 24 * 60 * 60 * 1000)
+          filtered = filtered.filter(order => new Date(order.createdAt) >= cutoff)
+        }
+      }
+      
+      // Sort
+      filtered.sort((a, b) => {
+        const aVal = a[state.orderFilters.sortBy]
+        const bVal = b[state.orderFilters.sortBy]
+        
+        if (state.orderFilters.sortOrder === 'asc') {
+          return aVal > bVal ? 1 : -1
+        } else {
+          return aVal < bVal ? 1 : -1
+        }
+      })
+      
+      return filtered
+    },
+    
+    pendingOrders: (state) => state.orders.filter(o => o.status === 'PENDING'),
+    processingOrders: (state) => state.orders.filter(o => o.status === 'PROCESSING'),
+    urgentOrders: (state) => {
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+      return state.orders.filter(o => 
+        (o.status === 'PENDING' || o.status === 'PROCESSING') && 
+        new Date(o.createdAt) < threeDaysAgo
+      )
+    },
     
     // Analytics getters
     topSellingProducts: (state) => {
@@ -112,6 +200,18 @@ export const useSellerStore = defineStore('seller', {
       return [...state.products]
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, 5)
+    },
+    
+    // Performance metrics
+    conversionRate: (state) => {
+      const views = state.analytics.customerInsights.totalViews || 1
+      const orders = state.dashboardStats.totalOrders || 0
+      return ((orders / views) * 100).toFixed(2)
+    },
+    
+    averageOrderValue: (state) => {
+      if (state.dashboardStats.totalOrders === 0) return 0
+      return (state.dashboardStats.totalRevenue / state.dashboardStats.totalOrders).toFixed(2)
     }
   },
 
@@ -122,230 +222,156 @@ export const useSellerStore = defineStore('seller', {
       this.errors.dashboard = null
       
       try {
-        const response = await profileAPI.getSellerStats()
-        this.dashboardStats = response.data
+        const response = await sellerAPI.getSellerOverview()
+        this.dashboardStats = {
+          ...this.dashboardStats,
+          ...response.data
+        }
         
-        // Calculate derived stats
         this.updateProductStats()
         this.updateOrderStats()
+        this.lastSyncTime = new Date()
         
       } catch (error) {
-        this.errors.dashboard = error.message
+        this.errors.dashboard = error.response?.data?.message || 'Không thể tải thống kê dashboard'
         console.error('Error fetching dashboard stats:', error)
       } finally {
         this.loading.dashboard = false
       }
     },
 
-    // Product Actions
-    async fetchProducts() {
-      this.loading.products = true
-      this.errors.products = null
-      
-      try {
-        const response = await profileAPI.getMyProducts()
-        this.products = response.data || []
-        this.updateProductStats()
-        
-      } catch (error) {
-        this.errors.products = error.message
-        console.error('Error fetching products:', error)
-        
-        // Fallback with sample data for development
-        this.products = this.generateSampleProducts()
-        this.updateProductStats()
-      } finally {
-        this.loading.products = false
-      }
-    },
-
-    async createProduct(productData) {
-      try {
-        // TODO: Implement with real API when backend is ready
-        // const response = await productAPI.create(productData)
-        
-        // Mock implementation for now
-        const newProduct = {
-          id: Date.now().toString(),
-          ...productData,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          soldCount: 0,
-          reviewCount: 0,
-          averageRating: 0
-        }
-        
-        this.products.unshift(newProduct)
-        this.updateProductStats()
-        
-        return newProduct
-      } catch (error) {
-        console.error('Error creating product:', error)
-        throw error
-      }
-    },
-
-    async updateProduct(productId, productData) {
-      try {
-        // TODO: Implement with real API
-        // const response = await productAPI.update(productId, productData)
-        
-        // Mock implementation
-        const index = this.products.findIndex(p => p.id === productId)
-        if (index !== -1) {
-          this.products[index] = {
-            ...this.products[index],
-            ...productData,
-            updatedAt: new Date().toISOString()
-          }
-          this.updateProductStats()
-        }
-        
-        return this.products[index]
-      } catch (error) {
-        console.error('Error updating product:', error)
-        throw error
-      }
-    },
-
-    async toggleProductStatus(productId) {
-      try {
-        // TODO: Implement with real API
-        // await productAPI.toggleStatus(productId)
-        
-        // Mock implementation
-        const product = this.products.find(p => p.id === productId)
-        if (product) {
-          product.isActive = !product.isActive
-          product.updatedAt = new Date().toISOString()
-          this.updateProductStats()
-        }
-        
-      } catch (error) {
-        console.error('Error toggling product status:', error)
-        throw error
-      }
-    },
-
-    async deleteProduct(productId) {
-      try {
-        // TODO: Implement with real API
-        // await productAPI.delete(productId)
-        
-        // Mock implementation
-        const index = this.products.findIndex(p => p.id === productId)
-        if (index !== -1) {
-          this.products.splice(index, 1)
-          this.updateProductStats()
-        }
-        
-      } catch (error) {
-        console.error('Error deleting product:', error)
-        throw error
-      }
-    },
-
-    async duplicateProduct(productId) {
-      try {
-        const originalProduct = this.products.find(p => p.id === productId)
-        if (!originalProduct) throw new Error('Product not found')
-        
-        const duplicatedProduct = {
-          ...originalProduct,
-          id: Date.now().toString(),
-          name: `${originalProduct.name} (Copy)`,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          soldCount: 0,
-          reviewCount: 0,
-          averageRating: 0
-        }
-        
-        this.products.unshift(duplicatedProduct)
-        this.updateProductStats()
-        
-        return duplicatedProduct
-      } catch (error) {
-        console.error('Error duplicating product:', error)
-        throw error
-      }
-    },
-
-    // Bulk Actions
-    async bulkUpdateStatus(productIds, isActive) {
-      try {
-        // TODO: Implement with real API
-        // await productAPI.bulkUpdateStatus(productIds, isActive)
-        
-        // Mock implementation
-        productIds.forEach(id => {
-          const product = this.products.find(p => p.id === id)
-          if (product) {
-            product.isActive = isActive
-            product.updatedAt = new Date().toISOString()
-          }
-        })
-        
-        this.updateProductStats()
-        
-      } catch (error) {
-        console.error('Error bulk updating status:', error)
-        throw error
-      }
-    },
-
-    async bulkDelete(productIds) {
-      try {
-        // TODO: Implement with real API
-        // await productAPI.bulkDelete(productIds)
-        
-        // Mock implementation
-        this.products = this.products.filter(p => !productIds.includes(p.id))
-        this.updateProductStats()
-        
-      } catch (error) {
-        console.error('Error bulk deleting products:', error)
-        throw error
-      }
-    },
-
     // Order Actions
-    async fetchOrders() {
+    async loadOrders(refresh = false) {
+      if (!refresh && this.loading.orders) return
+      
       this.loading.orders = true
       this.errors.orders = null
       
       try {
-        // TODO: Implement with real API
-        // const response = await orderAPI.getSellerOrders()
-        // this.orders = response.data || []
-        
-        // Mock implementation
-        this.orders = this.generateSampleOrders()
+        const response = await sellerAPI.getSellerOrders()
+        this.orders = response.data.orders || []
         this.updateOrderStats()
         
+        // Load urgent notifications
+        this.checkUrgentOrders()
+        
       } catch (error) {
-        this.errors.orders = error.message
-        console.error('Error fetching orders:', error)
+        this.errors.orders = error.response?.data?.message || 'Không thể tải danh sách đơn hàng'
+        console.error('Error loading orders:', error)
       } finally {
         this.loading.orders = false
       }
     },
 
-    async updateOrderStatus(orderId, status) {
+    async updateOrderStatus(orderId, status, note = '') {
+      if (this.loading.orderUpdate[orderId]) return
+      
+      this.loading.orderUpdate[orderId] = true
+      
       try {
-        // TODO: Implement with real API
-        // await orderAPI.updateStatus(orderId, status)
+        const response = await sellerAPI.updateOrderStatus(orderId, status)
         
-        // Mock implementation
-        const order = this.orders.find(o => o.id === orderId)
-        if (order) {
-          order.status = status
-          order.updatedAt = new Date().toISOString()
-          this.updateOrderStats()
+        // Update local state
+        const orderIndex = this.orders.findIndex(o => o.id === orderId)
+        if (orderIndex !== -1) {
+          this.orders[orderIndex] = {
+            ...this.orders[orderIndex],
+            ...response.data,
+            updatedAt: new Date().toISOString()
+          }
         }
         
+        this.updateOrderStats()
+        
+        // Add notification
+        this.addNotification({
+          type: 'success',
+          message: `Đã cập nhật trạng thái đơn hàng #${orderId.slice(-8)} thành ${this.getStatusLabel(status)}`,
+          timestamp: new Date()
+        })
+        
+        // Send note if provided
+        if (note) {
+          await this.sendOrderMessage(orderId, note, 'status_update')
+        }
+        
+        return response.data
+        
       } catch (error) {
-        console.error('Error updating order status:', error)
+        this.addNotification({
+          type: 'error', 
+          message: error.response?.data?.message || 'Không thể cập nhật trạng thái đơn hàng',
+          timestamp: new Date()
+        })
+        throw error
+      } finally {
+        this.loading.orderUpdate[orderId] = false
+      }
+    },
+
+    async bulkUpdateOrderStatus(orderIds, status) {
+      const results = []
+      
+      for (const orderId of orderIds) {
+        try {
+          const result = await this.updateOrderStatus(orderId, status)
+          results.push({ orderId, success: true, data: result })
+        } catch (error) {
+          results.push({ orderId, success: false, error: error.message })
+        }
+      }
+      
+      const successful = results.filter(r => r.success).length
+      const failed = results.filter(r => !r.success).length
+      
+      this.addNotification({
+        type: successful > failed ? 'success' : 'warning',
+        message: `Cập nhật ${successful} đơn hàng thành công${failed > 0 ? `, ${failed} đơn thất bại` : ''}`,
+        timestamp: new Date()
+      })
+      
+      return results
+    },
+
+    async getOrderDetails(orderId) {
+      try {
+        const response = await sellerAPI.getOrderDetails(orderId)
+        return response.data
+      } catch (error) {
+        console.error('Error getting order details:', error)
+        throw error
+      }
+    },
+
+    // Communication Actions
+    async loadOrderMessages(orderId) {
+      try {
+        const response = await sellerAPI.getOrderMessages(orderId)
+        this.orderMessages[orderId] = response.data || []
+        return response.data
+      } catch (error) {
+        console.error('Error loading order messages:', error)
+        return []
+      }
+    },
+
+    async sendOrderMessage(orderId, message, type = 'general') {
+      try {
+        const response = await sellerAPI.sendOrderMessage(orderId, {
+          message,
+          type,
+          timestamp: new Date().toISOString()
+        })
+        
+        // Update local messages
+        if (!this.orderMessages[orderId]) {
+          this.orderMessages[orderId] = []
+        }
+        this.orderMessages[orderId].push(response.data)
+        
+        return response.data
+      } catch (error) {
+        console.error('Error sending order message:', error)
         throw error
       }
     },
@@ -356,170 +382,208 @@ export const useSellerStore = defineStore('seller', {
       this.errors.analytics = null
       
       try {
-        // TODO: Implement with real API
-        // const response = await analyticsAPI.getSellerAnalytics(period)
-        // this.analytics = response.data
+        const [analyticsRes, revenueRes, productRes] = await Promise.all([
+          sellerAPI.getSellerAnalytics(period),
+          sellerAPI.getRevenueData(period),
+          sellerAPI.getProductStats()
+        ])
         
-        // Mock implementation
-        this.analytics = this.generateSampleAnalytics()
+        this.analytics = {
+          ...this.analytics,
+          ...analyticsRes.data,
+          revenueData: revenueRes.data,
+          productStats: productRes.data
+        }
         
       } catch (error) {
-        this.errors.analytics = error.message
+        this.errors.analytics = error.response?.data?.message || 'Không thể tải dữ liệu phân tích'
         console.error('Error fetching analytics:', error)
       } finally {
         this.loading.analytics = false
       }
     },
 
-    // Product Form Actions
-    initializeProductForm(product = null) {
-      if (product) {
-        this.productForm = {
-          id: product.id,
-          name: product.name || '',
-          description: product.description || '',
-          category: product.category || '',
-          price: product.price || 0,
-          stockQuantity: product.stockQuantity || 0,
-          images: product.images || [],
-          tags: product.tags || [],
-          seoTitle: product.seoTitle || '',
-          seoDescription: product.seoDescription || '',
-          weight: product.weight || 0,
-          dimensions: product.dimensions || { length: 0, width: 0, height: 0 },
-          shippingInfo: product.shippingInfo || {
-            freeShipping: false,
-            shippingCost: 0,
-            processingTime: '1-2 days'
-          },
-          variants: product.variants || [],
-          isActive: product.isActive !== undefined ? product.isActive : true
-        }
-      } else {
-        this.productForm = {
-          id: null,
-          name: '',
-          description: '',
-          category: '',
-          price: 0,
-          stockQuantity: 0,
-          images: [],
-          tags: [],
-          seoTitle: '',
-          seoDescription: '',
-          weight: 0,
-          dimensions: { length: 0, width: 0, height: 0 },
-          shippingInfo: {
-            freeShipping: false,
-            shippingCost: 0,
-            processingTime: '1-2 days'
-          },
-          variants: [],
-          isActive: true
-        }
+    // Export Actions
+    async exportOrdersReport(filters = {}) {
+      this.loading.export = true
+      
+      try {
+        const response = await sellerAPI.exportOrdersReport({
+          ...this.orderFilters,
+          ...filters
+        })
+        
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]))
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', `orders-report-${new Date().toISOString().slice(0, 10)}.xlsx`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        
+        this.addNotification({
+          type: 'success',
+          message: 'Đã xuất báo cáo đơn hàng thành công',
+          timestamp: new Date()
+        })
+        
+      } catch (error) {
+        this.addNotification({
+          type: 'error',
+          message: 'Không thể xuất báo cáo',
+          timestamp: new Date()
+        })
+      } finally {
+        this.loading.export = false
       }
     },
 
-    clearProductForm() {
-      this.initializeProductForm()
+    async exportAnalyticsReport(period = '30d') {
+      this.loading.export = true
+      
+      try {
+        const response = await sellerAPI.exportAnalyticsReport(period)
+        
+        const url = window.URL.createObjectURL(new Blob([response.data]))
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', `analytics-report-${period}-${new Date().toISOString().slice(0, 10)}.pdf`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        
+        this.addNotification({
+          type: 'success',
+          message: 'Đã xuất báo cáo phân tích thành công',
+          timestamp: new Date()
+        })
+        
+      } catch (error) {
+        this.addNotification({
+          type: 'error',
+          message: 'Không thể xuất báo cáo phân tích',
+          timestamp: new Date()
+        })
+      } finally {
+        this.loading.export = false
+      }
     },
 
     // Utility Actions
+    updateOrderStats() {
+      this.orderStats = {
+        total: this.orders.length,
+        pending: this.orders.filter(o => o.status === 'PENDING').length,
+        processing: this.orders.filter(o => o.status === 'PROCESSING').length,
+        shipped: this.orders.filter(o => o.status === 'SHIPPED').length,
+        delivered: this.orders.filter(o => o.status === 'DELIVERED').length,
+        cancelled: this.orders.filter(o => o.status === 'CANCELLED').length
+      }
+    },
+
     updateProductStats() {
       this.productStats = {
         total: this.products.length,
         active: this.products.filter(p => p.isActive).length,
         inactive: this.products.filter(p => !p.isActive).length,
-        lowStock: this.products.filter(p => p.stockQuantity < 10).length
+        lowStock: this.products.filter(p => p.stockQuantity < 10).length,
+        outOfStock: this.products.filter(p => p.stockQuantity === 0).length
       }
     },
 
-    updateOrderStats() {
-      this.orderStats = {
-        total: this.orders.length,
-        pending: this.orders.filter(o => o.status === 'pending').length,
-        processing: this.orders.filter(o => o.status === 'processing').length,
-        shipped: this.orders.filter(o => o.status === 'shipped').length,
-        delivered: this.orders.filter(o => o.status === 'delivered').length,
-        cancelled: this.orders.filter(o => o.status === 'cancelled').length
+    setOrderFilters(filters) {
+      this.orderFilters = { ...this.orderFilters, ...filters }
+    },
+
+    toggleOrderSelection(orderId) {
+      const index = this.selectedOrders.indexOf(orderId)
+      if (index > -1) {
+        this.selectedOrders.splice(index, 1)
+      } else {
+        this.selectedOrders.push(orderId)
       }
     },
 
-    // Sample data generators (for development)
-    generateSampleProducts() {
-      const categories = ['Điện tử', 'Thời trang', 'Nhà cửa', 'Sách', 'Thể thao']
-      const statuses = [true, true, true, false, true] // mostly active
-      
-      return Array.from({ length: 12 }, (_, index) => ({
-        id: `product_${index + 1}`,
-        name: `Sản phẩm mẫu ${index + 1}`,
-        description: `Mô tả chi tiết cho sản phẩm mẫu ${index + 1}. Đây là một sản phẩm chất lượng cao với nhiều tính năng ưu việt.`,
-        category: categories[index % categories.length],
-        price: Math.floor(Math.random() * 1000000) + 100000,
-        stockQuantity: Math.floor(Math.random() * 100) + 1,
-        images: [
-          '/api/placeholder/300/300',
-          '/api/placeholder/300/300'
-        ],
-        tags: ['hot', 'new', 'featured'].slice(0, Math.floor(Math.random() * 3) + 1),
-        isActive: statuses[index % statuses.length],
-        soldCount: Math.floor(Math.random() * 50),
-        reviewCount: Math.floor(Math.random() * 20),
-        averageRating: Math.round((Math.random() * 2 + 3) * 10) / 10,
-        createdAt: new Date(Date.now() - Math.random() * 10000000000).toISOString(),
-        updatedAt: new Date().toISOString()
-      }))
+    selectAllOrders() {
+      this.selectedOrders = this.filteredOrders.map(o => o.id)
     },
 
-    generateSampleOrders() {
-      const statuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
-      
-      return Array.from({ length: 8 }, (_, index) => ({
-        id: `order_${index + 1}`,
-        orderNumber: `#ORD${String(index + 1).padStart(4, '0')}`,
-        customerName: `Khách hàng ${index + 1}`,
-        customerEmail: `customer${index + 1}@example.com`,
-        status: statuses[index % statuses.length],
-        total: Math.floor(Math.random() * 2000000) + 100000,
-        items: Math.floor(Math.random() * 3) + 1,
-        createdAt: new Date(Date.now() - Math.random() * 5000000000).toISOString(),
-        updatedAt: new Date().toISOString()
-      }))
+    clearOrderSelection() {
+      this.selectedOrders = []
     },
 
-    generateSampleAnalytics() {
-      const now = new Date()
-      const salesChart = Array.from({ length: 30 }, (_, index) => ({
-        date: new Date(now.getTime() - (29 - index) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        sales: Math.floor(Math.random() * 500000) + 100000,
-        orders: Math.floor(Math.random() * 20) + 5
-      }))
+    addNotification(notification) {
+      this.notifications.unshift({
+        id: Date.now(),
+        ...notification
+      })
+      
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+        this.removeNotification(notification.id || Date.now())
+      }, 5000)
+    },
 
-      const topProducts = this.products
-        .sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0))
-        .slice(0, 5)
-        .map(product => ({
-          id: product.id,
-          name: product.name,
-          sales: product.soldCount || 0,
-          revenue: (product.soldCount || 0) * product.price
-        }))
+    removeNotification(notificationId) {
+      const index = this.notifications.findIndex(n => n.id === notificationId)
+      if (index > -1) {
+        this.notifications.splice(index, 1)
+      }
+    },
 
-      return {
-        salesChart,
-        topProducts,
-        categoryBreakdown: [
-          { category: 'Điện tử', sales: 45, revenue: 2500000 },
-          { category: 'Thời trang', sales: 38, revenue: 1800000 },
-          { category: 'Nhà cửa', sales: 22, revenue: 1200000 },
-          { category: 'Sách', sales: 15, revenue: 450000 },
-          { category: 'Thể thao', sales: 18, revenue: 900000 }
-        ],
-        monthlyStats: Array.from({ length: 12 }, (_, index) => ({
-          month: new Date(2024, index, 1).toLocaleDateString('vi-VN', { month: 'short' }),
-          sales: Math.floor(Math.random() * 100) + 50,
-          revenue: Math.floor(Math.random() * 5000000) + 1000000
-        }))
+    checkUrgentOrders() {
+      const urgent = this.urgentOrders
+      if (urgent.length > 0) {
+        this.addNotification({
+          type: 'warning',
+          message: `Có ${urgent.length} đơn hàng cần xử lý gấp (quá 3 ngày)`,
+          timestamp: new Date(),
+          action: 'view_urgent_orders'
+        })
+      }
+    },
+
+    getStatusLabel(status) {
+      const labels = {
+        'PENDING': 'Chờ xử lý',
+        'PROCESSING': 'Đang xử lý', 
+        'SHIPPED': 'Đã gửi hàng',
+        'DELIVERED': 'Đã giao hàng',
+        'CANCELLED': 'Đã hủy'
+      }
+      return labels[status] || status
+    },
+
+    getStatusColor(status) {
+      const colors = {
+        'PENDING': '#f59e0b',
+        'PROCESSING': '#3b82f6',
+        'SHIPPED': '#8b5cf6', 
+        'DELIVERED': '#10b981',
+        'CANCELLED': '#ef4444'
+      }
+      return colors[status] || '#6b7280'
+    },
+
+    // Auto-refresh functionality
+    startAutoRefresh() {
+      if (this.autoRefresh) return
+      
+      this.autoRefresh = true
+      this.refreshInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          this.loadOrders(true)
+          this.fetchDashboardStats()
+        }
+      }, 30000) // Refresh every 30 seconds
+    },
+
+    stopAutoRefresh() {
+      this.autoRefresh = false
+      if (this.refreshInterval) {
+        clearInterval(this.refreshInterval)
+        this.refreshInterval = null
       }
     }
   }

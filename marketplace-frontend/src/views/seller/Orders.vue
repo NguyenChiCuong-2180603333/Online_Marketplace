@@ -1,148 +1,275 @@
+<!-- views/seller/Orders.vue - Enhanced Order Management -->
 <template>
   <div class="seller-orders-page">
-    <header class="page-header">
-      <h1>📋 Quản lý đơn hàng</h1>
-      <p>Xử lý và theo dõi tất cả đơn hàng của bạn</p>
-    </header>
-
-    <!-- Filter Tabs -->
-    <div class="filter-tabs">
-      <button 
-        v-for="status in orderStatuses" 
-        :key="status.value" 
-        class="filter-tab"
-        :class="{ active: activeFilter === status.value }"
-        @click="activeFilter = status.value"
-      >
-        {{ status.label }}
-        <span class="count">{{ getOrderCount(status.value) }}</span>
-      </button>
-    </div>
-
-    <!-- Search and Actions -->
-    <div class="controls-section">
-      <div class="search-box">
-        <input 
-          v-model="searchQuery"
-          type="text" 
-          placeholder="Tìm theo mã đơn hàng, tên khách hàng..."
-          class="search-input"
-        />
-        <span class="search-icon">🔍</span>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1>📦 Quản lý Đơn hàng</h1>
+          <p>Xử lý và theo dõi tất cả đơn hàng của bạn</p>
+        </div>
+        <div class="header-actions">
+          <button @click="refreshOrders" :disabled="loading" class="btn-refresh">
+            <span class="icon">🔄</span>
+            {{ loading ? 'Đang tải...' : 'Làm mới' }}
+          </button>
+          <button @click="exportOrders" :disabled="loadingExport" class="btn-export">
+            <span class="icon">📊</span>
+            {{ loadingExport ? 'Đang xuất...' : 'Xuất báo cáo' }}
+          </button>
+        </div>
       </div>
       
-      <div class="action-buttons">
-        <button @click="exportReport" class="btn-export">📄 Xuất báo cáo</button>
-        <button @click="refreshOrders" class="btn-refresh">🔄 Làm mới</button>
-      </div>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="loading" class="loading-state">
-      <div class="loading-spinner">🔄</div>
-      <p>Đang tải đơn hàng...</p>
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="filteredOrders.length === 0" class="empty-state">
-      <div class="empty-icon">📋</div>
-      <h3>{{ activeFilter ? 'Không có đơn hàng nào' : 'Chưa có đơn hàng nào' }}</h3>
-      <p>{{ activeFilter ? `Không có đơn hàng với trạng thái "${getStatusText(activeFilter)}"` : 'Đơn hàng sẽ hiển thị ở đây khi có khách hàng mua sản phẩm của bạn' }}</p>
-    </div>
-
-    <!-- Orders List -->
-    <div v-else class="orders-list">
-      <div v-for="order in displayedOrders" :key="order.id" class="order-card">
-        <div class="order-header">
-          <div class="order-info">
-            <h4 class="order-id">#{{ order.id.slice(-8) }}</h4>
-            <p class="order-date">{{ formatDate(order.createdAt) }}</p>
-          </div>
-          <div class="status-section">
-            <select 
-              v-model="order.status" 
-              @change="updateOrderStatus(order)"
-              class="status-select"
-              :disabled="updating"
-            >
-              <option value="PENDING">🕐 Chờ xử lý</option>
-              <option value="PROCESSING">⚙️ Đang xử lý</option>
-              <option value="SHIPPED">🚚 Đã giao vận</option>
-              <option value="DELIVERED">✅ Đã giao</option>
-              <option value="CANCELLED">❌ Đã hủy</option>
-            </select>
-          </div>
+      <!-- Quick Stats -->
+      <div class="quick-stats">
+        <div class="stat-card pending" @click="setStatusFilter('pending')">
+          <div class="stat-number">{{ orderStats.pending }}</div>
+          <div class="stat-label">Chờ xử lý</div>
         </div>
-
-        <div class="order-content">
-          <div class="customer-info">
-            <h5>👤 Khách hàng</h5>
-            <p>{{ order.customerName || 'Khách hàng' }}</p>
-            <p class="customer-email">{{ order.customerEmail || 'email@example.com' }}</p>
-          </div>
-
-          <div class="order-summary">
-            <h5>📦 Sản phẩm</h5>
-            <p>{{ order.itemCount || 1 }} sản phẩm</p>
-            <p class="order-total">{{ formatMoney(order.totalAmount) }}</p>
-          </div>
+        <div class="stat-card processing" @click="setStatusFilter('processing')">
+          <div class="stat-number">{{ orderStats.processing }}</div>
+          <div class="stat-label">Đang xử lý</div>
         </div>
-
-        <div class="order-actions">
-          <button @click="viewOrderDetails(order)" class="action-btn view" title="Xem chi tiết">
-            👁️ Chi tiết
-          </button>
-          <button @click="contactCustomer(order)" class="action-btn contact" title="Liên hệ khách hàng">
-            💬 Liên hệ
-          </button>
-          <button @click="printShippingLabel(order)" class="action-btn print" title="In nhãn giao hàng">
-            🖨️ In nhãn
-          </button>
+        <div class="stat-card shipped" @click="setStatusFilter('shipped')">
+          <div class="stat-number">{{ orderStats.shipped }}</div>
+          <div class="stat-label">Đã gửi</div>
+        </div>
+        <div class="stat-card delivered" @click="setStatusFilter('delivered')">
+          <div class="stat-number">{{ orderStats.delivered }}</div>
+          <div class="stat-label">Đã giao</div>
         </div>
       </div>
+    </div>
 
-      <!-- Show more button if there are more orders -->
-      <div v-if="filteredOrders.length > 5" class="show-more">
-        <button @click="loadMoreOrders" class="btn-show-more">
-          Xem thêm {{ filteredOrders.length - displayedOrders.length }} đơn hàng
+    <!-- Filters & Search -->
+    <div class="filters-section">
+      <div class="search-bar">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input 
+            v-model="searchQuery" 
+            type="text" 
+            placeholder="Tìm kiếm theo mã đơn hàng, tên khách hàng, email..."
+            class="search-input"
+            @input="debounceSearch"
+          />
+          <button v-if="searchQuery" @click="clearSearch" class="clear-search">✕</button>
+        </div>
+      </div>
+      
+      <div class="filter-controls">
+        <select v-model="filters.status" @change="applyFilters" class="filter-select">
+          <option value="all">Tất cả trạng thái</option>
+          <option value="pending">Chờ xử lý</option>
+          <option value="processing">Đang xử lý</option>
+          <option value="shipped">Đã gửi hàng</option>
+          <option value="delivered">Đã giao hàng</option>
+          <option value="cancelled">Đã hủy</option>
+        </select>
+        
+        <select v-model="filters.dateRange" @change="applyFilters" class="filter-select">
+          <option value="all">Tất cả thời gian</option>
+          <option value="today">Hôm nay</option>
+          <option value="week">7 ngày qua</option>
+          <option value="month">30 ngày qua</option>
+          <option value="quarter">90 ngày qua</option>
+        </select>
+        
+        <select v-model="filters.sortBy" @change="applyFilters" class="filter-select">
+          <option value="createdAt">Ngày tạo</option>
+          <option value="totalAmount">Giá trị đơn hàng</option>
+          <option value="customerName">Tên khách hàng</option>
+          <option value="status">Trạng thái</option>
+        </select>
+        
+        <button @click="toggleSortOrder" class="sort-toggle">
+          {{ filters.sortOrder === 'desc' ? '↓' : '↑' }}
         </button>
       </div>
     </div>
 
-    <!-- Coming Soon Notice -->
-    <div class="coming-soon-notice">
-      <div class="notice-content">
-        <h3>🚀 Quản lý đơn hàng đang phát triển</h3>
-        <p>Chức năng này sẽ có trong Phase 3 với đầy đủ tính năng:</p>
-        <div class="features-grid">
-          <div class="feature-group">
-            <h4>📋 Quản lý đơn hàng</h4>
-            <div class="feature-item">• Real-time order tracking</div>
-            <div class="feature-item">• Bulk status updates</div>
-            <div class="feature-item">• Order analytics</div>
-            <div class="feature-item">• Custom order statuses</div>
+    <!-- Bulk Actions -->
+    <div v-if="selectedOrders.length > 0" class="bulk-actions">
+      <div class="bulk-info">
+        <span class="selected-count">{{ selectedOrders.length }} đơn hàng được chọn</span>
+        <button @click="clearSelection" class="btn-clear">Bỏ chọn</button>
+      </div>
+      <div class="bulk-buttons">
+        <button @click="bulkUpdateStatus('PROCESSING')" class="btn-bulk processing">
+          Chuyển sang Đang xử lý
+        </button>
+        <button @click="bulkUpdateStatus('SHIPPED')" class="btn-bulk shipped">
+          Chuyển sang Đã gửi
+        </button>
+        <button @click="bulkUpdateStatus('DELIVERED')" class="btn-bulk delivered">
+          Chuyển sang Đã giao
+        </button>
+        <button @click="bulkPrintLabels" class="btn-bulk print">
+          In nhãn giao hàng
+        </button>
+      </div>
+    </div>
+
+    <!-- Orders List -->
+    <div class="orders-container">
+      <div v-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Đang tải đơn hàng...</p>
+      </div>
+      
+      <div v-else-if="filteredOrders.length === 0" class="empty-state">
+        <div class="empty-icon">📦</div>
+        <h3>Không có đơn hàng nào</h3>
+        <p>{{ searchQuery ? 'Không tìm thấy đơn hàng phù hợp với tìm kiếm của bạn' : 'Chưa có đơn hàng nào được tạo' }}</p>
+        <button v-if="searchQuery" @click="clearSearch" class="btn-clear-search">
+          Xóa bộ lọc
+        </button>
+      </div>
+      
+      <div v-else class="orders-list">
+        <!-- Select All -->
+        <div class="select-all-row">
+          <label class="checkbox-wrapper">
+            <input 
+              type="checkbox" 
+              :checked="allSelected"
+              @change="toggleSelectAll"
+            />
+            <span class="checkmark"></span>
+            Chọn tất cả ({{ filteredOrders.length }})
+          </label>
+        </div>
+        
+        <!-- Order Cards -->
+        <div 
+          v-for="order in displayedOrders" 
+          :key="order.id"
+          class="order-card"
+          :class="{ 
+            'selected': selectedOrders.includes(order.id),
+            'urgent': isUrgentOrder(order)
+          }"
+        >
+          <!-- Order Selection -->
+          <div class="order-selection">
+            <label class="checkbox-wrapper">
+              <input 
+                type="checkbox" 
+                :checked="selectedOrders.includes(order.id)"
+                @change="toggleOrderSelection(order.id)"
+              />
+              <span class="checkmark"></span>
+            </label>
           </div>
-          <div class="feature-group">
-            <h4>🖨️ Logistics</h4>
-            <div class="feature-item">• Auto print shipping labels</div>
-            <div class="feature-item">• Multi-carrier integration</div>
-            <div class="feature-item">• Return management</div>
-            <div class="feature-item">• Delivery confirmation</div>
+          
+          <!-- Order Header -->
+          <div class="order-header">
+            <div class="order-info">
+              <div class="order-id">
+                <span class="id-label">Đơn hàng</span>
+                <span class="id-value">#{{ order.id.slice(-8) }}</span>
+                <span v-if="isUrgentOrder(order)" class="urgent-badge">🚨 Gấp</span>
+              </div>
+              <div class="order-meta">
+                <span class="date">{{ formatDate(order.createdAt) }}</span>
+                <span class="separator">•</span>
+                <span class="customer">{{ order.customerName }}</span>
+              </div>
+            </div>
+            
+            <div class="order-status-section">
+              <div class="status-badge" :style="{ backgroundColor: getStatusColor(order.status) }">
+                {{ getStatusLabel(order.status) }}
+              </div>
+              <div class="order-value">{{ formatCurrency(order.totalAmount) }}</div>
+            </div>
           </div>
-          <div class="feature-group">
-            <h4>💬 Communication</h4>
-            <div class="feature-item">• In-app chat with customers</div>
-            <div class="feature-item">• Automated email updates</div>
-            <div class="feature-item">• SMS notifications</div>
-            <div class="feature-item">• Order dispute resolution</div>
+          
+          <!-- Order Items Preview -->
+          <div class="order-items-preview">
+            <div class="items-info">
+              <span class="items-count">{{ order.items.length }} sản phẩm</span>
+              <span class="items-list">
+                {{ order.items.slice(0, 2).map(item => item.productName).join(', ') }}
+                <span v-if="order.items.length > 2">và {{ order.items.length - 2 }} sản phẩm khác</span>
+              </span>
+            </div>
           </div>
-          <div class="feature-group">
-            <h4>📊 Advanced Features</h4>
-            <div class="feature-item">• Predictive analytics</div>
-            <div class="feature-item">• Export capabilities</div>
-            <div class="feature-item">• API integrations</div>
-            <div class="feature-item">• Custom reporting</div>
+          
+          <!-- Order Timeline -->
+          <div class="order-timeline">
+            <div class="timeline-item" :class="{ active: hasStatus(order, 'PENDING') }">
+              <div class="timeline-dot"></div>
+              <span class="timeline-label">Đặt hàng</span>
+            </div>
+            <div class="timeline-item" :class="{ active: hasStatus(order, 'PROCESSING') }">
+              <div class="timeline-dot"></div>
+              <span class="timeline-label">Xử lý</span>
+            </div>
+            <div class="timeline-item" :class="{ active: hasStatus(order, 'SHIPPED') }">
+              <div class="timeline-dot"></div>
+              <span class="timeline-label">Gửi hàng</span>
+            </div>
+            <div class="timeline-item" :class="{ active: hasStatus(order, 'DELIVERED') }">
+              <div class="timeline-dot"></div>
+              <span class="timeline-label">Giao hàng</span>
+            </div>
           </div>
+          
+          <!-- Order Actions -->
+          <div class="order-actions">
+            <button @click="viewOrderDetails(order)" class="action-btn primary">
+              👁️ Chi tiết
+            </button>
+            
+            <div class="status-actions">
+              <button 
+                v-if="order.status === 'PENDING'"
+                @click="quickStatusUpdate(order.id, 'PROCESSING')"
+                :disabled="isUpdating(order.id)"
+                class="action-btn success"
+              >
+                ✅ Xử lý
+              </button>
+              
+              <button 
+                v-if="order.status === 'PROCESSING'"
+                @click="quickStatusUpdate(order.id, 'SHIPPED')"
+                :disabled="isUpdating(order.id)"
+                class="action-btn info"
+              >
+                🚚 Gửi hàng
+              </button>
+              
+              <button 
+                v-if="order.status === 'SHIPPED'"
+                @click="quickStatusUpdate(order.id, 'DELIVERED')"
+                :disabled="isUpdating(order.id)"
+                class="action-btn delivered"
+              >
+                📦 Đã giao
+              </button>
+            </div>
+            
+            <div class="more-actions">
+              <button @click="contactCustomer(order)" class="action-btn secondary">
+                💬 Liên hệ
+              </button>
+              <button @click="printShippingLabel(order)" class="action-btn print">
+                🖨️ In nhãn
+              </button>
+              <button @click="showOrderMenu(order)" class="action-btn menu">
+                ⋮
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Load More -->
+        <div v-if="filteredOrders.length > displayedOrders.length" class="load-more">
+          <button @click="loadMoreOrders" class="btn-load-more">
+            Xem thêm {{ filteredOrders.length - displayedOrders.length }} đơn hàng
+          </button>
         </div>
       </div>
     </div>
@@ -150,193 +277,187 @@
     <!-- Order Details Modal -->
     <div v-if="showOrderModal" class="modal-overlay" @click="closeOrderModal">
       <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Chi tiết đơn hàng #{{ selectedOrder?.id?.slice(-8) }}</h3>
-          <button @click="closeOrderModal" class="modal-close">✕</button>
-        </div>
-        <div class="modal-body">
-          <div v-if="selectedOrder" class="order-details">
-            <div class="detail-section">
-              <h4>Thông tin khách hàng</h4>
-              <p><strong>Tên:</strong> {{ selectedOrder.customerName }}</p>
-              <p><strong>Email:</strong> {{ selectedOrder.customerEmail }}</p>
-              <p><strong>Số điện thoại:</strong> {{ selectedOrder.customerPhone || 'Chưa có' }}</p>
-            </div>
-            <div class="detail-section">
-              <h4>Địa chỉ giao hàng</h4>
-              <p>{{ selectedOrder.shippingAddress || 'Chưa có địa chỉ' }}</p>
-            </div>
-            <div class="detail-section">
-              <h4>Sản phẩm</h4>
-              <div class="products-list">
-                <div v-for="item in selectedOrder.items" :key="item.id" class="product-item">
-                  <span>{{ item.name }} × {{ item.quantity }}</span>
-                  <span>{{ formatMoney(item.price) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <OrderDetailsModal 
+          :order="selectedOrder"
+          @close="closeOrderModal"
+          @status-updated="handleStatusUpdate"
+          @message-sent="handleMessageSent"
+        />
+      </div>
+    </div>
+    
+    <!-- Customer Chat Modal -->
+    <div v-if="showChatModal" class="modal-overlay" @click="closeChatModal">
+      <div class="modal-content" @click.stop>
+        <CustomerChatModal 
+          :order="chatOrder"
+          @close="closeChatModal"
+          @message-sent="handleChatMessage"
+        />
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="notifications">
+      <div 
+        v-for="notification in notifications" 
+        :key="notification.id"
+        class="notification"
+        :class="notification.type"
+      >
+        <span class="notification-message">{{ notification.message }}</span>
+        <button @click="removeNotification(notification.id)" class="notification-close">✕</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useSellerStore } from '@/stores/seller'
+import OrderDetailsModal from '@/components/seller/OrderDetailsModal.vue'
+import CustomerChatModal from '@/components/seller/CustomerChatModal.vue'
 
 const sellerStore = useSellerStore()
 
 // Reactive data
-const activeFilter = ref('')
-const searchQuery = ref('')
 const loading = ref(false)
-const updating = ref(false)
+const loadingExport = ref(false)
+const searchQuery = ref('')
+const ordersToShow = ref(20)
 const showOrderModal = ref(false)
+const showChatModal = ref(false)
 const selectedOrder = ref(null)
-const ordersToShow = ref(5)
+const chatOrder = ref(null)
 
-const orderStatuses = [
-  { value: '', label: 'Tất cả' },
-  { value: 'PENDING', label: 'Chờ xử lý' },
-  { value: 'PROCESSING', label: 'Đang xử lý' },
-  { value: 'SHIPPED', label: 'Đã giao vận' },
-  { value: 'DELIVERED', label: 'Đã giao' },
-  { value: 'CANCELLED', label: 'Đã hủy' }
-]
-
-// Mock data for demonstration
-const mockOrders = [
-  {
-    id: 'ORD001234567890',
-    customerName: 'Nguyễn Văn A',
-    customerEmail: 'customer1@example.com',
-    customerPhone: '0123456789',
-    status: 'PENDING',
-    totalAmount: 1250000,
-    itemCount: 2,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    shippingAddress: '123 Đường ABC, Quận 1, TP.HCM',
-    items: [
-      { id: 1, name: 'Laptop Gaming', quantity: 1, price: 1000000 },
-      { id: 2, name: 'Chuột Gaming', quantity: 1, price: 250000 }
-    ]
-  },
-  {
-    id: 'ORD001234567891',
-    customerName: 'Trần Thị B',
-    customerEmail: 'customer2@example.com',
-    customerPhone: '0987654321',
-    status: 'PROCESSING',
-    totalAmount: 890000,
-    itemCount: 1,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-    shippingAddress: '456 Đường XYZ, Quận 2, TP.HCM',
-    items: [
-      { id: 3, name: 'Bàn phím cơ', quantity: 1, price: 890000 }
-    ]
-  },
-  {
-    id: 'ORD001234567892',
-    customerName: 'Lê Văn C',
-    customerEmail: 'customer3@example.com',
-    customerPhone: '0369852147',
-    status: 'DELIVERED',
-    totalAmount: 2100000,
-    itemCount: 3,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3), // 3 days ago
-    shippingAddress: '789 Đường KLM, Quận 3, TP.HCM',
-    items: [
-      { id: 4, name: 'Màn hình 24 inch', quantity: 1, price: 1500000 },
-      { id: 5, name: 'Webcam HD', quantity: 2, price: 300000 }
-    ]
-  }
-]
-
-// Computed properties
-const orders = computed(() => sellerStore.orders.length > 0 ? sellerStore.orders : mockOrders)
-
-const filteredOrders = computed(() => {
-  let filtered = orders.value
-
-  // Filter by status
-  if (activeFilter.value) {
-    filtered = filtered.filter(order => order.status === activeFilter.value)
-  }
-
-  // Filter by search query
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(order => 
-      order.id.toLowerCase().includes(query) ||
-      order.customerName.toLowerCase().includes(query) ||
-      order.customerEmail.toLowerCase().includes(query)
-    )
-  }
-
-  return filtered
+// Filters
+const filters = ref({
+  status: 'all',
+  dateRange: 'all',
+  sortBy: 'createdAt',
+  sortOrder: 'desc'
 })
 
-const displayedOrders = computed(() => {
-  return filteredOrders.value.slice(0, ordersToShow.value)
+// Computed properties
+const filteredOrders = computed(() => sellerStore.filteredOrders)
+const displayedOrders = computed(() => filteredOrders.value.slice(0, ordersToShow.value))
+const orderStats = computed(() => sellerStore.orderStats)
+const selectedOrders = computed(() => sellerStore.selectedOrders)
+const notifications = computed(() => sellerStore.notifications)
+
+const allSelected = computed({
+  get: () => filteredOrders.value.length > 0 && 
+    filteredOrders.value.every(order => selectedOrders.value.includes(order.id)),
+  set: (value) => {
+    if (value) {
+      sellerStore.selectAllOrders()
+    } else {
+      sellerStore.clearOrderSelection()
+    }
+  }
 })
 
 // Methods
-const getOrderCount = (status) => {
-  if (!status) return orders.value.length
-  return orders.value.filter(order => order.status === status).length
-}
-
-const getStatusText = (status) => {
-  const statusMap = {
-    'PENDING': 'Chờ xử lý',
-    'PROCESSING': 'Đang xử lý',
-    'SHIPPED': 'Đã giao vận',
-    'DELIVERED': 'Đã giao',
-    'CANCELLED': 'Đã hủy'
-  }
-  return statusMap[status] || status
-}
-
-const formatMoney = (amount) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND'
-  }).format(amount || 0)
-}
-
-const formatDate = (dateString) => {
-  if (!dateString) return ''
-  
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffTime = Math.abs(now - date)
-  const diffHours = Math.ceil(diffTime / (1000 * 60 * 60))
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
-  if (diffHours < 1) return 'Vừa xong'
-  if (diffHours < 24) return `${diffHours} giờ trước`
-  if (diffDays === 1) return 'Hôm qua'
-  if (diffDays <= 7) return `${diffDays} ngày trước`
-  
-  return date.toLocaleDateString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
-}
-
-const updateOrderStatus = async (order) => {
+const refreshOrders = async () => {
+  loading.value = true
   try {
-    updating.value = true
-    await sellerStore.updateOrderStatus(order.id, order.status)
-    alert(`Đã cập nhật trạng thái đơn hàng #${order.id.slice(-8)} thành "${getStatusText(order.status)}"`)
-  } catch (error) {
-    alert('Có lỗi xảy ra khi cập nhật trạng thái đơn hàng')
-    console.error('Update order status error:', error)
+    await sellerStore.loadOrders(true)
   } finally {
-    updating.value = false
+    loading.value = false
+  }
+}
+
+const exportOrders = async () => {
+  loadingExport.value = true
+  try {
+    await sellerStore.exportOrdersReport()
+  } finally {
+    loadingExport.value = false
+  }
+}
+
+const setStatusFilter = (status) => {
+  filters.value.status = status
+  applyFilters()
+}
+
+const applyFilters = () => {
+  sellerStore.setOrderFilters(filters.value)
+}
+
+const toggleSortOrder = () => {
+  filters.value.sortOrder = filters.value.sortOrder === 'desc' ? 'asc' : 'desc'
+  applyFilters()
+}
+
+const clearSearch = () => {
+  searchQuery.value = ''
+  sellerStore.setOrderFilters({ search: '' })
+}
+
+const debounceSearch = (() => {
+  let timeout
+  return () => {
+    clearTimeout(timeout)
+    timeout = setTimeout(() => {
+      sellerStore.setOrderFilters({ search: searchQuery.value })
+    }, 300)
+  }
+})()
+
+const toggleSelectAll = () => {
+  if (allSelected.value) {
+    sellerStore.clearOrderSelection()
+  } else {
+    sellerStore.selectAllOrders()
+  }
+}
+
+const toggleOrderSelection = (orderId) => {
+  sellerStore.toggleOrderSelection(orderId)
+}
+
+const clearSelection = () => {
+  sellerStore.clearOrderSelection()
+}
+
+const bulkUpdateStatus = async (status) => {
+  if (selectedOrders.value.length === 0) return
+  
+  const confirmed = confirm(`Bạn có chắc chắn muốn cập nhật ${selectedOrders.value.length} đơn hàng sang trạng thái "${sellerStore.getStatusLabel(status)}"?`)
+  if (!confirmed) return
+  
+  try {
+    await sellerStore.bulkUpdateOrderStatus(selectedOrders.value, status)
+    sellerStore.clearOrderSelection()
+  } catch (error) {
+    console.error('Bulk update error:', error)
+  }
+}
+
+const bulkPrintLabels = () => {
+  const orderIds = selectedOrders.value
+  // Generate print labels for multiple orders
+  const printContent = orderIds.map(id => {
+    const order = filteredOrders.value.find(o => o.id === id)
+    return generateShippingLabel(order)
+  }).join('<div style="page-break-after: always;"></div>')
+  
+  const printWindow = window.open('', '_blank')
+  printWindow.document.write(`
+    <html>
+      <head><title>Shipping Labels</title></head>
+      <body>${printContent}</body>
+    </html>
+  `)
+  printWindow.print()
+}
+
+const quickStatusUpdate = async (orderId, status) => {
+  try {
+    await sellerStore.updateOrderStatus(orderId, status)
+  } catch (error) {
+    console.error('Quick status update error:', error)
   }
 }
 
@@ -351,46 +472,136 @@ const closeOrderModal = () => {
 }
 
 const contactCustomer = (order) => {
-  // Open chat with customer
-  alert(`Mở chat với khách hàng: ${order.customerName}`)
+  chatOrder.value = order
+  showChatModal.value = true
+}
+
+const closeChatModal = () => {
+  showChatModal.value = false
+  chatOrder.value = null
 }
 
 const printShippingLabel = (order) => {
-  // Print shipping label
-  alert(`In nhãn giao hàng cho đơn #${order.id.slice(-8)}`)
+  const labelContent = generateShippingLabel(order)
+  const printWindow = window.open('', '_blank')
+  printWindow.document.write(`
+    <html>
+      <head><title>Shipping Label - ${order.id}</title></head>
+      <body>${labelContent}</body>
+    </html>
+  `)
+  printWindow.print()
+}
+
+const generateShippingLabel = (order) => {
+  return `
+    <div style="width: 4in; height: 6in; border: 1px solid #000; padding: 10px; font-family: Arial;">
+      <h3>COSMIC MARKETPLACE</h3>
+      <p><strong>Đơn hàng:</strong> #${order.id.slice(-8)}</p>
+      <p><strong>Người nhận:</strong> ${order.customerName}</p>
+      <p><strong>Địa chỉ:</strong> ${order.shippingAddress}</p>
+      <p><strong>SĐT:</strong> ${order.customerPhone}</p>
+      <p><strong>Giá trị:</strong> ${formatCurrency(order.totalAmount)}</p>
+      <p><strong>Ngày:</strong> ${formatDate(order.createdAt)}</p>
+    </div>
+  `
+}
+
+const showOrderMenu = (order) => {
+  // Show context menu with more actions
+  alert(`Menu cho đơn hàng #${order.id.slice(-8)}\n- Xem lịch sử\n- Tạo hoàn trả\n- Báo cáo vấn đề`)
 }
 
 const loadMoreOrders = () => {
-  ordersToShow.value += 5
+  ordersToShow.value += 20
 }
 
-const refreshOrders = async () => {
-  try {
-    loading.value = true
-    await sellerStore.loadOrders()
-    alert('Đã làm mới danh sách đơn hàng')
-  } catch (error) {
-    alert('Có lỗi xảy ra khi tải đơn hàng')
-  } finally {
-    loading.value = false
-  }
+const handleStatusUpdate = (orderId, newStatus) => {
+  // Handle status update from modal
+  console.log(`Order ${orderId} updated to ${newStatus}`)
 }
 
-const exportReport = () => {
-  // Export orders report
-  alert('Xuất báo cáo đơn hàng (Chức năng sẽ có trong Phase 3)')
+const handleMessageSent = (orderId, message) => {
+  // Handle message sent from order details
+  console.log(`Message sent to order ${orderId}:`, message)
 }
+
+const handleChatMessage = (orderId, message) => {
+  // Handle message sent from chat modal
+  console.log(`Chat message sent to order ${orderId}:`, message)
+}
+
+const removeNotification = (notificationId) => {
+  sellerStore.removeNotification(notificationId)
+}
+
+// Utility functions
+const formatDate = (dateString) => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(amount)
+}
+
+const getStatusLabel = (status) => {
+  return sellerStore.getStatusLabel(status)
+}
+
+const getStatusColor = (status) => {
+  return sellerStore.getStatusColor(status)
+}
+
+const hasStatus = (order, status) => {
+  const statusOrder = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED']
+  const currentIndex = statusOrder.indexOf(order.status)
+  const checkIndex = statusOrder.indexOf(status)
+  return currentIndex >= checkIndex
+}
+
+const isUrgentOrder = (order) => {
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+  return (order.status === 'PENDING' || order.status === 'PROCESSING') && 
+         new Date(order.createdAt) < threeDaysAgo
+}
+
+const isUpdating = (orderId) => {
+  return sellerStore.loading.orderUpdate[orderId] || false
+}
+
+// Watchers
+watch(filters, (newFilters) => {
+  sellerStore.setOrderFilters(newFilters)
+}, { deep: true })
 
 // Lifecycle
 onMounted(async () => {
+  loading.value = true
   try {
-    loading.value = true
-    await sellerStore.loadOrders()
-  } catch (error) {
-    console.error('Load orders error:', error)
+    await Promise.all([
+      sellerStore.loadOrders(),
+      sellerStore.fetchDashboardStats()
+    ])
+    
+    // Start auto-refresh
+    sellerStore.startAutoRefresh()
   } finally {
     loading.value = false
   }
+})
+
+onUnmounted(() => {
+  sellerStore.stopAutoRefresh()
 })
 </script>
 
@@ -398,149 +609,221 @@ onMounted(async () => {
 .seller-orders-page {
   padding: 2rem;
   min-height: 100vh;
-  background: rgba(16, 16, 24, 0.95);
-  color: var(--text-primary, #ffffff);
+  background: linear-gradient(135deg, rgba(16, 16, 24, 0.95), rgba(26, 26, 46, 0.9));
+  color: #ffffff;
 }
 
 .page-header {
   margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
 }
 
-.page-header h1 {
-  color: var(--text-primary, #ffffff);
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.title-section h1 {
   font-size: 1.8rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #00d4ff, #0099cc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.page-header p {
-  color: var(--text-secondary, #a0aec0);
-  font-size: 1rem;
-}
-
-.filter-tabs {
+.header-actions {
   display: flex;
   gap: 1rem;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
 }
 
-.filter-tab {
-  background: rgba(26, 26, 46, 0.6);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  color: var(--text-secondary, #a0aec0);
+.btn-refresh, .btn-export {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.75rem 1rem;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 8px;
+  color: #00d4ff;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-size: 0.9rem;
 }
 
-.filter-tab:hover, 
-.filter-tab.active {
-  border-color: var(--text-accent, #00d4ff);
-  color: var(--text-accent, #00d4ff);
-  background: rgba(0, 212, 255, 0.1);
-}
-
-.count {
+.btn-refresh:hover, .btn-export:hover {
   background: rgba(0, 212, 255, 0.2);
-  color: var(--text-accent, #00d4ff);
-  padding: 0.2rem 0.5rem;
-  border-radius: 10px;
-  font-size: 0.8rem;
-  margin-left: 0.5rem;
-  font-weight: 600;
+  transform: translateY(-2px);
 }
 
-.controls-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
 }
 
-.search-box {
-  flex: 1;
+.stat-card {
+  background: rgba(26, 26, 46, 0.6);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 212, 255, 0.5);
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.stat-card.pending .stat-number { color: #f59e0b; }
+.stat-card.processing .stat-number { color: #3b82f6; }
+.stat-card.shipped .stat-number { color: #8b5cf6; }
+.stat-card.delivered .stat-number { color: #10b981; }
+
+.filters-section {
+  background: rgba(26, 26, 46, 0.6);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.search-bar {
+  margin-bottom: 1rem;
+}
+
+.search-input-wrapper {
   position: relative;
-  max-width: 400px;
+  max-width: 500px;
 }
 
 .search-input {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 3rem;
-  background: rgba(26, 26, 46, 0.6);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  padding: 0.75rem 2.5rem 0.75rem 2.5rem;
+  background: rgba(16, 16, 24, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 8px;
-  color: var(--text-primary, #ffffff);
-  font-size: 0.9rem;
-}
-
-.search-input::placeholder {
-  color: var(--text-secondary, #a0aec0);
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--text-accent, #00d4ff);
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
+  color: #ffffff;
+  font-size: 1rem;
 }
 
 .search-icon {
   position: absolute;
-  left: 1rem;
+  left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--text-secondary, #a0aec0);
+  color: #00d4ff;
 }
 
-.action-buttons {
+.clear-search {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #ff6b6b;
+  cursor: pointer;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  padding: 0.5rem 1rem;
+  background: rgba(16, 16, 24, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  color: #ffffff;
+  min-width: 150px;
+}
+
+.sort-toggle {
+  padding: 0.5rem;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  color: #00d4ff;
+  cursor: pointer;
+  width: 40px;
+}
+
+.bulk-actions {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bulk-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.bulk-buttons {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.btn-export, 
-.btn-refresh {
-  background: rgba(0, 212, 255, 0.2);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  color: var(--text-accent, #00d4ff);
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
+.btn-bulk {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
 }
 
-.btn-export:hover, 
-.btn-refresh:hover {
-  background: rgba(0, 212, 255, 0.3);
-  transform: translateY(-2px);
+.btn-bulk.processing { background: #3b82f6; color: white; }
+.btn-bulk.shipped { background: #8b5cf6; color: white; }
+.btn-bulk.delivered { background: #10b981; color: white; }
+.btn-bulk.print { background: #6b7280; color: white; }
+
+.orders-container {
+  background: rgba(26, 26, 46, 0.6);
+  border-radius: 12px;
+  padding: 1.5rem;
 }
 
 .loading-state {
   text-align: center;
-  padding: 3rem 2rem;
-  color: var(--text-secondary, #a0aec0);
+  padding: 3rem;
 }
 
-.loading-spinner {
-  font-size: 2rem;
-  margin-bottom: 1rem;
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 212, 255, 0.2);
+  border-top: 4px solid #00d4ff;
+  border-radius: 50%;
   animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .empty-state {
   text-align: center;
-  padding: 3rem 2rem;
-  color: var(--text-secondary, #a0aec0);
+  padding: 3rem;
 }
 
 .empty-icon {
@@ -548,215 +831,238 @@ onMounted(async () => {
   margin-bottom: 1rem;
 }
 
-.empty-state h3 {
-  color: var(--text-primary, #ffffff);
+.select-all-row {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
   margin-bottom: 1rem;
 }
 
-.orders-list {
+.checkbox-wrapper {
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+  display: none;
+}
+
+.checkmark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 212, 255, 0.5);
+  border-radius: 4px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked + .checkmark {
+  background: #00d4ff;
+  border-color: #00d4ff;
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked + .checkmark::after {
+  content: '✓';
+  position: absolute;
+  top: -2px;
+  left: 2px;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
 }
 
 .order-card {
-  background: rgba(26, 26, 46, 0.6);
+  background: rgba(16, 16, 24, 0.8);
   border: 1px solid rgba(0, 212, 255, 0.2);
   border-radius: 12px;
   padding: 1.5rem;
+  margin-bottom: 1rem;
   transition: all 0.3s ease;
 }
 
 .order-card:hover {
-  border-color: var(--text-accent, #00d4ff);
+  border-color: rgba(0, 212, 255, 0.5);
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 212, 255, 0.15);
+}
+
+.order-card.selected {
+  border-color: #00d4ff;
+  background: rgba(0, 212, 255, 0.05);
+}
+
+.order-card.urgent {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.05);
 }
 
 .order-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.order-info {
-  flex: 1;
+  align-items: flex-start;
+  margin-bottom: 1rem;
 }
 
 .order-id {
-  color: var(--text-primary, #ffffff);
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
-.order-date {
-  color: var(--text-secondary, #a0aec0);
-  font-size: 0.9rem;
-  margin: 0;
+.id-value {
+  font-weight: bold;
+  color: #00d4ff;
 }
 
-.status-section {
-  flex: none;
+.urgent-badge {
+  background: #f59e0b;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
 }
 
-.status-select {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  color: var(--text-primary, #ffffff);
+.order-meta {
+  color: #a0aec0;
+  font-size: 0.875rem;
+}
+
+.status-badge {
   padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  cursor: pointer;
+  border-radius: 20px;
+  color: white;
+  font-weight: 500;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
 }
 
-.status-select:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.order-value {
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: #00d4ff;
 }
 
-.order-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  margin-bottom: 1.5rem;
+.order-items-preview {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: rgba(26, 26, 46, 0.5);
+  border-radius: 8px;
 }
 
-.customer-info h5, 
-.order-summary h5 {
-  color: var(--text-accent, #00d4ff);
-  margin-bottom: 0.75rem;
-  font-size: 0.9rem;
+.order-timeline {
+  display: flex;
+  justify-content: space-between;
+  margin: 1.5rem 0;
+  position: relative;
 }
 
-.customer-info p, 
-.order-summary p {
-  color: var(--text-primary, #ffffff);
-  margin-bottom: 0.25rem;
-  font-size: 0.9rem;
+.order-timeline::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(0, 212, 255, 0.2);
+  z-index: 1;
 }
 
-.customer-email {
-  color: var(--text-secondary, #a0aec0) !important;
-  font-size: 0.85rem !important;
+.timeline-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
 }
 
-.order-total {
-  color: var(--text-accent, #00d4ff) !important;
-  font-weight: 600 !important;
-  font-size: 1.1rem !important;
+.timeline-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(107, 114, 128, 0.5);
+  border: 2px solid rgba(107, 114, 128, 0.5);
+  transition: all 0.3s ease;
+}
+
+.timeline-item.active .timeline-dot {
+  background: #00d4ff;
+  border-color: #00d4ff;
+}
+
+.timeline-label {
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  color: #a0aec0;
+}
+
+.timeline-item.active .timeline-label {
+  color: #00d4ff;
+  font-weight: 500;
 }
 
 .order-actions {
   display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
 }
 
 .action-btn {
-  background: rgba(0, 212, 255, 0.2);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  color: var(--text-accent, #00d4ff);
   padding: 0.5rem 1rem;
+  border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
+
+.action-btn.primary { background: #00d4ff; color: #000; }
+.action-btn.success { background: #10b981; color: white; }
+.action-btn.info { background: #3b82f6; color: white; }
+.action-btn.delivered { background: #8b5cf6; color: white; }
+.action-btn.secondary { background: rgba(107, 114, 128, 0.8); color: white; }
+.action-btn.print { background: rgba(245, 158, 11, 0.8); color: white; }
+.action-btn.menu { background: rgba(75, 85, 99, 0.8); color: white; }
 
 .action-btn:hover {
-  background: rgba(0, 212, 255, 0.3);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
+  filter: brightness(1.1);
 }
 
-.action-btn.contact {
-  background: rgba(16, 185, 129, 0.2);
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #10b981;
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
-.action-btn.contact:hover {
-  background: rgba(16, 185, 129, 0.3);
+.status-actions, .more-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
-.action-btn.print {
-  background: rgba(245, 158, 11, 0.2);
-  border-color: rgba(245, 158, 11, 0.3);
-  color: #f59e0b;
-}
-
-.action-btn.print:hover {
-  background: rgba(245, 158, 11, 0.3);
-}
-
-.show-more {
-  text-align: center;
-  margin-top: 1rem;
-}
-
-.btn-show-more {
-  background: rgba(0, 212, 255, 0.2);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  color: var(--text-accent, #00d4ff);
-  padding: 0.75rem 2rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
-}
-
-.btn-show-more:hover {
-  background: rgba(0, 212, 255, 0.3);
-  transform: translateY(-2px);
-}
-
-.coming-soon-notice {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(102, 126, 234, 0.1) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 16px;
-  padding: 2rem;
+.load-more {
   text-align: center;
   margin-top: 2rem;
 }
 
-.notice-content h3 {
-  color: var(--text-accent, #00d4ff);
-  margin-bottom: 1rem;
+.btn-load-more {
+  padding: 0.75rem 2rem;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 8px;
+  color: #00d4ff;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.notice-content p {
-  color: var(--text-secondary, #a0aec0);
-  margin-bottom: 2rem;
+.btn-load-more:hover {
+  background: rgba(0, 212, 255, 0.2);
 }
 
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
-  text-align: left;
-}
-
-.feature-group h4 {
-  color: var(--text-primary, #ffffff);
-  margin-bottom: 1rem;
-  font-size: 1rem;
-}
-
-.feature-item {
-  color: var(--text-secondary, #a0aec0);
-  padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
-  font-size: 0.9rem;
-}
-
-.feature-item:last-child {
-  border-bottom: none;
-}
-
-/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -768,78 +1074,59 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(5px);
 }
 
 .modal-content {
   background: rgba(26, 26, 46, 0.95);
   border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 16px;
-  max-width: 600px;
-  width: 90%;
+  border-radius: 12px;
+  max-width: 800px;
   max-height: 90vh;
   overflow-y: auto;
+  width: 90%;
 }
 
-.modal-header {
+.notifications {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  z-index: 1001;
+  max-width: 400px;
+}
+
+.notification {
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  animation: slideIn 0.3s ease;
 }
 
-.modal-header h3 {
-  color: var(--text-accent, #00d4ff);
-  margin: 0;
+.notification.success { border-color: #10b981; }
+.notification.error { border-color: #ef4444; }
+.notification.warning { border-color: #f59e0b; }
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
-.modal-close {
+.notification-close {
   background: none;
   border: none;
-  color: var(--text-secondary, #a0aec0);
-  font-size: 1.5rem;
+  color: #a0aec0;
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-}
-
-.modal-close:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.detail-section {
-  margin-bottom: 1.5rem;
-}
-
-.detail-section h4 {
-  color: var(--text-accent, #00d4ff);
-  margin-bottom: 0.75rem;
-}
-
-.detail-section p {
-  color: var(--text-primary, #ffffff);
-  margin-bottom: 0.5rem;
-}
-
-.products-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.product-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
+  font-size: 1.2rem;
 }
 
 /* Responsive Design */
@@ -847,57 +1134,41 @@ onMounted(async () => {
   .seller-orders-page {
     padding: 1rem;
   }
-
-  .controls-section {
+  
+  .header-content {
     flex-direction: column;
-    align-items: stretch;
-  }
-
-  .search-box {
-    max-width: none;
-    margin-bottom: 1rem;
-  }
-
-  .filter-tabs {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .order-content {
-    grid-template-columns: 1fr;
     gap: 1rem;
   }
-
-  .order-actions {
-    justify-content: center;
+  
+  .quick-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .filter-controls {
+    flex-direction: column;
+  }
+  
+  .bulk-actions {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .order-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .order-timeline {
     flex-wrap: wrap;
+    gap: 1rem;
   }
-
-  .features-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .modal-content {
-    margin: 1rem;
-    width: calc(100% - 2rem);
-  }
-}
-
-@media (max-width: 480px) {
+  
   .order-actions {
     flex-direction: column;
-    gap: 0.5rem;
   }
-
-  .action-btn {
-    text-align: center;
+  
+  .status-actions, .more-actions {
+    justify-content: center;
   }
-}
-
-/* CSS Variables */
-:root {
-  --text-primary: #ffffff;
-  --text-secondary: #a0aec0;
-  --text-accent: #00d4ff;
 }
 </style>
