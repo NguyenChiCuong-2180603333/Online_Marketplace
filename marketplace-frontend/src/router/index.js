@@ -158,6 +158,14 @@ const router = createRouter({
             title: 'Cài đặt - Seller',
             breadcrumb: 'Cài đặt'
           }
+        },
+        {
+          path: '/seller/products/create', 
+          component: () => import('@/views/seller/ProductForm.vue')
+        },
+        {
+          path: '/seller/products/edit/:id', 
+          component: () => import('@/views/seller/ProductForm.vue')
         }
       ]
     },

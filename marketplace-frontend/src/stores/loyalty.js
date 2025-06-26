@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { loyaltyAPI } from '@/services/loyaltyAPI';
-import { useNotificationStore } from './notification';
+import { useNotificationStore } from './notifications';
 
 export const useLoyaltyStore = defineStore('loyalty', {
   state: () => ({
