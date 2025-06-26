@@ -46,13 +46,24 @@ export const productAPI = {
   getAll: (params) => api.get('/products', { params }),
   getById: (id) => api.get(`/products/${id}`),
   getFeatured: () => api.get('/products/featured'),
-  getByCategory: (category) => api.get(`/products/category/${category}`),
+  getLatest: () => api.get('/products/latest'),
+  getByCategory: (category) => api.get('/products', { params: { category } }),
+  searchProducts: (query) => api.get('/products', { params: { search: query } }),
+  getByPriceRange: (minPrice, maxPrice) => api.get('/products', { 
+    params: { minPrice, maxPrice } 
+  }),
+
   create: (productData) => api.post('/products', productData),
   update: (id, productData) => api.put(`/products/${id}`, productData),
   delete: (id) => api.delete(`/products/${id}`),
+  
+  getBySeller: (sellerId) => api.get(`/products/seller/${sellerId}`),
+  
   uploadImage: (formData) => api.post('/products/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  }),
+  
+  toggleStatus: (id) => api.put(`/products/${id}/toggle-status`)
 }
 
 export const categoryAPI = {
@@ -77,10 +88,13 @@ export const orderAPI = {
   getMyOrders: () => api.get('/orders/my-orders'),
   getById: (id) => api.get(`/orders/${id}`),
   cancel: (id) => api.put(`/orders/${id}/cancel`),
-  getSellerOrders: () => api.get('/orders/seller/my-orders')
+  getSellerOrders: () => api.get('/orders/seller/my-orders'),
+  updateStatus: (orderId, status) => api.put(`/orders/${orderId}/status`, { status }),
+  getOrdersBySeller: (sellerId) => api.get(`/orders/seller/${sellerId}`)
 }
 
 export const profileAPI = {
+  
   getProfile: () => api.get('/profile'),
   updateProfile: (profileData) => api.put('/profile', profileData),
   uploadAvatar: (formData) => api.post('/profile/avatar', formData, {
@@ -88,20 +102,27 @@ export const profileAPI = {
   }),
   changePassword: (passwordData) => api.put('/profile/change-password', passwordData),
   
+  // User stats & history
   getUserStats: () => api.get('/profile/stats'),
   getPurchaseHistory: () => api.get('/profile/purchase-history'),
-  getMyProducts: () => api.get('/profile/my-products'),
   
+  //  SELLER 
+  getMyProducts: () => api.get('/profile/my-products'),
+  getSellerStats: () => api.get('/profile/seller-stats'),
+  
+  // Wishlist
   getWishlist: () => api.get('/profile/wishlist'),
   addToWishlist: (productId) => api.post('/profile/wishlist', { productId }),
   removeFromWishlist: (productId) => api.delete(`/profile/wishlist/${productId}`),
   
+  // Addresses
   getAddresses: () => api.get('/profile/addresses'),
   addAddress: (addressData) => api.post('/profile/addresses', addressData),
   updateAddress: (addressId, addressData) => api.put(`/profile/addresses/${addressId}`, addressData),
   deleteAddress: (addressId) => api.delete(`/profile/addresses/${addressId}`),
   setDefaultAddress: (addressId) => api.put(`/profile/addresses/${addressId}/default`),
   
+  // Payment methods
   getPaymentMethods: () => api.get('/profile/payment-methods'),
   addPaymentMethod: (paymentData) => api.post('/profile/payment-methods', paymentData),
   updatePaymentMethod: (methodId, paymentData) => api.put(`/profile/payment-methods/${methodId}`, paymentData),
@@ -109,10 +130,19 @@ export const profileAPI = {
   setDefaultPaymentMethod: (methodId) => api.put(`/profile/payment-methods/${methodId}/default`)
 }
 
+export const dashboardAPI = {
+  getAdminOverview: () => api.get('/admin/dashboard'),
+  
+  getSellerOverview: () => api.get('/dashboard/seller/overview'),
+  
+  getUserOverview: () => api.get('/dashboard/user/overview')
+}
+
 export const adminAPI = {
   getDashboard: () => api.get('/admin/dashboard'),
   
   getUsers: () => api.get('/admin/users'),
+  getUserById: (userId) => api.get(`/admin/users/${userId}`),
   toggleUserStatus: (userId) => api.put(`/admin/users/${userId}/toggle-status`),
   
   getProducts: () => api.get('/admin/products'),
@@ -138,7 +168,8 @@ export const reviewAPI = {
 
 export const searchAPI = {
   products: (query, filters) => api.get('/search/products', { params: { q: query, ...filters } }),
-  suggestions: (query) => api.get('/search/suggestions', { params: { q: query } })
+  suggestions: (query) => api.get('/search/suggestions', { params: { q: query } }),
+  trending: () => api.get('/search/trending')
 }
 
 export const recommendationAPI = {
@@ -175,6 +206,20 @@ export const chatAPI = {
   
 }
 
+export const notificationAPI = {
+  getAll: () => api.get('/notifications'),
+  markAsRead: (notificationId) => api.put(`/notifications/${notificationId}/read`),
+  markAllAsRead: () => api.put('/notifications/mark-all-read'),
+  delete: (notificationId) => api.delete(`/notifications/${notificationId}`),
+  getUnreadCount: () => api.get('/notifications/unread-count')
+}
+
+export const paymentAPI = {
+  createPaymentIntent: (amount, currency = 'VND') => api.post('/payments/create-intent', { amount, currency }),
+  confirmPayment: (paymentIntentId) => api.post('/payments/confirm', { paymentIntentId }),
+  getPaymentHistory: () => api.get('/payments/history')
+}
+
 export const loyaltyAPI = {
   getPoints: () => api.get('/loyalty/points'),
   getHistory: () => api.get('/loyalty/history'),
@@ -193,6 +238,31 @@ export const uploadFile = async (file, type = 'image') => {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
 }
+
+export const uploadAPI = {
+  uploadFile: (file, type = 'image') => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('type', type)
+    
+    return api.post('/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+  
+  uploadMultiple: (files, type = 'image') => {
+    const formData = new FormData()
+    files.forEach((file, index) => {
+      formData.append(`files[${index}]`, file)
+    })
+    formData.append('type', type)
+    
+    return api.post('/upload/multiple', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  }
+}
+
 
 export const utils = {
   formatPrice: (price, currency = 'VND') => {
@@ -240,3 +310,56 @@ export const utils = {
 }
 
 export default api
+
+export const apiUtils = {
+  handleError: (error) => {
+    console.error('API Error:', error)
+    
+    if (error.response) {
+      const { status, data } = error.response
+      
+      switch (status) {
+        case 400:
+          return data.message || 'Dữ liệu không hợp lệ'
+        case 401:
+          return 'Bạn cần đăng nhập để thực hiện hành động này'
+        case 403:
+          return 'Bạn không có quyền thực hiện hành động này'
+        case 404:
+          return 'Không tìm thấy dữ liệu'
+        case 409:
+          return data.message || 'Dữ liệu đã tồn tại'
+        case 422:
+          return data.message || 'Dữ liệu không hợp lệ'
+        case 500:
+          return 'Lỗi máy chủ, vui lòng thử lại sau'
+        default:
+          return data.message || 'Có lỗi xảy ra'
+      }
+    } else if (error.request) {
+      return 'Lỗi kết nối mạng, vui lòng kiểm tra internet'
+    } else {
+      return error.message || 'Có lỗi không xác định'
+    }
+  },
+  
+  formatResponse: (response) => {
+    return {
+      data: response.data,
+      status: response.status,
+      message: response.data.message || 'Thành công'
+    }
+  },
+  
+  createQueryString: (params) => {
+    const searchParams = new URLSearchParams()
+    
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined && params[key] !== '') {
+        searchParams.append(key, params[key])
+      }
+    })
+    
+    return searchParams.toString()
+  }
+}

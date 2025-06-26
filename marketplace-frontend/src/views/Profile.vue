@@ -30,6 +30,10 @@
                   <span class="badge member-badge">
                     🚀 {{ getMembershipLevel() }}
                   </span>
+                  <!-- 🆕 NEW: Seller Badge -->
+                  <span v-if="isSeller" class="badge seller-badge">
+                    🏪 Seller
+                  </span>
                 </div>
               </div>
             </div>
@@ -351,6 +355,101 @@
           </div>
         </div>
 
+        <!-- 🆕 NEW: Seller Tab -->
+        <div v-if="activeTab === 'seller'" class="tab-content">
+          <div class="content-header">
+            <h2>🏪 Bán hàng</h2>
+            <p>Quản lý cửa hàng và bán sản phẩm của bạn</p>
+          </div>
+
+          <div class="seller-content">
+            <!-- If user is already a seller -->
+            <div v-if="isSeller" class="seller-dashboard-preview space-card">
+              <div class="seller-stats">
+                <div class="stat-item">
+                  <span class="stat-number">{{ sellerStats.totalProducts || 0 }}</span>
+                  <span class="stat-label">Sản phẩm</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-number">{{ sellerStats.totalOrders || 0 }}</span>
+                  <span class="stat-label">Đơn hàng</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-number">{{ formatCurrency(sellerStats.totalRevenue || 0) }}</span>
+                  <span class="stat-label">Doanh thu</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-number">{{ sellerStats.pendingOrders || 0 }}</span>
+                  <span class="stat-label">Đang xử lý</span>
+                </div>
+              </div>
+              
+              <div class="seller-actions">
+                <router-link to="/seller/dashboard" class="btn btn-primary">
+                  📊 Vào Seller Dashboard
+                </router-link>
+                <router-link to="/seller/products/create" class="btn btn-secondary">
+                  ➕ Tạo sản phẩm mới
+                </router-link>
+                <router-link to="/seller/orders" class="btn btn-outline">
+                  📋 Quản lý đơn hàng
+                </router-link>
+              </div>
+
+              <!-- Recent Products -->
+              <div v-if="recentProducts.length > 0" class="recent-products">
+                <h3>📦 Sản phẩm gần đây</h3>
+                <div class="products-grid">
+                  <div 
+                    v-for="product in recentProducts.slice(0, 3)" 
+                    :key="product.id"
+                    class="product-preview"
+                  >
+                    <img :src="product.image || '/placeholder-product.jpg'" :alt="product.name" />
+                    <div class="product-info">
+                      <h4>{{ product.name }}</h4>
+                      <p class="product-price">{{ formatCurrency(product.price) }}</p>
+                      <span class="product-status" :class="product.status">{{ getProductStatusText(product.status) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- If user is not a seller yet -->
+            <div v-else class="become-seller space-card">
+              <div class="become-seller-content">
+                <div class="seller-icon">🏪</div>
+                <h3>Trở thành Seller</h3>
+                <p>Bắt đầu bán sản phẩm của bạn trên Cosmic Marketplace</p>
+                
+                <div class="seller-benefits">
+                  <div class="benefit-item">
+                    <span class="benefit-icon">💰</span>
+                    <span class="benefit-text">Kiếm tiền từ sản phẩm</span>
+                  </div>
+                  <div class="benefit-item">
+                    <span class="benefit-icon">📈</span>
+                    <span class="benefit-text">Thống kê chi tiết</span>
+                  </div>
+                  <div class="benefit-item">
+                    <span class="benefit-icon">🚀</span>
+                    <span class="benefit-text">Dễ dàng quản lý</span>
+                  </div>
+                  <div class="benefit-item">
+                    <span class="benefit-icon">🌟</span>
+                    <span class="benefit-text">Tiếp cận khách hàng</span>
+                  </div>
+                </div>
+                
+                <router-link to="/seller/dashboard" class="btn btn-become-seller">
+                  🚀 Bắt đầu bán hàng
+                </router-link>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Settings Tab -->
         <div v-if="activeTab === 'settings'" class="tab-content">
           <div class="content-header">
@@ -521,12 +620,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
+import { useSellerStore } from '@/stores/seller' // 🆕 NEW IMPORT
 
 export default {
   name: 'Profile',
   setup() {
     const authStore = useAuthStore()
     const cartStore = useCartStore()
+    const sellerStore = useSellerStore() // 🆕 NEW STORE
     
     // Reactive data
     const activeTab = ref('info')
@@ -580,10 +681,12 @@ export default {
       language: 'vi'
     })
     
+    // 🆕 NEW: Profile tabs with seller tab
     const profileTabs = ref([
       { id: 'info', name: 'Thông tin', icon: '👤' },
       { id: 'orders', name: 'Đơn hàng', icon: '📦', badge: userProfile.value.totalOrders },
       { id: 'wishlist', name: 'Yêu thích', icon: '❤️', badge: userProfile.value.wishlistCount },
+      { id: 'seller', name: 'Bán hàng', icon: '🏪' }, // 🆕 NEW TAB
       { id: 'settings', name: 'Cài đặt', icon: '⚙️' }
     ])
     
@@ -630,11 +733,43 @@ export default {
         image: '/product5.jpg'
       }
     ])
+
+    // 🆕 NEW: Mock recent products for seller
+    const recentProducts = ref([
+      {
+        id: 1,
+        name: 'Wireless Headphones',
+        price: 1500000,
+        status: 'active',
+        image: '/seller-product1.jpg'
+      },
+      {
+        id: 2,
+        name: 'Smart Watch',
+        price: 2500000,
+        status: 'pending',
+        image: '/seller-product2.jpg'
+      },
+      {
+        id: 3,
+        name: 'Gaming Mouse',
+        price: 800000,
+        status: 'active',
+        image: '/seller-product3.jpg'
+      }
+    ])
     
     // Computed properties
     const filteredOrders = computed(() => {
       if (orderFilter.value === 'all') return orders.value
       return orders.value.filter(order => order.status === orderFilter.value)
+    })
+
+    // 🆕 NEW: Seller computed properties
+    const sellerStats = computed(() => sellerStore.stats)
+
+    const isSeller = computed(() => {
+      return sellerStats.value.totalProducts > 0
     })
     
     // Methods
@@ -673,6 +808,17 @@ export default {
         processing: 'Đang xử lý',
         delivered: 'Đã giao',
         cancelled: 'Đã hủy'
+      }
+      return texts[status] || 'Không xác định'
+    }
+
+    // 🆕 NEW: Product status methods
+    const getProductStatusText = (status) => {
+      const texts = {
+        active: 'Đang bán',
+        pending: 'Chờ duyệt',
+        inactive: 'Tạm dừng',
+        rejected: 'Bị từ chối'
       }
       return texts[status] || 'Không xác định'
     }
@@ -787,8 +933,15 @@ export default {
     }
     
     // Lifecycle
-    onMounted(() => {
+    onMounted(async () => {
       console.log('Profile page mounted')
+      
+      // 🆕 NEW: Load seller stats when component mounts
+      try {
+        await sellerStore.loadDashboardStats()
+      } catch (error) {
+        console.error('Load seller stats error:', error)
+      }
     })
     
     return {
@@ -808,12 +961,16 @@ export default {
       profileTabs,
       orders,
       wishlistItems,
+      recentProducts, // 🆕 NEW
       filteredOrders,
+      sellerStats, // 🆕 NEW
+      isSeller, // 🆕 NEW
       formatCurrency,
       formatDate,
       getMembershipLevel,
       getStatusClass,
       getStatusText,
+      getProductStatusText, // 🆕 NEW
       updateProfile,
       changePassword,
       handleAvatarSelect,
@@ -965,6 +1122,13 @@ export default {
 .member-badge {
   background: rgba(138, 43, 226, 0.9);
   color: white;
+}
+
+/* 🆕 NEW: Seller badge */
+.seller-badge {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.9) 0%, rgba(102, 126, 234, 0.9) 100%);
+  color: white;
+  border: 1px solid rgba(0, 212, 255, 0.3);
 }
 
 .profile-stats {
@@ -1447,6 +1611,194 @@ export default {
   font-size: 0.9rem;
 }
 
+/* 🆕 NEW: Seller Section Styles */
+.seller-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.seller-dashboard-preview {
+  padding: 2rem;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.seller-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.seller-stats .stat-item {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(26, 26, 46, 0.5);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.seller-stats .stat-number {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-accent);
+  margin-bottom: 0.25rem;
+}
+
+.seller-stats .stat-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.seller-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.become-seller {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.become-seller-content {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.seller-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.become-seller h3 {
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.become-seller p {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.seller-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.benefit-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.benefit-icon {
+  font-size: 1.5rem;
+}
+
+.benefit-text {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.btn-become-seller {
+  background: linear-gradient(135deg, var(--text-accent) 0%, #667eea 100%);
+  color: #1a1a2e;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.btn-become-seller:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0, 212, 255, 0.3);
+}
+
+.recent-products {
+  margin-top: 2rem;
+}
+
+.recent-products h3 {
+  color: var(--text-accent);
+  margin-bottom: 1rem;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.product-preview {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.product-preview:hover {
+  transform: translateY(-2px);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.product-preview img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+}
+
+.product-info {
+  padding: 1rem;
+}
+
+.product-info h4 {
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.product-price {
+  color: var(--text-accent);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.product-status {
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.product-status.active {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.product-status.pending {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+.product-status.inactive {
+  background: rgba(107, 114, 128, 0.2);
+  color: #6b7280;
+}
+
+/* Settings Section */
 .settings-sections {
   display: flex;
   flex-direction: column;
@@ -1691,6 +2043,54 @@ input:checked + .toggle-slider:before {
   margin: 0;
 }
 
+/* Button Styles */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.btn-primary {
+  background: var(--text-accent);
+  color: #1a1a2e;
+}
+
+.btn-secondary {
+  background: rgba(0, 212, 255, 0.2);
+  color: var(--text-accent);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--text-accent);
+  border: 1px solid rgba(0, 212, 255, 0.5);
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .profile-main {
@@ -1710,6 +2110,15 @@ input:checked + .toggle-slider:before {
 
   .wishlist-grid {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+
+  .seller-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .products-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1780,6 +2189,15 @@ input:checked + .toggle-slider:before {
     gap: 1rem;
     align-items: flex-start;
   }
+
+  .seller-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .seller-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1826,5 +2244,50 @@ input:checked + .toggle-slider:before {
     width: 100px;
     height: 100px;
   }
+
+  .seller-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .become-seller {
+    padding: 2rem 1rem;
+  }
+}
+
+/* Space Card Effect */
+.space-card {
+  background: rgba(26, 26, 46, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.space-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent, rgba(0, 212, 255, 0.05), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.space-card:hover::before {
+  opacity: 1;
+}
+
+/* CSS Variables for theming */
+:root {
+  --text-primary: #ffffff;
+  --text-secondary: #a0aec0;
+  --text-accent: #00d4ff;
+  --text-warning: #fbbf24;
+  --aurora-gradient: linear-gradient(135deg, #00d4ff 0%, #667eea 100%);
+  --accent-gradient: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+  --neon-glow: 0 10px 30px rgba(0, 212, 255, 0.3);
 }
 </style>

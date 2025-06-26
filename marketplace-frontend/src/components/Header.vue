@@ -140,6 +140,14 @@
                     <span>Yêu thích</span>
                   </router-link>
                   
+                  <!-- 🆕 NEW: Seller Dashboard Link -->
+                  <div class="dropdown-divider"></div>
+                  <router-link to="/seller/dashboard" class="dropdown-link seller-link">
+                    <span class="link-icon">🏪</span>
+                    <span>Seller Dashboard</span>
+                    <span class="seller-badge">Bán hàng</span>
+                  </router-link>
+                  
                   <router-link to="/settings" class="dropdown-link">
                     <span class="link-icon">⚙️</span>
                     <span>Cài đặt</span>
@@ -232,6 +240,12 @@
           <router-link to="/orders" class="mobile-nav-link" @click="closeMobileMenu">
             📋 Đơn hàng
           </router-link>
+          
+          <!-- 🆕 NEW: Mobile Seller Dashboard Link -->
+          <router-link to="/seller/dashboard" class="mobile-nav-link seller-mobile" @click="closeMobileMenu">
+            🏪 Seller Dashboard
+          </router-link>
+          
           <button @click="logout" class="mobile-nav-link logout-mobile">
             🚪 Đăng xuất
           </button>
@@ -259,6 +273,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import { useLoyaltyStore } from '@/stores/loyalty' // NEW IMPORT
+import { useSellerStore } from '@/stores/seller' // 🆕 NEW IMPORT
 import SearchBox from '@/components/SearchBox.vue'
 import PointsDisplay from '@/components/PointsDisplay.vue' // NEW IMPORT
 
@@ -273,10 +288,16 @@ export default {
     const authStore = useAuthStore()
     const cartStore = useCartStore()
     const loyaltyStore = useLoyaltyStore()
+    const sellerStore = useSellerStore() // 🆕 NEW STORE
 
     const isAuthenticated = computed(() => authStore.isAuthenticated)
     const isAdmin = computed(() => authStore.isAdmin)  
     const currentUser = computed(() => authStore.currentUser)
+    
+    // 🆕 NEW: Check if user has any products (is a seller)
+    const isSeller = computed(() => {
+      return sellerStore.stats.totalProducts > 0
+    })
     
     // Refs
     const searchBoxRef = ref(null)
@@ -399,6 +420,8 @@ export default {
         await authStore.logout()
         // Reset loyalty data on logout
         loyaltyStore.resetLoyalty()
+        // 🆕 NEW: Reset seller data on logout
+        sellerStore.resetSeller()
         router.push('/')
         showUserMenu.value = false
         showMobileMenu.value = false
@@ -437,13 +460,26 @@ export default {
       }
     }
     
+    // 🆕 NEW: Initialize seller data when user logs in
+    const initializeSellerData = async () => {
+      if (authStore.isAuthenticated) {
+        try {
+          await sellerStore.loadDashboardStats()
+        } catch (error) {
+          console.error('Load seller stats error:', error)
+        }
+      }
+    }
+    
     // NEW: Watch for authentication changes
     watchEffect(() => {
       if (authStore.isAuthenticated) {
         initializeLoyaltyData()
+        initializeSellerData() // 🆕 NEW
         cartStore.loadCart()
       } else {
         loyaltyStore.resetLoyalty()
+        sellerStore.resetSeller() // 🆕 NEW
       }
     })
     
@@ -455,6 +491,7 @@ export default {
       // Initialize data if user is already authenticated
       if (authStore.isAuthenticated) {
         initializeLoyaltyData()
+        initializeSellerData() // 🆕 NEW
         cartStore.loadCart()
       }
     })
@@ -469,6 +506,12 @@ export default {
       authStore,
       cartStore,
       loyaltyStore, // NEW STORE EXPOSE
+      sellerStore, // 🆕 NEW STORE EXPOSE
+      
+      // Computed
+      isAdmin,
+      currentUser,
+      isSeller, // 🆕 NEW
       
       // Refs
       searchBoxRef,
@@ -727,6 +770,34 @@ export default {
   box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
 }
 
+/* 🆕 NEW: Seller-specific styles in Header */
+.seller-link {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(102, 126, 234, 0.1) 100%);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+  margin: 0.25rem 0;
+  position: relative;
+}
+
+.seller-link:hover {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(102, 126, 234, 0.2) 100%);
+  border-color: var(--text-accent);
+  transform: translateX(3px);
+}
+
+.seller-badge {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
+  background: var(--text-accent);
+  color: #1a1a2e;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+}
+
 /* NEW: Mobile Loyalty Styles */
 .loyalty-mobile {
   border-left: 3px solid #FFD700 !important;
@@ -755,6 +826,12 @@ export default {
   font-weight: 600;
   opacity: 0.8;
   margin-left: 0.25rem;
+}
+
+/* 🆕 NEW: Mobile Seller Styles */
+.seller-mobile {
+  border-left: 3px solid var(--text-accent) !important;
+  background: linear-gradient(90deg, rgba(0, 212, 255, 0.1), transparent) !important;
 }
 
 /* Dropdown Menus */
@@ -900,6 +977,13 @@ export default {
 .admin-link:hover {
   background: rgba(255, 205, 60, 0.1);
   color: var(--text-warning);
+}
+
+/* 🆕 NEW: Dropdown Divider */
+.dropdown-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0.5rem 0;
 }
 
 .dropdown-footer {
