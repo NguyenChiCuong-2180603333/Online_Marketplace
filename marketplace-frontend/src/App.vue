@@ -86,6 +86,7 @@
         <p class="mt-2">Đang tải...</p>
       </div>
     </div>
+    <NotificationContainer />
   </div>
 </template>
 
@@ -94,6 +95,7 @@ import { computed, ref, onMounted  } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import { useRouter } from 'vue-router'
+import NotificationContainer from '@/components/NotificationContainer.vue'
 
 export default {
   name: 'App',
