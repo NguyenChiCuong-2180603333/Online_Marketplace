@@ -1,6 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
+// 🆕 Import seller guard
+import { sellerGuard } from '@/utils/routerGuards'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -227,13 +230,14 @@ const router = createRouter({
       ],
     },
 
-    // Seller routes with layout
+    // 🆕 Seller routes with layout + seller guard
     {
       path: '/seller',
       name: 'SellerLayout',
       component: () => import('@/layouts/SellerLayout.vue'),
       meta: {
         requiresAuth: true,
+        requiresSeller: true, // 🆕 Added seller requirement
         title: 'Seller Dashboard',
       },
       children: [
@@ -248,6 +252,7 @@ const router = createRouter({
           meta: {
             title: 'Dashboard - Seller',
             breadcrumb: 'Dashboard',
+            requiresSeller: true, // 🆕 Added to children too
           },
         },
         {
@@ -257,6 +262,7 @@ const router = createRouter({
           meta: {
             title: 'Sản phẩm của tôi - Seller',
             breadcrumb: 'Sản phẩm',
+            requiresSeller: true,
           },
         },
         {
@@ -266,6 +272,7 @@ const router = createRouter({
           meta: {
             title: 'Tạo sản phẩm mới - Seller',
             breadcrumb: 'Tạo sản phẩm',
+            requiresSeller: true,
           },
         },
         {
@@ -275,6 +282,7 @@ const router = createRouter({
           meta: {
             title: 'Chỉnh sửa sản phẩm - Seller',
             breadcrumb: 'Chỉnh sửa sản phẩm',
+            requiresSeller: true,
           },
           props: true,
         },
@@ -285,6 +293,7 @@ const router = createRouter({
           meta: {
             title: 'Quản lý đơn hàng - Seller',
             breadcrumb: 'Đơn hàng',
+            requiresSeller: true,
           },
         },
         {
@@ -294,6 +303,7 @@ const router = createRouter({
           meta: {
             title: 'Analytics - Seller',
             breadcrumb: 'Analytics',
+            requiresSeller: true,
           },
         },
         {
@@ -303,6 +313,7 @@ const router = createRouter({
           meta: {
             title: 'Tin nhắn khách hàng - Seller',
             breadcrumb: 'Tin nhắn',
+            requiresSeller: true,
           },
         },
         {
@@ -312,6 +323,7 @@ const router = createRouter({
           meta: {
             title: 'Cài đặt - Seller',
             breadcrumb: 'Cài đặt',
+            requiresSeller: true,
           },
         },
       ],
@@ -327,8 +339,8 @@ const router = createRouter({
   ],
 })
 
-// Navigation guards
-router.beforeEach((to, from, next) => {
+// 🆕 Enhanced Navigation guards
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
   // Update document title
@@ -336,25 +348,59 @@ router.beforeEach((to, from, next) => {
     document.title = to.meta.title
   }
 
+  // 🆕 PRIORITY: Handle seller routes with special guard
+  if (to.path.startsWith('/seller') || to.meta.requiresSeller) {
+    console.log('🎯 Applying seller guard for:', to.path)
+    
+    // Use the dedicated seller guard
+    return sellerGuard(to, from, next)
+  }
+
   // Check if route requires authentication
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next('/login')
+    console.log('❌ Not authenticated, redirecting to login')
+    next({
+      path: '/login',
+      query: { redirect: to.fullPath }
+    })
     return
   }
 
   // Check if route requires admin role
   if (to.meta.requiresAdmin && !authStore.isAdmin) {
+    console.log('❌ Not admin, redirecting to home')
     next('/')
     return
   }
 
   // Redirect authenticated users away from guest pages
   if (to.meta.guest && authStore.isAuthenticated) {
+    console.log('✅ Already authenticated, redirecting from guest page')
     next('/')
     return
   }
 
+  // 🆕 Add debug logging for normal routes
+  console.log('✅ Normal route access granted:', to.path)
   next()
+})
+
+// 🆕 Add global error handler
+router.onError((error) => {
+  console.error('🚨 Router error:', error)
+  
+  // Handle chunk loading errors (when JS files fail to load)
+  if (error.message.includes('Loading chunk')) {
+    console.log('🔄 Chunk loading failed, reloading page...')
+    window.location.reload()
+    return
+  }
+  
+  // Handle other router errors
+  router.push('/').catch(() => {
+    // Fallback if even home page fails
+    window.location.href = '/'
+  })
 })
 
 export default router

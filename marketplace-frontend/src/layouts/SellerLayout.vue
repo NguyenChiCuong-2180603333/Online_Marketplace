@@ -16,7 +16,7 @@
         <div class="profile-info" v-if="!sidebarCollapsed">
           <h3 class="seller-name">{{ getSellerName() }}</h3>
           <p class="seller-stats">
-            <span class="stat-item"> 📦 {{ sellerStats.totalProducts || 0 }} sản phẩm </span>
+            <span class="stat-item"> 📦 {{ sellerStats?.totalProducts || 0 }} sản phẩm </span>
           </p>
           <div class="seller-badge">
             <span class="badge-icon">⭐</span>
@@ -39,7 +39,7 @@
             <router-link to="/seller/products" class="nav-link">
               <span class="nav-icon">📦</span>
               <span class="nav-text" v-if="!sidebarCollapsed">Sản phẩm của tôi</span>
-              <span class="nav-badge" v-if="sellerStats.totalProducts > 0">
+              <span class="nav-badge" v-if="sellerStats?.totalProducts > 0">
                 {{ sellerStats.totalProducts }}
               </span>
             </router-link>
@@ -56,7 +56,7 @@
             <router-link to="/seller/orders" class="nav-link">
               <span class="nav-icon">📋</span>
               <span class="nav-text" v-if="!sidebarCollapsed">Đơn hàng</span>
-              <span class="nav-badge urgent" v-if="sellerStats.pendingOrders > 0">
+              <span class="nav-badge urgent" v-if="sellerStats?.pendingOrders > 0">
                 {{ sellerStats.pendingOrders }}
               </span>
             </router-link>
@@ -83,11 +83,11 @@
       <!-- Quick Stats (when collapsed) -->
       <div class="quick-stats" v-if="sidebarCollapsed">
         <div class="quick-stat">
-          <span class="stat-number">{{ sellerStats.totalProducts || 0 }}</span>
+          <span class="stat-number">{{ sellerStats?.totalProducts || 0 }}</span>
           <span class="stat-label">📦</span>
         </div>
         <div class="quick-stat">
-          <span class="stat-number">{{ sellerStats.pendingOrders || 0 }}</span>
+          <span class="stat-number">{{ sellerStats?.pendingOrders || 0 }}</span>
           <span class="stat-label">📋</span>
         </div>
       </div>
@@ -250,7 +250,13 @@ const notifications = ref([
 
 // Computed
 const user = computed(() => authStore.user)
-const sellerStats = computed(() => sellerStore.stats)
+const sellerStats = computed(() => sellerStore.stats || {
+  totalProducts: 0,
+  pendingOrders: 0,
+  activeProducts: 0,
+  totalRevenue: 0
+})
+const cartItemsCount = computed(() => sellerStore.cartItemsCount)
 const loading = computed(() => sellerStore.loading)
 
 const notificationCount = computed(() => notifications.value.filter((n) => !n.read).length)
