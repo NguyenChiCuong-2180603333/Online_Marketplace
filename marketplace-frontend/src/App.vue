@@ -29,7 +29,7 @@
                 </button>
                 <div v-if="showUserMenu" class="user-dropdown space-card">
                   <router-link to="/profile" class="dropdown-item">Hồ sơ</router-link>
-                  <router-link to="/seller/dashboard" class="dropdown-item">Bán hàng</router-link>
+                  <router-link v-if="!isAdmin" to="/seller/dashboard" class="dropdown-item">Bán hàng</router-link>
                   <router-link v-if="isAdmin" to="/admin" class="dropdown-item">Quản trị</router-link>
                   <button @click="handleLogout" class="dropdown-item text-danger">Đăng xuất</button>
                 </div>

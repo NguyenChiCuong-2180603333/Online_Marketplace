@@ -45,23 +45,32 @@ public class CategoryService {
     public Category updateCategory(String id, Category categoryDetails) {
         Category category = getCategoryById(id);
 
-        // Check if name already exists (exclude current category)
         if (!category.getName().equals(categoryDetails.getName()) &&
                 categoryRepository.existsByName(categoryDetails.getName())) {
             throw new BadRequestException("Tên danh mục đã tồn tại: " + categoryDetails.getName());
         }
 
         category.setName(categoryDetails.getName());
+        category.setSlug(categoryDetails.getSlug());
         category.setDescription(categoryDetails.getDescription());
-        category.setIcon(categoryDetails.getIcon());
+        category.setImage(categoryDetails.getImage());
+        
+        category.setActive(categoryDetails.isActive());
 
+        return categoryRepository.save(category);
+    }
+
+    public Category toggleCategoryStatus(String id) {
+        Category category = getCategoryById(id);
+        
+        category.setActive(!category.isActive());
+        
         return categoryRepository.save(category);
     }
 
     public void deleteCategory(String id) {
         Category category = getCategoryById(id);
 
-        // Check if category has products
         long productCount = productRepository.countByCategoryAndActiveTrue(category.getName());
         if (productCount > 0) {
             throw new BadRequestException("Không thể xóa danh mục vì có " + productCount + " sản phẩm đang sử dụng");

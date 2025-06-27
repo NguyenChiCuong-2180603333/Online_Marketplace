@@ -146,9 +146,12 @@
                     <span>Yêu thích</span>
                   </router-link>
 
-                  <!-- 🆕 NEW: Seller Dashboard Link -->
-                  <div class="dropdown-divider"></div>
-                  <router-link to="/seller/dashboard" class="dropdown-link seller-link">
+                  <div v-if="!isAdmin" class="dropdown-divider"></div>
+                  <router-link 
+                    v-if="!isAdmin" 
+                    to="/seller/dashboard" 
+                    class="dropdown-link seller-link"
+                  >
                     <span class="link-icon">🏪</span>
                     <span>Seller Dashboard</span>
                     <span class="seller-badge">Bán hàng</span>
@@ -514,13 +517,12 @@ export default {
       // Stores
       authStore,
       cartStore,
-      loyaltyStore, // NEW STORE EXPOSE
-      sellerStore, // 🆕 NEW STORE EXPOSE
+      loyaltyStore, 
+      sellerStore, 
 
-      // Computed
       isAdmin,
       currentUser,
-      isSeller, // 🆕 NEW
+      isSeller, 
 
       // Refs
       searchBoxRef,

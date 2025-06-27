@@ -64,11 +64,4 @@ public class CategoryController {
         return ResponseEntity.ok(response);
     }
 
-    // Admin endpoint to get all categories including inactive
-    @GetMapping("/admin/all")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<Category>> getAllCategoriesForAdmin() {
-        List<Category> categories = categoryService.getAllCategories();
-        return ResponseEntity.ok(categories);
-    }
 }

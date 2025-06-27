@@ -2,15 +2,19 @@ package com.marketplace.controller;
 
 import com.marketplace.model.Order;
 import com.marketplace.model.Product;
+import com.marketplace.model.Category;
 import com.marketplace.model.User;
+import com.marketplace.service.CategoryService;
 import com.marketplace.service.OrderService;
 import com.marketplace.service.ProductService;
 import com.marketplace.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,35 +34,63 @@ public class AdminController {
     @Autowired
     private OrderService orderService;
 
-    // Dashboard Statistics
+    @Autowired
+    private CategoryService categoryService;
+
     @GetMapping("/dashboard")
-    public ResponseEntity<Map<String, Object>> getDashboardStats() {
-        Map<String, Object> stats = new HashMap<>();
+public ResponseEntity<Map<String, Object>> getDashboardStats() {
+    try {
+        Map<String, Object> response = new HashMap<>();
 
         // User statistics
         List<User> allUsers = userService.getAllUsers();
-        stats.put("totalUsers", allUsers.size());
-        stats.put("activeUsers", allUsers.stream().filter(User::isEnabled).count());
+        response.put("totalUsers", allUsers.size());
+        response.put("activeUsers", allUsers.stream().filter(User::isEnabled).count());
 
         // Product statistics
         List<Product> allProducts = productService.getAllProducts();
-        stats.put("totalProducts", allProducts.size());
-        stats.put("activeProducts", allProducts.stream().filter(Product::isActive).count());
+        response.put("totalProducts", allProducts.size());
+        response.put("activeProducts", allProducts.stream().filter(Product::isActive).count());
 
         // Order statistics
-        stats.put("totalOrders", orderService.getTotalOrdersCount());
-        stats.put("pendingOrders", orderService.getOrdersCountByStatus("PENDING"));
-        stats.put("processingOrders", orderService.getOrdersCountByStatus("PROCESSING"));
-        stats.put("completedOrders", orderService.getOrdersCountByStatus("DELIVERED"));
+        response.put("totalOrders", orderService.getTotalOrdersCount());
+        response.put("pendingOrders", orderService.getOrdersCountByStatus("PENDING"));
+        response.put("processingOrders", orderService.getOrdersCountByStatus("PROCESSING"));
+        response.put("completedOrders", orderService.getOrdersCountByStatus("DELIVERED"));
 
         // Revenue
-        stats.put("totalRevenue", orderService.getTotalRevenue());
+        response.put("totalRevenue", orderService.getTotalRevenue());
 
-        // Recent orders
-        stats.put("recentOrders", orderService.getRecentOrders(10));
+        // Recent orders (limit 10)
+        response.put("recentOrders", orderService.getRecentOrders(10));
 
-        return ResponseEntity.ok(stats);
+        // Low stock products (if you have this method)
+        // response.put("lowStockProducts", productService.getLowStockProducts());
+
+        System.out.println("📊 Dashboard stats response: " + response);
+        
+        return ResponseEntity.ok(response);
+        
+    } catch (Exception e) {
+        System.err.println("❌ Error in getDashboardStats: " + e.getMessage());
+        e.printStackTrace();
+        
+        // Return default values to prevent frontend errors
+        Map<String, Object> defaultResponse = new HashMap<>();
+        defaultResponse.put("totalUsers", 0);
+        defaultResponse.put("activeUsers", 0);
+        defaultResponse.put("totalProducts", 0);
+        defaultResponse.put("activeProducts", 0);
+        defaultResponse.put("totalOrders", 0);
+        defaultResponse.put("pendingOrders", 0);
+        defaultResponse.put("processingOrders", 0);
+        defaultResponse.put("completedOrders", 0);
+        defaultResponse.put("totalRevenue", 0);
+        defaultResponse.put("recentOrders", new ArrayList<>());
+        
+        return ResponseEntity.ok(defaultResponse);
     }
+}
 
     // User Management
     @GetMapping("/users")
@@ -177,5 +209,33 @@ public class AdminController {
         analytics.put("regularUsers", allUsers.stream().filter(u -> "USER".equals(u.getRole())).count());
 
         return ResponseEntity.ok(analytics);
+    }
+
+    @GetMapping("/categories")
+public ResponseEntity<List<Category>> getAllCategoriesForAdmin() {
+    try {
+        System.out.println(" Admin categories endpoint called");
+        List<Category> categories = categoryService.getAllCategories();
+        System.out.println("📂 Found " + categories.size() + " categories");
+        return ResponseEntity.ok(categories);
+    } catch (Exception e) {
+        System.err.println(" Error in getAllCategoriesForAdmin: " + e.getMessage());
+        e.printStackTrace();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+}
+
+    @PatchMapping("/categories/{id}/toggle-status")
+    public ResponseEntity<Map<String, String>> toggleCategoryStatus(@PathVariable String id) {
+        try {
+            categoryService.toggleCategoryStatus(id);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Trạng thái danh mục đã được cập nhật");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", "Không thể cập nhật trạng thái: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 }

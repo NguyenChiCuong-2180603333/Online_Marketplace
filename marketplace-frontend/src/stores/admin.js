@@ -3,8 +3,18 @@ import { adminAPI } from '@/services/api'
 
 export const useAdminStore = defineStore('admin', {
   state: () => ({
-    // Dashboard data
+    // 🔧 SỬA: Simplified dashboard data structure để match với backend
     dashboardStats: {
+      totalUsers: 0,
+      activeUsers: 0,
+      totalProducts: 0,
+      activeProducts: 0,
+      totalOrders: 0,
+      pendingOrders: 0,
+      processingOrders: 0,
+      completedOrders: 0,
+      totalRevenue: 0,
+      // Additional computed fields for compatibility
       users: { total: 0, active: 0, change: 0 },
       products: { total: 0, active: 0, change: 0 },
       orders: { total: 0, pending: 0, change: 0 },
@@ -19,7 +29,9 @@ export const useAdminStore = defineStore('admin', {
       total: 0,
       active: 0,
       blocked: 0,
-      newThisMonth: 0
+      newThisMonth: 0,
+      admins: 0,
+      vip: 0
     },
     
     // Products management
@@ -99,8 +111,8 @@ export const useAdminStore = defineStore('admin', {
 
   getters: {
     // Dashboard getters
-    totalRevenue: (state) => state.dashboardStats.revenue.total,
-    revenueGrowth: (state) => state.dashboardStats.revenue.change,
+    totalRevenue: (state) => state.dashboardStats.totalRevenue || 0,
+    revenueGrowth: (state) => state.dashboardStats.revenue?.change || 0,
     
     // Users getters
     filteredUsers: (state) => {
@@ -120,9 +132,9 @@ export const useAdminStore = defineStore('admin', {
       if (filters.search) {
         const search = filters.search.toLowerCase()
         filtered = filtered.filter(user =>
-          user.firstName.toLowerCase().includes(search) ||
-          user.lastName.toLowerCase().includes(search) ||
-          user.email.toLowerCase().includes(search)
+          user.firstName?.toLowerCase().includes(search) ||
+          user.lastName?.toLowerCase().includes(search) ||
+          user.email?.toLowerCase().includes(search)
         )
       }
       
@@ -147,8 +159,8 @@ export const useAdminStore = defineStore('admin', {
       if (filters.search) {
         const search = filters.search.toLowerCase()
         filtered = filtered.filter(product =>
-          product.name.toLowerCase().includes(search) ||
-          product.description.toLowerCase().includes(search)
+          product.name?.toLowerCase().includes(search) ||
+          product.description?.toLowerCase().includes(search)
         )
       }
       
@@ -167,8 +179,8 @@ export const useAdminStore = defineStore('admin', {
       if (filters.search) {
         const search = filters.search.toLowerCase()
         filtered = filtered.filter(order =>
-          order.id.toLowerCase().includes(search) ||
-          order.userEmail.toLowerCase().includes(search)
+          order.id?.toLowerCase().includes(search) ||
+          order.userEmail?.toLowerCase().includes(search)
         )
       }
       
@@ -176,25 +188,88 @@ export const useAdminStore = defineStore('admin', {
     },
     
     // Stats getters
-    pendingOrdersCount: (state) => state.orderStats.pending,
-    lowStockProductsCount: (state) => state.productStats.lowStock,
-    blockedUsersCount: (state) => state.userStats.blocked
+    pendingOrdersCount: (state) => state.dashboardStats.pendingOrders || 0,
+    lowStockProductsCount: (state) => state.productStats.lowStock || 0,
+    blockedUsersCount: (state) => state.userStats.blocked || 0
   },
 
   actions: {
-    // Dashboard actions
+    // 🔧 SỬA: Dashboard actions với proper error handling và data mapping
     async loadDashboard() {
       this.loading.dashboard = true
       this.errors.dashboard = null
       
       try {
+        console.log('🔄 Loading admin dashboard...')
         const response = await adminAPI.getDashboard()
-        this.dashboardStats = response.data.stats
-        this.recentOrders = response.data.recentOrders || []
-        this.lowStockProducts = response.data.lowStockProducts || []
+        console.log('📊 Dashboard response:', response.data)
+        
+        // 🔧 Map backend data to frontend structure
+        const backendData = response.data
+        
+        // Direct mapping from backend response
+        this.dashboardStats = {
+          // Direct fields from backend
+          totalUsers: backendData.totalUsers || 0,
+          activeUsers: backendData.activeUsers || 0,
+          totalProducts: backendData.totalProducts || 0,
+          activeProducts: backendData.activeProducts || 0,
+          totalOrders: backendData.totalOrders || 0,
+          pendingOrders: backendData.pendingOrders || 0,
+          processingOrders: backendData.processingOrders || 0,
+          completedOrders: backendData.completedOrders || 0,
+          totalRevenue: backendData.totalRevenue || 0,
+          
+          // Nested structure for compatibility with other components
+          users: {
+            total: backendData.totalUsers || 0,
+            active: backendData.activeUsers || 0,
+            change: 0 // Calculate later if needed
+          },
+          products: {
+            total: backendData.totalProducts || 0,
+            active: backendData.activeProducts || 0,
+            change: 0
+          },
+          orders: {
+            total: backendData.totalOrders || 0,
+            pending: backendData.pendingOrders || 0,
+            change: 0
+          },
+          revenue: {
+            total: backendData.totalRevenue || 0,
+            thisMonth: 0,
+            change: 0
+          }
+        }
+        
+        // Store additional data
+        this.recentOrders = backendData.recentOrders || []
+        this.lowStockProducts = backendData.lowStockProducts || []
+        
+        console.log('✅ Dashboard loaded successfully:', this.dashboardStats)
+        
       } catch (error) {
         this.errors.dashboard = error.response?.data?.message || 'Không thể tải dữ liệu dashboard'
-        console.error('Load dashboard error:', error)
+        console.error('❌ Load dashboard error:', error)
+        
+        // 🔧 Provide fallback data to prevent undefined errors
+        this.dashboardStats = {
+          totalUsers: 0,
+          activeUsers: 0,
+          totalProducts: 0,
+          activeProducts: 0,
+          totalOrders: 0,
+          pendingOrders: 0,
+          processingOrders: 0,
+          completedOrders: 0,
+          totalRevenue: 0,
+          users: { total: 0, active: 0, change: 0 },
+          products: { total: 0, active: 0, change: 0 },
+          orders: { total: 0, pending: 0, change: 0 },
+          revenue: { total: 0, thisMonth: 0, change: 0 }
+        }
+        
       } finally {
         this.loading.dashboard = false
       }
@@ -207,12 +282,15 @@ export const useAdminStore = defineStore('admin', {
       
       try {
         const response = await adminAPI.getUsers()
-        this.users = response.data.users || []
+        this.users = response.data.users || response.data || []
         this.userStats = response.data.stats || this.userStats
-        this.pagination.users.total = response.data.total || 0
+        this.pagination.users.total = response.data.total || this.users.length
+        
+        console.log('✅ Users loaded:', this.users.length, 'users')
+        
       } catch (error) {
         this.errors.users = error.response?.data?.message || 'Không thể tải danh sách người dùng'
-        console.error('Load users error:', error)
+        console.error('❌ Load users error:', error)
       } finally {
         this.loading.users = false
       }
@@ -242,12 +320,15 @@ export const useAdminStore = defineStore('admin', {
       
       try {
         const response = await adminAPI.getProducts()
-        this.products = response.data.products || []
+        this.products = response.data.products || response.data || []
         this.productStats = response.data.stats || this.productStats
-        this.pagination.products.total = response.data.total || 0
+        this.pagination.products.total = response.data.total || this.products.length
+        
+        console.log('✅ Products loaded:', this.products.length, 'products')
+        
       } catch (error) {
         this.errors.products = error.response?.data?.message || 'Không thể tải danh sách sản phẩm'
-        console.error('Load products error:', error)
+        console.error('❌ Load products error:', error)
       } finally {
         this.loading.products = false
       }
@@ -270,21 +351,6 @@ export const useAdminStore = defineStore('admin', {
       }
     },
 
-    async deleteProduct(productId) {
-      try {
-        await adminAPI.deleteProduct(productId)
-        
-        // Remove product from local state
-        this.products = this.products.filter(product => product.id !== productId)
-        this.productStats.total -= 1
-        
-        return true
-      } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Không thể xóa sản phẩm'
-        throw new Error(errorMsg)
-      }
-    },
-
     // Orders management actions
     async loadOrders() {
       this.loading.orders = true
@@ -292,122 +358,56 @@ export const useAdminStore = defineStore('admin', {
       
       try {
         const response = await adminAPI.getOrders()
-        this.orders = response.data.orders || []
+        this.orders = response.data.orders || response.data || []
         this.orderStats = response.data.stats || this.orderStats
-        this.pagination.orders.total = response.data.total || 0
+        this.pagination.orders.total = response.data.total || this.orders.length
+        
+        console.log('✅ Orders loaded:', this.orders.length, 'orders')
+        
       } catch (error) {
         this.errors.orders = error.response?.data?.message || 'Không thể tải danh sách đơn hàng'
-        console.error('Load orders error:', error)
+        console.error('❌ Load orders error:', error)
       } finally {
         this.loading.orders = false
       }
     },
 
-    async updateOrderStatus(orderId, status) {
-      try {
-        const response = await adminAPI.updateOrderStatus(orderId, status)
-        
-        // Update order in local state
-        const orderIndex = this.orders.findIndex(order => order.id === orderId)
-        if (orderIndex !== -1) {
-          this.orders[orderIndex] = { ...this.orders[orderIndex], ...response.data }
-        }
-        
-        return response.data
-      } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Không thể cập nhật trạng thái đơn hàng'
-        throw new Error(errorMsg)
-      }
-    },
-
     // Analytics actions
-    async loadAnalytics(type = 'sales') {
+    async loadAnalytics(type = 'overview') {
       this.loading.analytics = true
       this.errors.analytics = null
       
       try {
         const response = await adminAPI.getAnalytics(type)
+        this.analytics = { ...this.analytics, ...response.data }
         
-        switch (type) {
-          case 'sales':
-            this.analytics.salesChart = response.data
-            break
-          case 'products':
-            this.analytics.topProducts = response.data
-            break
-          case 'categories':
-            this.analytics.topCategories = response.data
-            break
-          case 'users':
-            this.analytics.userGrowth = response.data
-            break
-        }
+        console.log('✅ Analytics loaded for type:', type)
+        
       } catch (error) {
-        this.errors.analytics = error.response?.data?.message || 'Không thể tải dữ liệu phân tích'
-        console.error('Load analytics error:', error)
+        this.errors.analytics = error.response?.data?.message || 'Không thể tải dữ liệu analytics'
+        console.error('❌ Load analytics error:', error)
       } finally {
         this.loading.analytics = false
       }
     },
 
-    // Filter actions
-    setUserFilter(filterType, value) {
-      this.filters.users[filterType] = value
-      this.pagination.users.page = 1 // Reset to first page
-    },
-
-    setProductFilter(filterType, value) {
-      this.filters.products[filterType] = value
-      this.pagination.products.page = 1 // Reset to first page
-    },
-
-    setOrderFilter(filterType, value) {
-      this.filters.orders[filterType] = value
-      this.pagination.orders.page = 1 // Reset to first page
-    },
-
-    // Clear errors
-    clearError(type) {
-      if (this.errors[type]) {
-        this.errors[type] = null
+    // Utility actions
+    clearErrors() {
+      this.errors = {
+        dashboard: null,
+        users: null,
+        products: null,
+        orders: null,
+        analytics: null
       }
     },
 
-    clearAllErrors() {
-      Object.keys(this.errors).forEach(key => {
-        this.errors[key] = null
-      })
-    },
-
-    // Reset filters
-    resetUserFilters() {
-      this.filters.users = {
-        status: '',
-        role: '',
-        search: '',
-        dateRange: ''
+    resetFilters() {
+      this.filters = {
+        users: { status: '', role: '', search: '', dateRange: '' },
+        products: { category: '', status: '', search: '', sortBy: 'newest' },
+        orders: { status: '', dateRange: '', search: '', sortBy: 'newest' }
       }
-      this.pagination.users.page = 1
-    },
-
-    resetProductFilters() {
-      this.filters.products = {
-        category: '',
-        status: '',
-        search: '',
-        sortBy: 'newest'
-      }
-      this.pagination.products.page = 1
-    },
-
-    resetOrderFilters() {
-      this.filters.orders = {
-        status: '',
-        dateRange: '',
-        search: '',
-        sortBy: 'newest'
-      }
-      this.pagination.orders.page = 1
     }
   }
 })

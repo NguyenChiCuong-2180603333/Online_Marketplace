@@ -239,8 +239,17 @@ const notifications = ref([
 
 // Computed
 const user = computed(() => authStore.user)
-const stats = computed(() => adminStore.dashboardStats)
 const loading = computed(() => adminStore.loading)
+const stats = computed(() => {
+  const dashboardStats = adminStore.dashboardStats
+  return dashboardStats || {
+    totalUsers: 0,
+    totalProducts: 0,
+    pendingOrders: 0,
+    totalOrders: 0,
+    totalRevenue: 0
+  }
+})
 
 const notificationCount = computed(() => 
   notifications.value.filter(n => !n.read).length

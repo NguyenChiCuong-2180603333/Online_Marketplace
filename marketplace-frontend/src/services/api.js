@@ -152,6 +152,11 @@ export const adminAPI = {
   getOrders: () => api.get('/admin/orders'),
   updateOrderStatus: (orderId, status) => api.put(`/admin/orders/${orderId}/status`, { status }),
   
+  getCategories: () => api.get('/admin/categories'),
+  createCategory: (categoryData) => api.post('/categories', categoryData),
+  updateCategory: (id, categoryData) => api.put(`/categories/${id}`, categoryData),
+  toggleCategoryStatus: (id) => api.patch(`/admin/categories/${id}/toggle-status`),
+  deleteCategory: (id) => api.delete(`/categories/${id}`),
 
   getAnalytics: (type) => api.get(`/admin/analytics/${type}`)
 }
