@@ -26,6 +26,10 @@ public class ProductService {
         return productRepository.findByActiveTrue();
     }
 
+    public List<Product> getAllProductsForAdmin() {
+        return productRepository.findAll();
+    }
+
     public List<Product> getProductsByCategory(String category) {
         if (category == null || category.isEmpty()) {
             return getAllProducts();

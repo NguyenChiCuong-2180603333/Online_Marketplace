@@ -3,6 +3,7 @@ package com.marketplace.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,6 +36,8 @@ public class Product {
 
     @Min(value = 0, message = "Stock quantity cannot be negative")
     private int stockQuantity = 0; // Số lượng tồn kho
+    
+    @JsonProperty("isActive")
     private boolean active = true;
 
     @DecimalMin(value = "0.0", message = "Average rating cannot be negative")

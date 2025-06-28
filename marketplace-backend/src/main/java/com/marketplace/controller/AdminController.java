@@ -48,7 +48,7 @@ public ResponseEntity<Map<String, Object>> getDashboardStats() {
         response.put("activeUsers", allUsers.stream().filter(User::isEnabled).count());
 
         // Product statistics
-        List<Product> allProducts = productService.getAllProducts();
+        List<Product> allProducts = productService.getAllProductsForAdmin();
         response.put("totalProducts", allProducts.size());
         response.put("activeProducts", allProducts.stream().filter(Product::isActive).count());
 
@@ -116,17 +116,14 @@ public ResponseEntity<Map<String, Object>> getDashboardStats() {
     // Product Management
     @GetMapping("/products")
     public ResponseEntity<List<Product>> getAllProducts() {
-        List<Product> products = productService.getAllProducts();
+        List<Product> products = productService.getAllProductsForAdmin();
         return ResponseEntity.ok(products);
     }
 
     @PutMapping("/products/{productId}/toggle-status")
-    public ResponseEntity<?> toggleProductStatus(@PathVariable String productId) {
-        productService.toggleProductStatus(productId);
-
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Trạng thái sản phẩm đã được cập nhật");
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Product> toggleProductStatus(@PathVariable String productId) {
+        Product updatedProduct = productService.toggleProductStatus(productId);
+        return ResponseEntity.ok(updatedProduct);
     }
 
     @DeleteMapping("/products/{productId}")
@@ -190,7 +187,7 @@ public ResponseEntity<Map<String, Object>> getDashboardStats() {
     public ResponseEntity<Map<String, Object>> getProductAnalytics() {
         Map<String, Object> analytics = new HashMap<>();
 
-        List<Product> allProducts = productService.getAllProducts();
+        List<Product> allProducts = productService.getAllProductsForAdmin();
         analytics.put("totalProducts", allProducts.size());
         analytics.put("activeProducts", allProducts.stream().filter(Product::isActive).count());
         analytics.put("featuredProducts", productService.getFeaturedProducts().size());

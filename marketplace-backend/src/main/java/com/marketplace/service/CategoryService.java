@@ -51,9 +51,8 @@ public class CategoryService {
         }
 
         category.setName(categoryDetails.getName());
-        category.setSlug(categoryDetails.getSlug());
         category.setDescription(categoryDetails.getDescription());
-        category.setImage(categoryDetails.getImage());
+        category.setIcon(categoryDetails.getIcon());
         
         category.setActive(categoryDetails.isActive());
 
