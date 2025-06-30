@@ -1,2293 +1,655 @@
 <template>
   <div class="profile-page">
     <div class="container">
-      <!-- Profile Header -->
-      <div class="profile-header">
-        <div class="profile-cover">
-          <div class="cover-overlay"></div>
-          <div class="profile-main">
-            <div class="profile-avatar-section">
-              <div class="avatar-container">
-                <img 
-                  :src="userProfile.avatar || '/default-avatar.png'" 
-                  :alt="userProfile.name"
-                  class="profile-avatar"
-                />
-                <button @click="showAvatarUpload = true" class="avatar-edit-btn">
-                  📷
-                </button>
-              </div>
-              <div class="profile-info">
-                <h1 class="profile-name">{{ userProfile.name }}</h1>
-                <p class="profile-email">{{ userProfile.email }}</p>
-                <div class="profile-badges">
-                  <span v-if="userProfile.isVip" class="badge vip-badge">
-                    👑 VIP Member
-                  </span>
-                  <span v-if="userProfile.isVerified" class="badge verified-badge">
-                    ✅ Xác thực
-                  </span>
-                  <span class="badge member-badge">
-                    🚀 {{ getMembershipLevel() }}
-                  </span>
-                  <!-- 🆕 NEW: Seller Badge -->
-                  <span v-if="isSeller" class="badge seller-badge">
-                    🏪 Seller
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="profile-stats">
-              <div class="stat-item">
-                <span class="stat-number">{{ userProfile.totalOrders }}</span>
-                <span class="stat-label">Đơn hàng</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-number">{{ formatCurrency(userProfile.totalSpent) }}</span>
-                <span class="stat-label">Đã chi tiêu</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-number">{{ userProfile.wishlistCount }}</span>
-                <span class="stat-label">Yêu thích</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-number">{{ userProfile.reviewCount }}</span>
-                <span class="stat-label">Đánh giá</span>
-              </div>
-            </div>
+      <!-- Header -->
+      <div class="profile-header glass-card">
+        <div class="avatar-section">
+          <div class="avatar-wrapper">
+            <img :src="userProfile.avatar || '/default-avatar.png'" class="avatar" alt="avatar" />
+            <button class="avatar-edit-btn" @click="openAvatarModal" title="Đổi ảnh đại diện">
+              📷
+            </button>
+          </div>
+        </div>
+        <div class="info-section">
+          <h2>{{ userProfile.fullName }}</h2>
+          <p class="email">{{ userProfile.email }}</p>
+          <div class="badges">
+            <span v-if="userProfile.isVip" class="badge vip">👑 VIP</span>
+            <span v-if="userProfile.isVerified" class="badge verified">✅ Đã xác thực</span>
           </div>
         </div>
       </div>
 
-      <!-- Profile Navigation -->
-      <div class="profile-nav">
-        <button 
-          v-for="tab in profileTabs" 
+      <!-- Tabs -->
+      <div class="profile-tabs">
+        <button
+          v-for="tab in tabs"
           :key="tab.id"
-          @click="activeTab = tab.id"
-          class="nav-tab"
           :class="{ active: activeTab === tab.id }"
+          @click="activeTab = tab.id"
         >
-          <span class="tab-icon">{{ tab.icon }}</span>
-          <span class="tab-text">{{ tab.name }}</span>
-          <span v-if="tab.badge" class="tab-badge">{{ tab.badge }}</span>
+          <span class="tab-icon">{{ tab.icon }}</span> {{ tab.label }}
         </button>
       </div>
 
-      <!-- Profile Content -->
-      <div class="profile-content">
-        <!-- Personal Info Tab -->
-        <div v-if="activeTab === 'info'" class="tab-content">
-          <div class="content-header">
-            <h2>👤 Thông tin cá nhân</h2>
-            <button @click="editMode = !editMode" class="btn btn-secondary">
-              {{ editMode ? '❌ Hủy' : '✏️ Chỉnh sửa' }}
-            </button>
-          </div>
-
-          <div class="info-cards">
-            <div class="info-card space-card">
-              <h3>📋 Thông tin chính</h3>
-              <form @submit.prevent="updateProfile" class="info-form">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="firstName">Họ *</label>
-                    <input 
-                      id="firstName"
-                      v-model="profileForm.firstName" 
-                      type="text" 
-                      class="form-input"
-                      :disabled="!editMode"
-                      required
-                    />
-                  </div>
-                  <div class="form-group">
-                    <label for="lastName">Tên *</label>
-                    <input 
-                      id="lastName"
-                      v-model="profileForm.lastName" 
-                      type="text" 
-                      class="form-input"
-                      :disabled="!editMode"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label for="email">Email *</label>
-                  <input 
-                    id="email"
-                    v-model="profileForm.email" 
-                    type="email" 
-                    class="form-input"
-                    disabled
-                  />
-                  <small class="field-note">Email không thể thay đổi</small>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="phone">Số điện thoại</label>
-                    <input 
-                      id="phone"
-                      v-model="profileForm.phone" 
-                      type="tel" 
-                      class="form-input"
-                      :disabled="!editMode"
-                      placeholder="0123456789"
-                    />
-                  </div>
-                  <div class="form-group">
-                    <label for="birthday">Ngày sinh</label>
-                    <input 
-                      id="birthday"
-                      v-model="profileForm.birthday" 
-                      type="date" 
-                      class="form-input"
-                      :disabled="!editMode"
-                    />
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label for="address">Địa chỉ</label>
-                  <textarea 
-                    id="address"
-                    v-model="profileForm.address" 
-                    class="form-input"
-                    :disabled="!editMode"
-                    rows="3"
-                    placeholder="Nhập địa chỉ của bạn..."
-                  ></textarea>
-                </div>
-
-                <div class="form-actions" v-if="editMode">
-                  <button type="submit" class="btn btn-primary" :disabled="updating">
-                    {{ updating ? '🔄 Đang cập nhật...' : '💾 Lưu thay đổi' }}
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            <div class="info-card space-card">
-              <h3>🔒 Bảo mật</h3>
-              <div class="security-section">
-                <div class="security-item">
-                  <div class="security-info">
-                    <h4>Mật khẩu</h4>
-                    <p>Cập nhật lần cuối: {{ formatDate(userProfile.lastPasswordChange) }}</p>
-                  </div>
-                  <button @click="showChangePassword = true" class="btn btn-secondary">
-                    🔑 Đổi mật khẩu
-                  </button>
-                </div>
-
-                <div class="security-item">
-                  <div class="security-info">
-                    <h4>Xác thực 2 bước</h4>
-                    <p>{{ userProfile.twoFactorEnabled ? 'Đã bật' : 'Chưa bật' }}</p>
-                  </div>
-                  <button 
-                    @click="toggle2FA" 
-                    class="btn"
-                    :class="userProfile.twoFactorEnabled ? 'btn-danger' : 'btn-primary'"
-                  >
-                    {{ userProfile.twoFactorEnabled ? '❌ Tắt' : '🔐 Bật' }}
-                  </button>
-                </div>
+      <!-- Tab content -->
+      <transition name="fade-slide" mode="out-in">
+        <div class="profile-content glass-card" :key="activeTab">
+          <!-- Thông tin cá nhân -->
+          <div v-if="activeTab === 'info'">
+            <form class="profile-form" @submit.prevent="updateProfile">
+              <div class="form-row">
+                <label>Họ tên</label>
+                <input v-model="profileForm.fullName" required />
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Orders Tab -->
-        <div v-if="activeTab === 'orders'" class="tab-content">
-          <div class="content-header">
-            <h2>📦 Lịch sử đơn hàng</h2>
-            <select v-model="orderFilter" @change="filterOrders" class="filter-select">
-              <option value="all">Tất cả đơn hàng</option>
-              <option value="pending">Chờ xử lý</option>
-              <option value="processing">Đang xử lý</option>
-              <option value="delivered">Đã giao</option>
-              <option value="cancelled">Đã hủy</option>
-            </select>
-          </div>
-
-          <div class="orders-list">
-            <div 
-              v-for="order in filteredOrders" 
-              :key="order.id"
-              class="order-card space-card"
-            >
-              <div class="order-header">
-                <div class="order-info">
-                  <h3 class="order-id">Đơn hàng #{{ order.id }}</h3>
-                  <p class="order-date">{{ formatDate(order.date) }}</p>
-                </div>
-                <div class="order-status">
-                  <span class="status-badge" :class="getStatusClass(order.status)">
-                    {{ getStatusText(order.status) }}
-                  </span>
-                </div>
+              <div class="form-row">
+                <label>Email</label>
+                <input v-model="profileForm.email" disabled />
               </div>
-
-              <div class="order-items">
-                <div 
-                  v-for="item in order.items.slice(0, 2)" 
-                  :key="item.id"
-                  class="order-item"
-                >
-                  <img 
-                    :src="item.image || '/placeholder-product.jpg'" 
-                    :alt="item.name"
-                    class="item-image"
-                  />
-                  <div class="item-info">
-                    <h4>{{ item.name }}</h4>
-                    <p>Số lượng: {{ item.quantity }}</p>
-                    <p class="item-price">{{ formatCurrency(item.price) }}</p>
-                  </div>
-                </div>
-                <div v-if="order.items.length > 2" class="more-items">
-                  +{{ order.items.length - 2 }} sản phẩm khác
-                </div>
+              <div class="form-row">
+                <label>Số điện thoại</label>
+                <input v-model="profileForm.phone" />
               </div>
-
-              <div class="order-footer">
-                <div class="order-total">
-                  <span class="total-label">Tổng cộng:</span>
-                  <span class="total-amount">{{ formatCurrency(order.total) }}</span>
-                </div>
-                <div class="order-actions">
-                  <button @click="viewOrderDetail(order.id)" class="btn btn-secondary">
-                    👁️ Chi tiết
-                  </button>
-                  <button 
-                    v-if="order.status === 'delivered'" 
-                    @click="reorder(order.id)" 
-                    class="btn btn-primary"
-                  >
-                    🔄 Mua lại
-                  </button>
-                  <button 
-                    v-if="order.status === 'pending'" 
-                    @click="cancelOrder(order.id)" 
-                    class="btn btn-danger"
-                  >
-                    ❌ Hủy
-                  </button>
-                </div>
+              <div class="form-row">
+                <label>Ngày sinh</label>
+                <input v-model="profileForm.birthday" type="date" />
               </div>
-            </div>
-
-            <div v-if="filteredOrders.length === 0" class="no-orders">
-              <div class="no-orders-content">
-                <div class="no-orders-icon">📦</div>
-                <h3>Chưa có đơn hàng nào</h3>
-                <p>Bắt đầu mua sắm để tích lũy lịch sử đơn hàng</p>
-                <router-link to="/products" class="btn btn-primary">
-                  🛍️ Bắt đầu mua sắm
-                </router-link>
+              <div class="form-row">
+                <label>Địa chỉ</label>
+                <input v-model="profileForm.address" />
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Wishlist Tab -->
-        <div v-if="activeTab === 'wishlist'" class="tab-content">
-          <div class="content-header">
-            <h2>❤️ Danh sách yêu thích</h2>
-            <p class="content-subtitle">{{ wishlistItems.length }} sản phẩm</p>
-          </div>
-
-          <div class="wishlist-grid">
-            <div 
-              v-for="item in wishlistItems" 
-              :key="item.id"
-              class="wishlist-item space-card"
-            >
-              <div class="wishlist-image">
-                <img 
-                  :src="item.image || '/placeholder-product.jpg'" 
-                  :alt="item.name"
-                />
-                <button @click="removeFromWishlist(item.id)" class="remove-wishlist-btn">
-                  ❌
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" :disabled="updating">
+                  {{ updating ? 'Đang lưu...' : 'Lưu thay đổi' }}
+                </button>
+                <button type="button" class="btn btn-secondary" @click="showPasswordModal = true">
+                  Đổi mật khẩu
                 </button>
               </div>
-              <div class="wishlist-info">
-                <h3>{{ item.name }}</h3>
-                <div class="wishlist-price">
-                  <span v-if="item.originalPrice && item.originalPrice > item.price" class="original-price">
-                    {{ formatCurrency(item.originalPrice) }}
-                  </span>
-                  <span class="current-price">{{ formatCurrency(item.price) }}</span>
-                </div>
-                <div class="wishlist-rating">
-                  <div class="rating-stars">
-                    <span v-for="i in 5" :key="i" class="star" :class="[i <= item.rating ? 'filled' : '']">⭐</span>
-                  </div>
-                  <span class="rating-text">({{ item.reviewCount }})</span>
-                </div>
-                <div class="wishlist-actions">
-                  <button @click="addToCart(item)" class="btn btn-primary">
-                    🛒 Thêm vào giỏ
-                  </button>
-                  <router-link :to="`/products/${item.id}`" class="btn btn-secondary">
-                    👁️ Xem
-                  </router-link>
-                </div>
-              </div>
-            </div>
+            </form>
           </div>
 
-          <div v-if="wishlistItems.length === 0" class="no-wishlist">
-            <div class="no-wishlist-content">
-              <div class="no-wishlist-icon">💔</div>
-              <h3>Danh sách yêu thích trống</h3>
-              <p>Hãy thêm những sản phẩm bạn quan tâm vào danh sách yêu thích</p>
-              <router-link to="/products" class="btn btn-primary">
-                🌟 Khám phá sản phẩm
-              </router-link>
-            </div>
-          </div>
-        </div>
-
-        <!-- 🆕 NEW: Seller Tab -->
-        <div v-if="activeTab === 'seller'" class="tab-content">
-          <div class="content-header">
-            <h2>🏪 Bán hàng</h2>
-            <p>Quản lý cửa hàng và bán sản phẩm của bạn</p>
+          <!-- Đơn hàng -->
+          <div v-if="activeTab === 'orders'">
+            <h3>Đơn hàng của bạn</h3>
+            <div v-if="orders.length === 0" class="empty-block">Chưa có đơn hàng nào.</div>
+            <ul v-else class="order-list">
+              <li v-for="order in orders" :key="order.id" class="order-item">
+                <span class="order-id">#{{ order.id }}</span>
+                <span class="order-status">{{ order.status }}</span>
+                <span class="order-total">{{ formatCurrency(order.total) }}</span>
+              </li>
+            </ul>
           </div>
 
-          <div class="seller-content">
-            <!-- If user is already a seller -->
-            <div v-if="isSeller" class="seller-dashboard-preview space-card">
-              <div class="seller-stats">
-                <div class="stat-item">
-                  <span class="stat-number">{{ sellerStats.totalProducts || 0 }}</span>
-                  <span class="stat-label">Sản phẩm</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-number">{{ sellerStats.totalOrders || 0 }}</span>
-                  <span class="stat-label">Đơn hàng</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-number">{{ formatCurrency(sellerStats.totalRevenue || 0) }}</span>
-                  <span class="stat-label">Doanh thu</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-number">{{ sellerStats.pendingOrders || 0 }}</span>
-                  <span class="stat-label">Đang xử lý</span>
-                </div>
-              </div>
-              
-              <div class="seller-actions">
-                <router-link to="/seller/dashboard" class="btn btn-primary">
-                  📊 Vào Seller Dashboard
-                </router-link>
-                <router-link to="/seller/products/create" class="btn btn-secondary">
-                  ➕ Tạo sản phẩm mới
-                </router-link>
-                <router-link to="/seller/orders" class="btn btn-outline">
-                  📋 Quản lý đơn hàng
-                </router-link>
-              </div>
+          <!-- Wishlist -->
+          <div v-if="activeTab === 'wishlist'">
+            <h3>Danh sách yêu thích</h3>
+            <div v-if="wishlist.length === 0" class="empty-block">Chưa có sản phẩm yêu thích.</div>
+            <ul v-else class="wishlist-list">
+              <li v-for="item in wishlist" :key="item.id" class="wishlist-item">
+                <span class="wishlist-name">❤️ {{ item.name }}</span>
+              </li>
+            </ul>
+          </div>
 
-              <!-- Recent Products -->
-              <div v-if="recentProducts.length > 0" class="recent-products">
-                <h3>📦 Sản phẩm gần đây</h3>
-                <div class="products-grid">
-                  <div 
-                    v-for="product in recentProducts.slice(0, 3)" 
-                    :key="product.id"
-                    class="product-preview"
-                  >
-                    <img :src="product.image || '/placeholder-product.jpg'" :alt="product.name" />
-                    <div class="product-info">
-                      <h4>{{ product.name }}</h4>
-                      <p class="product-price">{{ formatCurrency(product.price) }}</p>
-                      <span class="product-status" :class="product.status">{{ getProductStatusText(product.status) }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <!-- Settings -->
+          <div v-if="activeTab === 'settings'">
+            <h3>Cài đặt</h3>
+            <div class="form-row">
+              <label>Ngôn ngữ</label>
+              <select v-model="settings.language">
+                <option value="vi">Tiếng Việt</option>
+                <option value="en">English</option>
+              </select>
             </div>
-            
-            <!-- If user is not a seller yet -->
-            <div v-else class="become-seller space-card">
-              <div class="become-seller-content">
-                <div class="seller-icon">🏪</div>
-                <h3>Trở thành Seller</h3>
-                <p>Bắt đầu bán sản phẩm của bạn trên Cosmic Marketplace</p>
-                
-                <div class="seller-benefits">
-                  <div class="benefit-item">
-                    <span class="benefit-icon">💰</span>
-                    <span class="benefit-text">Kiếm tiền từ sản phẩm</span>
-                  </div>
-                  <div class="benefit-item">
-                    <span class="benefit-icon">📈</span>
-                    <span class="benefit-text">Thống kê chi tiết</span>
-                  </div>
-                  <div class="benefit-item">
-                    <span class="benefit-icon">🚀</span>
-                    <span class="benefit-text">Dễ dàng quản lý</span>
-                  </div>
-                  <div class="benefit-item">
-                    <span class="benefit-icon">🌟</span>
-                    <span class="benefit-text">Tiếp cận khách hàng</span>
-                  </div>
-                </div>
-                
-                <router-link to="/seller/dashboard" class="btn btn-become-seller">
-                  🚀 Bắt đầu bán hàng
-                </router-link>
-              </div>
+            <div class="form-row">
+              <label>Chế độ tối</label>
+              <input type="checkbox" v-model="settings.darkMode" />
             </div>
           </div>
         </div>
+      </transition>
+    </div>
 
-        <!-- Settings Tab -->
-        <div v-if="activeTab === 'settings'" class="tab-content">
-          <div class="content-header">
-            <h2>⚙️ Cài đặt</h2>
-          </div>
-
-          <div class="settings-sections">
-            <div class="settings-section space-card">
-              <h3>🔔 Thông báo</h3>
-              <div class="settings-list">
-                <div class="setting-item">
-                  <div class="setting-info">
-                    <h4>Email thông báo đơn hàng</h4>
-                    <p>Nhận email khi đơn hàng có cập nhật</p>
-                  </div>
-                  <label class="toggle-switch">
-                    <input 
-                      v-model="settings.emailNotifications" 
-                      type="checkbox"
-                      @change="updateSettings"
-                    />
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
-
-                <div class="setting-item">
-                  <div class="setting-info">
-                    <h4>Thông báo khuyến mãi</h4>
-                    <p>Nhận thông tin về các chương trình ưu đãi</p>
-                  </div>
-                  <label class="toggle-switch">
-                    <input 
-                      v-model="settings.promotionalNotifications" 
-                      type="checkbox"
-                      @change="updateSettings"
-                    />
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div class="settings-section space-card">
-              <h3>🎨 Giao diện</h3>
-              <div class="settings-list">
-                <div class="setting-item">
-                  <div class="setting-info">
-                    <h4>Chế độ tối</h4>
-                    <p>Chuyển đổi giữa giao diện sáng và tối</p>
-                  </div>
-                  <label class="toggle-switch">
-                    <input 
-                      v-model="settings.darkMode" 
-                      type="checkbox"
-                      @change="updateSettings"
-                    />
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
-
-                <div class="setting-item">
-                  <div class="setting-info">
-                    <h4>Ngôn ngữ</h4>
-                    <p>Chọn ngôn ngữ hiển thị</p>
-                  </div>
-                  <select v-model="settings.language" @change="updateSettings" class="setting-select">
-                    <option value="vi">Tiếng Việt</option>
-                    <option value="en">English</option>
-                    <option value="ko">한국어</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
+    <!-- Modal đổi avatar -->
+    <div v-if="showAvatarModal" class="modal-overlay" @click.self="closeAvatarModal">
+      <div class="modal-content avatar-modal">
+        <h3>Cập nhật ảnh đại diện</h3>
+        <div
+          class="avatar-upload-area"
+          @click="triggerFileInput"
+          :class="{ hovered: isUploadHover }"
+        >
+          <img v-if="previewAvatar" :src="previewAvatar" class="avatar-preview" />
+          <div v-else class="avatar-placeholder">📷<br />Nhấn để chọn ảnh</div>
+          <input
+            ref="avatarInput"
+            type="file"
+            accept="image/*"
+            @change="handleAvatarSelect"
+            style="display: none"
+          />
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" @click="closeAvatarModal">Hủy</button>
+          <button
+            class="btn btn-primary"
+            @click="uploadAvatar"
+            :disabled="!previewAvatar || uploading"
+          >
+            {{ uploading ? 'Đang tải...' : 'Cập nhật' }}
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Change Password Modal -->
-    <div v-if="showChangePassword" class="modal-overlay" @click="showChangePassword = false">
-      <div class="modal-content space-card" @click.stop>
-        <div class="modal-header">
-          <h3>🔑 Đổi mật khẩu</h3>
-          <button @click="showChangePassword = false" class="modal-close">✕</button>
-        </div>
-        <form @submit.prevent="changePassword" class="password-form">
-          <div class="form-group">
-            <label for="currentPassword">Mật khẩu hiện tại *</label>
-            <input 
-              id="currentPassword"
-              v-model="passwordForm.currentPassword" 
-              type="password" 
-              class="form-input"
-              required
-            />
+    <!-- Modal đổi mật khẩu -->
+    <div v-if="showPasswordModal" class="modal-overlay" @click.self="showPasswordModal = false">
+      <div class="modal-content">
+        <h3>Đổi mật khẩu</h3>
+        <form @submit.prevent="changePassword">
+          <div class="form-row">
+            <label>Mật khẩu hiện tại</label>
+            <input type="password" v-model="passwordForm.currentPassword" required />
           </div>
-          <div class="form-group">
-            <label for="newPassword">Mật khẩu mới *</label>
-            <input 
-              id="newPassword"
-              v-model="passwordForm.newPassword" 
-              type="password" 
-              class="form-input"
-              required
-            />
+          <div class="form-row">
+            <label>Mật khẩu mới</label>
+            <input type="password" v-model="passwordForm.newPassword" required />
           </div>
-          <div class="form-group">
-            <label for="confirmPassword">Xác nhận mật khẩu mới *</label>
-            <input 
-              id="confirmPassword"
-              v-model="passwordForm.confirmPassword" 
-              type="password" 
-              class="form-input"
-              required
-            />
+          <div class="form-row">
+            <label>Xác nhận mật khẩu mới</label>
+            <input type="password" v-model="passwordForm.confirmPassword" required />
           </div>
           <div class="modal-actions">
-            <button type="button" @click="showChangePassword = false" class="btn btn-secondary">
+            <button type="button" class="btn btn-secondary" @click="showPasswordModal = false">
               Hủy
             </button>
             <button type="submit" class="btn btn-primary" :disabled="passwordChanging">
-              {{ passwordChanging ? '🔄 Đang đổi...' : '💾 Đổi mật khẩu' }}
+              {{ passwordChanging ? 'Đang đổi...' : 'Đổi mật khẩu' }}
             </button>
           </div>
         </form>
       </div>
     </div>
-
-    <!-- Avatar Upload Modal -->
-    <div v-if="showAvatarUpload" class="modal-overlay" @click="showAvatarUpload = false">
-      <div class="modal-content space-card" @click.stop>
-        <div class="modal-header">
-          <h3>📷 Cập nhật ảnh đại diện</h3>
-          <button @click="showAvatarUpload = false" class="modal-close">✕</button>
-        </div>
-        <div class="avatar-upload">
-          <div class="upload-area" @click="$refs.avatarInput.click()">
-            <div v-if="previewAvatar" class="preview-container">
-              <img :src="previewAvatar" alt="Preview" class="avatar-preview" />
-            </div>
-            <div v-else class="upload-placeholder">
-              <div class="upload-icon">📷</div>
-              <p>Nhấn để chọn ảnh</p>
-            </div>
-            <input 
-              ref="avatarInput"
-              type="file" 
-              accept="image/*" 
-              @change="handleAvatarSelect"
-              style="display: none"
-            />
-          </div>
-          <div class="modal-actions">
-            <button @click="showAvatarUpload = false" class="btn btn-secondary">
-              Hủy
-            </button>
-            <button @click="uploadAvatar" class="btn btn-primary" :disabled="!previewAvatar || uploading">
-              {{ uploading ? '🔄 Đang tải...' : '💾 Cập nhật' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
-<script>
-import { ref, computed, onMounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { useCartStore } from '@/stores/cart'
-import { useSellerStore } from '@/stores/seller' // 🆕 NEW IMPORT
+<script setup>
+import { ref, onMounted } from 'vue'
+import { profileAPI } from '@/services/api'
 
-export default {
-  name: 'Profile',
-  setup() {
-    const authStore = useAuthStore()
-    const cartStore = useCartStore()
-    const sellerStore = useSellerStore() // 🆕 NEW STORE
-    
-    // Reactive data
-    const activeTab = ref('info')
-    const editMode = ref(false)
-    const updating = ref(false)
-    const passwordChanging = ref(false)
-    const uploading = ref(false)
-    const showChangePassword = ref(false)
-    const showAvatarUpload = ref(false)
-    const orderFilter = ref('all')
-    const previewAvatar = ref('')
-    
-    // Profile data
-    const userProfile = ref({
-      id: 1,
-      name: 'Nguyễn Văn A',
-      email: 'user@cosmicmarket.com',
-      avatar: '/user-avatar.jpg',
-      phone: '0123456789',
-      birthday: '1990-01-01',
-      address: '123 Đường ABC, Quận 1, TP.HCM',
-      isVip: true,
-      isVerified: true,
-      totalOrders: 25,
-      totalSpent: 45000000,
-      wishlistCount: 12,
-      reviewCount: 18,
-      lastPasswordChange: '2024-11-15',
-      twoFactorEnabled: false
-    })
-    
-    const profileForm = ref({
-      firstName: 'Nguyễn Văn',
-      lastName: 'A',
-      email: 'user@cosmicmarket.com',
-      phone: '0123456789',
-      birthday: '1990-01-01',
-      address: '123 Đường ABC, Quận 1, TP.HCM'
-    })
-    
-    const passwordForm = ref({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    })
-    
-    const settings = ref({
-      emailNotifications: true,
-      promotionalNotifications: false,
-      darkMode: false,
-      language: 'vi'
-    })
-    
-    // 🆕 NEW: Profile tabs with seller tab
-    const profileTabs = ref([
-      { id: 'info', name: 'Thông tin', icon: '👤' },
-      { id: 'orders', name: 'Đơn hàng', icon: '📦', badge: userProfile.value.totalOrders },
-      { id: 'wishlist', name: 'Yêu thích', icon: '❤️', badge: userProfile.value.wishlistCount },
-      { id: 'seller', name: 'Bán hàng', icon: '🏪' }, // 🆕 NEW TAB
-      { id: 'settings', name: 'Cài đặt', icon: '⚙️' }
-    ])
-    
-    // Mock orders data
-    const orders = ref([
-      {
-        id: 'CM2024001',
-        date: '2024-06-15',
-        status: 'delivered',
-        total: 25000000,
-        items: [
-          { id: 1, name: 'Laptop Gaming Galactic Pro', quantity: 1, price: 25000000, image: '/product1.jpg' }
-        ]
-      },
-      {
-        id: 'CM2024002',
-        date: '2024-06-10',
-        status: 'processing',
-        total: 3500000,
-        items: [
-          { id: 2, name: 'Gaming Mouse Nebula', quantity: 1, price: 1500000, image: '/product2.jpg' },
-          { id: 3, name: 'Mechanical Keyboard Cosmos', quantity: 1, price: 2000000, image: '/product3.jpg' }
-        ]
-      }
-    ])
-    
-    // Mock wishlist data
-    const wishlistItems = ref([
-      {
-        id: 1,
-        name: 'Gaming Headset Galaxy',
-        price: 1800000,
-        originalPrice: 2200000,
-        rating: 4.5,
-        reviewCount: 89,
-        image: '/product4.jpg'
-      },
-      {
-        id: 2,
-        name: 'Monitor 4K Stardust',
-        price: 8500000,
-        rating: 4.7,
-        reviewCount: 156,
-        image: '/product5.jpg'
-      }
-    ])
+const userProfile = ref({
+  fullName: '',
+  email: '',
+  avatar: '',
+  phone: '',
+  birthday: '',
+  address: '',
+  isVip: false,
+  isVerified: false,
+})
+const profileForm = ref({
+  fullName: '',
+  email: '',
+  phone: '',
+  birthday: '',
+  address: '',
+})
+const updating = ref(false)
+const showAvatarModal = ref(false)
+const showPasswordModal = ref(false)
+const uploading = ref(false)
+const previewAvatar = ref('')
+const avatarInput = ref(null)
+const passwordForm = ref({ currentPassword: '', newPassword: '', confirmPassword: '' })
+const passwordChanging = ref(false)
+const activeTab = ref('info')
+const isUploadHover = ref(false)
+const tabs = [
+  { id: 'info', label: 'Thông tin', icon: '👤' },
+  { id: 'orders', label: 'Đơn hàng', icon: '📦' },
+  { id: 'wishlist', label: 'Yêu thích', icon: '❤️' },
+  { id: 'settings', label: 'Cài đặt', icon: '⚙️' },
+]
+const orders = ref([])
+const wishlist = ref([])
+const settings = ref({ language: 'vi', darkMode: false })
 
-    // 🆕 NEW: Mock recent products for seller
-    const recentProducts = ref([
-      {
-        id: 1,
-        name: 'Wireless Headphones',
-        price: 1500000,
-        status: 'active',
-        image: '/seller-product1.jpg'
-      },
-      {
-        id: 2,
-        name: 'Smart Watch',
-        price: 2500000,
-        status: 'pending',
-        image: '/seller-product2.jpg'
-      },
-      {
-        id: 3,
-        name: 'Gaming Mouse',
-        price: 800000,
-        status: 'active',
-        image: '/seller-product3.jpg'
-      }
-    ])
-    
-    // Computed properties
-    const filteredOrders = computed(() => {
-      if (orderFilter.value === 'all') return orders.value
-      return orders.value.filter(order => order.status === orderFilter.value)
-    })
-
-    // 🆕 NEW: Seller computed properties
-    const sellerStats = computed(() => sellerStore.stats)
-
-    const isSeller = computed(() => {
-      return sellerStats.value.totalProducts > 0
-    })
-    
-    // Methods
-    const formatCurrency = (amount) => {
-      return new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND'
-      }).format(amount)
+const openAvatarModal = () => {
+  showAvatarModal.value = true
+  previewAvatar.value = ''
+}
+const closeAvatarModal = () => {
+  showAvatarModal.value = false
+  previewAvatar.value = ''
+}
+const triggerFileInput = () => {
+  if (avatarInput.value) avatarInput.value.click()
+}
+const handleAvatarSelect = (e) => {
+  const file = e.target.files[0]
+  if (file) {
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      previewAvatar.value = ev.target.result
     }
-    
-    const formatDate = (dateString) => {
-      return new Date(dateString).toLocaleDateString('vi-VN')
-    }
-    
-    const getMembershipLevel = () => {
-      const spent = userProfile.value.totalSpent
-      if (spent >= 50000000) return 'Diamond'
-      if (spent >= 20000000) return 'Gold'
-      if (spent >= 5000000) return 'Silver'
-      return 'Bronze'
-    }
-    
-    const getStatusClass = (status) => {
-      const classes = {
-        pending: 'status-pending',
-        processing: 'status-processing',
-        delivered: 'status-delivered',
-        cancelled: 'status-cancelled'
-      }
-      return classes[status] || 'status-pending'
-    }
-    
-    const getStatusText = (status) => {
-      const texts = {
-        pending: 'Chờ xử lý',
-        processing: 'Đang xử lý',
-        delivered: 'Đã giao',
-        cancelled: 'Đã hủy'
-      }
-      return texts[status] || 'Không xác định'
-    }
-
-    // 🆕 NEW: Product status methods
-    const getProductStatusText = (status) => {
-      const texts = {
-        active: 'Đang bán',
-        pending: 'Chờ duyệt',
-        inactive: 'Tạm dừng',
-        rejected: 'Bị từ chối'
-      }
-      return texts[status] || 'Không xác định'
-    }
-    
-    const updateProfile = async () => {
-      updating.value = true
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        userProfile.value.name = `${profileForm.value.firstName} ${profileForm.value.lastName}`
-        editMode.value = false
-        alert('Cập nhật thông tin thành công!')
-      } catch (error) {
-        alert('Có lỗi xảy ra khi cập nhật thông tin')
-      } finally {
-        updating.value = false
-      }
-    }
-    
-    const changePassword = async () => {
-      if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-        alert('Mật khẩu xác nhận không khớp')
-        return
-      }
-      
-      passwordChanging.value = true
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        passwordForm.value = { currentPassword: '', newPassword: '', confirmPassword: '' }
-        showChangePassword.value = false
-        alert('Đổi mật khẩu thành công!')
-      } catch (error) {
-        alert('Có lỗi xảy ra khi đổi mật khẩu')
-      } finally {
-        passwordChanging.value = false
-      }
-    }
-    
-    const handleAvatarSelect = (event) => {
-      const file = event.target.files[0]
-      if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          previewAvatar.value = e.target.result
-        }
-        reader.readAsDataURL(file)
-      }
-    }
-    
-    const uploadAvatar = async () => {
-      uploading.value = true
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        userProfile.value.avatar = previewAvatar.value
-        showAvatarUpload.value = false
-        previewAvatar.value = ''
-        alert('Cập nhật ảnh đại diện thành công!')
-      } catch (error) {
-        alert('Có lỗi xảy ra khi tải ảnh')
-      } finally {
-        uploading.value = false
-      }
-    }
-    
-    const toggle2FA = () => {
-      userProfile.value.twoFactorEnabled = !userProfile.value.twoFactorEnabled
-      const status = userProfile.value.twoFactorEnabled ? 'bật' : 'tắt'
-      alert(`Đã ${status} xác thực 2 bước`)
-    }
-    
-    const filterOrders = () => {
-      // Orders will be filtered automatically
-    }
-    
-    const viewOrderDetail = (orderId) => {
-      alert(`Xem chi tiết đơn hàng ${orderId}`)
-    }
-    
-    const reorder = (orderId) => {
-      alert('Đã thêm các sản phẩm vào giỏ hàng!')
-    }
-    
-    const cancelOrder = (orderId) => {
-      if (confirm('Bạn có chắc muốn hủy đơn hàng này?')) {
-        const order = orders.value.find(o => o.id === orderId)
-        if (order) {
-          order.status = 'cancelled'
-          alert('Đã hủy đơn hàng')
-        }
-      }
-    }
-    
-    const removeFromWishlist = (itemId) => {
-      const index = wishlistItems.value.findIndex(item => item.id === itemId)
-      if (index > -1) {
-        wishlistItems.value.splice(index, 1)
-        userProfile.value.wishlistCount--
-        alert('Đã xóa khỏi danh sách yêu thích')
-      }
-    }
-    
-    const addToCart = async (item) => {
-      try {
-        await cartStore.addToCart(item.id, 1)
-        alert('Đã thêm sản phẩm vào giỏ hàng!')
-      } catch (error) {
-        alert('Có lỗi xảy ra khi thêm vào giỏ hàng')
-      }
-    }
-    
-    const updateSettings = () => {
-      alert('Cài đặt đã được lưu!')
-    }
-    
-    // Lifecycle
-    onMounted(async () => {
-      console.log('Profile page mounted')
-      
-      // 🆕 NEW: Load seller stats when component mounts
-      try {
-        await sellerStore.loadDashboardStats()
-      } catch (error) {
-        console.error('Load seller stats error:', error)
-      }
-    })
-    
-    return {
-      activeTab,
-      editMode,
-      updating,
-      passwordChanging,
-      uploading,
-      showChangePassword,
-      showAvatarUpload,
-      orderFilter,
-      previewAvatar,
-      userProfile,
-      profileForm,
-      passwordForm,
-      settings,
-      profileTabs,
-      orders,
-      wishlistItems,
-      recentProducts, // 🆕 NEW
-      filteredOrders,
-      sellerStats, // 🆕 NEW
-      isSeller, // 🆕 NEW
-      formatCurrency,
-      formatDate,
-      getMembershipLevel,
-      getStatusClass,
-      getStatusText,
-      getProductStatusText, // 🆕 NEW
-      updateProfile,
-      changePassword,
-      handleAvatarSelect,
-      uploadAvatar,
-      toggle2FA,
-      filterOrders,
-      viewOrderDetail,
-      reorder,
-      cancelOrder,
-      removeFromWishlist,
-      addToCart,
-      updateSettings
-    }
+    reader.readAsDataURL(file)
   }
 }
+const uploadAvatar = async () => {
+  if (!avatarInput.value.files[0]) return
+  uploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', avatarInput.value.files[0])
+    const res = await profileAPI.uploadAvatar(formData)
+    userProfile.value.avatar = res.data.avatarUrl
+    profileForm.value.avatar = res.data.avatarUrl
+    previewAvatar.value = ''
+    closeAvatarModal()
+    alert('Cập nhật ảnh đại diện thành công!')
+  } catch (e) {
+    alert('Lỗi upload ảnh!')
+  } finally {
+    uploading.value = false
+  }
+}
+const updateProfile = async () => {
+  updating.value = true
+  try {
+    // Tách họ tên thành firstName, lastName
+    const [firstName, ...lastArr] = (profileForm.value.fullName || '').trim().split(' ')
+    const lastName = lastArr.join(' ') || ''
+    const payload = {
+      firstName,
+      lastName,
+      phone: profileForm.value.phone,
+      birthday: profileForm.value.birthday,
+      address: profileForm.value.address,
+      avatar: profileForm.value.avatar || userProfile.value.avatar,
+    }
+    await profileAPI.updateProfile(payload)
+    userProfile.value.firstName = firstName
+    userProfile.value.lastName = lastName
+    userProfile.value.phone = payload.phone
+    userProfile.value.birthday = payload.birthday
+    userProfile.value.address = payload.address
+    userProfile.value.avatar = payload.avatar
+    userProfile.value.fullName = firstName + ' ' + lastName
+    alert('Cập nhật thành công!')
+  } catch (e) {
+    alert('Lỗi cập nhật!')
+  } finally {
+    updating.value = false
+  }
+}
+const changePassword = async () => {
+  if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+    alert('Mật khẩu xác nhận không khớp!')
+    return
+  }
+  passwordChanging.value = true
+  try {
+    await profileAPI.changePassword(passwordForm.value)
+    showPasswordModal.value = false
+    alert('Đổi mật khẩu thành công!')
+  } catch (e) {
+    alert('Lỗi đổi mật khẩu!')
+  } finally {
+    passwordChanging.value = false
+  }
+}
+const formatCurrency = (v) =>
+  v ? v.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }) : ''
+
+onMounted(async () => {
+  try {
+    const res = await profileAPI.getProfile()
+    userProfile.value = {
+      ...res.data,
+      fullName: (res.data.firstName || '') + ' ' + (res.data.lastName || ''),
+    }
+    profileForm.value = {
+      fullName: userProfile.value.fullName,
+      email: userProfile.value.email,
+      phone: userProfile.value.phone,
+      birthday: userProfile.value.birthday,
+      address: userProfile.value.address,
+      avatar: userProfile.value.avatar,
+    }
+  } catch {}
+})
 </script>
 
 <style scoped>
 .profile-page {
   min-height: 100vh;
-  padding: 2rem 0;
+  background: linear-gradient(135deg, #23244a 0%, #181a2a 100%);
+  color: #fff;
+  font-family: 'Inter', Arial, sans-serif;
 }
-
-.profile-header {
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+.glass-card {
+  background: rgba(30, 40, 80, 0.85);
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+  padding: 2rem;
   margin-bottom: 2rem;
 }
-
-.profile-cover {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 20px;
-  padding: 2rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.cover-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(2px);
-}
-
-.profile-main {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 2rem;
-}
-
-.profile-avatar-section {
+.profile-header {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 2.5rem;
+  margin-bottom: 2rem;
 }
-
-.avatar-container {
+.avatar-section {
   position: relative;
 }
-
-.profile-avatar {
-  width: 120px;
-  height: 120px;
+.avatar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.avatar {
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
-  border: 4px solid rgba(255, 255, 255, 0.3);
+  border: 4px solid #00d4ff;
   object-fit: cover;
-  animation: float 6s ease-in-out infinite;
+  box-shadow: 0 4px 24px #00d4ff44;
+  transition: box-shadow 0.3s;
 }
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-5px); }
+.avatar-wrapper:hover .avatar {
+  box-shadow: 0 8px 32px #00d4ff99;
 }
-
 .avatar-edit-btn {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  background: var(--aurora-gradient);
+  bottom: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, #00d4ff 0%, #764ba2 100%);
+  color: #fff;
   border: none;
-  width: 40px;
-  height: 40px;
   border-radius: 50%;
-  color: white;
+  width: 44px;
+  height: 44px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  font-size: 1.3rem;
+  box-shadow: 0 2px 8px #00d4ff44;
+  transition: background 0.2s, transform 0.2s;
+  z-index: 2;
 }
-
 .avatar-edit-btn:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #00d4ff 100%);
   transform: scale(1.1);
 }
-
-.profile-info {
-  color: white;
-}
-
-.profile-name {
-  font-size: 2rem;
+.info-section h2 {
+  margin: 0;
+  font-size: 2.2rem;
   font-weight: 700;
+  letter-spacing: 1px;
+}
+.info-section .email {
+  color: #b3e0ff;
   margin-bottom: 0.5rem;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
-
-.profile-email {
-  opacity: 0.9;
-  margin-bottom: 1rem;
+.badges {
+  margin-top: 0.5rem;
 }
-
-.profile-badges {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
 .badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
+  display: inline-block;
+  padding: 0.3rem 1rem;
+  border-radius: 1rem;
+  margin-right: 0.5rem;
+  font-size: 1rem;
   font-weight: 600;
-  backdrop-filter: blur(10px);
-  animation: slideIn 0.8s ease-out;
+  box-shadow: 0 2px 8px #00d4ff22;
 }
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.badge.vip {
+  background: linear-gradient(90deg, gold 60%, #fffbe6 100%);
+  color: #222;
+  border: 1px solid #ffe066;
 }
-
-.vip-badge {
-  background: rgba(255, 215, 0, 0.9);
-  color: #000;
+.badge.verified {
+  background: linear-gradient(90deg, #10b981 60%, #34d399 100%);
+  color: #fff;
+  border: 1px solid #10b981;
 }
-
-.verified-badge {
-  background: rgba(16, 185, 129, 0.9);
-  color: white;
-}
-
-.member-badge {
-  background: rgba(138, 43, 226, 0.9);
-  color: white;
-}
-
-/* 🆕 NEW: Seller badge */
-.seller-badge {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.9) 0%, rgba(102, 126, 234, 0.9) 100%);
-  color: white;
-  border: 1px solid rgba(0, 212, 255, 0.3);
-}
-
-.profile-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
-  text-align: center;
-  color: white;
-}
-
-.stat-item {
+.profile-tabs {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.stat-number {
-  font-size: 1.5rem;
-  font-weight: 700;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-.stat-label {
-  font-size: 0.9rem;
-  opacity: 0.9;
-}
-
-.profile-nav {
-  display: flex;
-  gap: 0.5rem;
+  gap: 1.2rem;
   margin-bottom: 2rem;
-  padding: 0.5rem;
-  background: rgba(26, 26, 46, 0.5);
-  border-radius: 15px;
-  backdrop-filter: blur(10px);
-  overflow-x: auto;
+  justify-content: center;
 }
-
-.nav-tab {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: transparent;
+.profile-tabs button {
+  background: none;
   border: none;
-  color: var(--text-secondary);
-  border-radius: 10px;
+  color: #b3e0ff;
+  padding: 0.8rem 2rem;
+  border-radius: 1.2rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  position: relative;
-}
-
-.nav-tab:hover,
-.nav-tab.active {
-  background: var(--aurora-gradient);
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: var(--neon-glow);
-}
-
-.tab-icon {
-  font-size: 1.1rem;
-}
-
-.tab-text {
-  font-weight: 500;
-}
-
-.tab-badge {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 0.1rem 0.5rem;
-  border-radius: 10px;
-  font-size: 0.7rem;
   font-weight: 600;
-}
-
-.profile-content {
-  min-height: 500px;
-}
-
-.tab-content {
-  animation: fadeInUp 0.5s ease-out;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.content-header {
+  font-size: 1.1rem;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  gap: 0.7rem;
+  transition: background 0.2s, color 0.2s;
 }
-
-.content-header h2 {
-  color: var(--text-accent);
-  font-size: 1.8rem;
+.profile-tabs .active,
+.profile-tabs button:hover {
+  background: linear-gradient(90deg, #00d4ff 0%, #764ba2 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px #00d4ff33;
 }
-
-.content-subtitle {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.info-cards {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 2rem;
-}
-
-.info-card {
-  padding: 2rem;
-}
-
-.info-card h3 {
-  color: var(--text-accent);
-  margin-bottom: 1.5rem;
+.tab-icon {
   font-size: 1.3rem;
 }
-
-.info-form {
+.profile-content {
+  min-height: 320px;
+  font-size: 1.1rem;
+  transition: box-shadow 0.3s;
+}
+.profile-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.2rem;
 }
-
 .form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.3rem;
+  margin-bottom: 1rem;
 }
-
-.form-group label {
-  color: var(--text-secondary);
+.form-row label {
+  color: #b3e0ff;
   font-weight: 500;
-  font-size: 0.9rem;
-}
-
-.form-input {
-  padding: 0.75rem 1rem;
-  background: rgba(26, 26, 46, 0.8);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 8px;
-  color: var(--text-primary);
   font-size: 1rem;
-  transition: all 0.3s ease;
 }
-
-.form-input:focus {
+.form-row input,
+.form-row select {
+  padding: 0.8rem 1rem;
+  background: rgba(26, 26, 46, 0.8);
+  border: 1.5px solid #00d4ff55;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 1.1rem;
+  transition: border 0.2s;
+}
+.form-row input:focus,
+.form-row select:focus {
   outline: none;
-  border-color: var(--text-accent);
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
+  border-color: #00d4ff;
+  box-shadow: 0 0 0 2px #00d4ff33;
 }
-
-.form-input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.field-note {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  opacity: 0.7;
-}
-
 .form-actions {
   display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(0, 212, 255, 0.2);
+  gap: 1.2rem;
+  margin-top: 1rem;
 }
-
-.security-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.security-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-}
-
-.security-info h4 {
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-}
-
-.security-info p {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.filter-select {
-  padding: 0.5rem 1rem;
-  background: rgba(26, 26, 46, 0.8);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 8px;
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.orders-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.order-card {
-  padding: 1.5rem;
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  transition: all 0.3s ease;
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.order-card:hover {
-  border-color: var(--text-accent);
-  transform: translateY(-2px);
-}
-
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.order-id {
-  color: var(--text-primary);
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-
-.order-date {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.status-pending {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-.status-processing {
-  background: rgba(59, 130, 246, 0.2);
-  color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.status-delivered {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.status-cancelled {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.order-items {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.order-item {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  padding: 0.75rem;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-}
-
-.item-image {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  object-fit: cover;
-  flex: none;
-}
-
-.item-info {
-  flex: 1;
-}
-
-.item-info h4 {
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-}
-
-.item-info p {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin-bottom: 0.25rem;
-}
-
-.item-price {
-  color: var(--text-accent);
-  font-weight: 600;
-}
-
-.more-items {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  font-style: italic;
-  text-align: center;
-  padding: 0.5rem;
-}
-
-.order-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.order-total {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.total-label {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.total-amount {
-  color: var(--text-accent);
-  font-size: 1.3rem;
-  font-weight: 600;
-}
-
-.order-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.wishlist-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
-}
-
-.wishlist-item {
-  padding: 1.5rem;
-  transition: all 0.3s ease;
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.wishlist-item:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--neon-glow);
-}
-
-.wishlist-image {
-  position: relative;
-  margin-bottom: 1rem;
-}
-
-.wishlist-image img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.remove-wishlist-btn {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: rgba(0, 0, 0, 0.7);
+.btn {
+  padding: 0.8rem 2rem;
+  border-radius: 1rem;
   border: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  color: white;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.remove-wishlist-btn:hover {
-  background: rgba(239, 68, 68, 0.8);
-  transform: scale(1.1);
-}
-
-.wishlist-info h3 {
-  color: var(--text-primary);
-  margin-bottom: 0.75rem;
-}
-
-.wishlist-price {
-  margin-bottom: 0.75rem;
-}
-
-.original-price {
-  color: var(--text-secondary);
-  text-decoration: line-through;
-  font-size: 0.9rem;
-  margin-right: 0.5rem;
-}
-
-.current-price {
-  color: var(--text-accent);
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.wishlist-rating {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.rating-stars {
-  display: flex;
-  gap: 0.1rem;
-}
-
-.star {
-  font-size: 1rem;
-  opacity: 0.3;
-}
-
-.star.filled {
-  opacity: 1;
-}
-
-.rating-text {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-}
-
-.wishlist-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.wishlist-actions .btn {
-  flex: 1;
-  padding: 0.6rem;
-  font-size: 0.9rem;
-}
-
-/* 🆕 NEW: Seller Section Styles */
-.seller-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.seller-dashboard-preview {
-  padding: 2rem;
-  border: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.seller-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.seller-stats .stat-item {
-  text-align: center;
-  padding: 1rem;
-  background: rgba(26, 26, 46, 0.5);
-  border-radius: 12px;
-  border: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.seller-stats .stat-number {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-accent);
-  margin-bottom: 0.25rem;
-}
-
-.seller-stats .stat-label {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-}
-
-.seller-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-bottom: 2rem;
-}
-
-.become-seller {
-  text-align: center;
-  padding: 3rem 2rem;
-}
-
-.become-seller-content {
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.seller-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-}
-
-.become-seller h3 {
-  font-size: 1.5rem;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-}
-
-.become-seller p {
-  color: var(--text-secondary);
-  margin-bottom: 2rem;
-  line-height: 1.6;
-}
-
-.seller-benefits {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.benefit-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-}
-
-.benefit-icon {
-  font-size: 1.5rem;
-}
-
-.benefit-text {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.btn-become-seller {
-  background: linear-gradient(135deg, var(--text-accent) 0%, #667eea 100%);
-  color: #1a1a2e;
-  padding: 1rem 2rem;
-  border-radius: 12px;
-  text-decoration: none;
-  font-weight: 700;
   font-size: 1.1rem;
-  transition: all 0.3s ease;
-  display: inline-block;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
 }
-
-.btn-become-seller:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 40px rgba(0, 212, 255, 0.3);
+.btn-primary {
+  background: linear-gradient(90deg, #00d4ff 0%, #764ba2 100%);
+  color: #fff;
 }
-
-.recent-products {
-  margin-top: 2rem;
+.btn-primary:hover {
+  background: linear-gradient(90deg, #764ba2 0%, #00d4ff 100%);
+  color: #fff;
+  transform: translateY(-2px) scale(1.04);
 }
-
-.recent-products h3 {
-  color: var(--text-accent);
-  margin-bottom: 1rem;
+.btn-secondary {
+  background: #23244a;
+  color: #00d4ff;
+  border: 1.5px solid #00d4ff;
 }
-
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+.btn-secondary:hover {
+  background: #00d4ff;
+  color: #23244a;
 }
-
-.product-preview {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.product-preview:hover {
-  transform: translateY(-2px);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-}
-
-.product-preview img {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-}
-
-.product-info {
-  padding: 1rem;
-}
-
-.product-info h4 {
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.product-price {
-  color: var(--text-accent);
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.product-status {
-  padding: 0.2rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
-.product-status.active {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
-}
-
-.product-status.pending {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-}
-
-.product-status.inactive {
-  background: rgba(107, 114, 128, 0.2);
-  color: #6b7280;
-}
-
-/* Settings Section */
-.settings-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.settings-section {
-  padding: 2rem;
-}
-
-.settings-section h3 {
-  color: var(--text-accent);
-  margin-bottom: 1.5rem;
-  font-size: 1.3rem;
-}
-
-.settings-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.setting-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-}
-
-.setting-info h4 {
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-}
-
-.setting-info p {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 24px;
-}
-
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle-slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.2);
-  transition: 0.3s;
-  border-radius: 24px;
-}
-
-.toggle-slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background: white;
-  transition: 0.3s;
-  border-radius: 50%;
-}
-
-input:checked + .toggle-slider {
-  background: var(--aurora-gradient);
-}
-
-input:checked + .toggle-slider:before {
-  transform: translateX(26px);
-}
-
-.setting-select {
-  padding: 0.5rem 1rem;
-  background: rgba(26, 26, 46, 0.8);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 8px;
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.no-orders,
-.no-wishlist {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 300px;
-}
-
-.no-orders-content,
-.no-wishlist-content {
+.empty-block {
+  color: #b3e0ff;
   text-align: center;
-  max-width: 400px;
+  margin: 2rem 0;
+  font-size: 1.2rem;
 }
-
-.no-orders-icon,
-.no-wishlist-icon {
-  font-size: 4rem;
+.order-list,
+.wishlist-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.order-item,
+.wishlist-item {
+  background: rgba(0, 212, 255, 0.08);
+  border-radius: 0.8rem;
   margin-bottom: 1rem;
-  opacity: 0.5;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 2px 8px #00d4ff11;
 }
-
-.no-orders-content h3,
-.no-wishlist-content h3 {
-  color: var(--text-primary);
-  margin-bottom: 0.75rem;
+.order-id {
+  font-weight: 700;
+  color: #00d4ff;
 }
-
-.no-orders-content p,
-.no-wishlist-content p {
-  color: var(--text-secondary);
-  margin-bottom: 1.5rem;
-  line-height: 1.6;
+.order-status {
+  color: #10b981;
+  font-weight: 600;
 }
-
+.order-total {
+  margin-left: auto;
+  font-weight: 700;
+  color: #fff;
+}
+.wishlist-name {
+  color: #ff6bcb;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: #000a;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(5px);
 }
-
 .modal-content {
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
+  background: #23244a;
+  border-radius: 1.2rem;
+  padding: 2.2rem;
+  min-width: 320px;
+  max-width: 95vw;
+  box-shadow: 0 8px 32px #00d4ff33;
   position: relative;
 }
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.modal-header h3 {
-  color: var(--text-accent);
-  margin: 0;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-}
-
-.modal-close:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-}
-
-.password-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.avatar-upload {
+.avatar-modal {
   text-align: center;
 }
-
-.upload-area {
-  border: 2px dashed rgba(0, 212, 255, 0.3);
-  border-radius: 12px;
-  padding: 2rem;
+.avatar-upload-area {
+  border: 2.5px dashed #00d4ff88;
+  border-radius: 1.2rem;
+  padding: 2.5rem;
+  text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
   margin-bottom: 1.5rem;
+  transition: border-color 0.2s, background 0.2s;
 }
-
-.upload-area:hover {
-  border-color: var(--text-accent);
+.avatar-upload-area:hover,
+.avatar-upload-area.hovered {
+  border-color: #00d4ff;
   background: rgba(0, 212, 255, 0.05);
 }
-
-.preview-container {
-  display: flex;
-  justify-content: center;
-}
-
 .avatar-preview {
-  width: 120px;
-  height: 120px;
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid var(--text-accent);
+  margin: 0 auto;
+  box-shadow: 0 4px 24px #00d4ff44;
 }
-
-.upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.upload-icon {
-  font-size: 3rem;
-  color: var(--text-secondary);
-}
-
-.upload-placeholder p {
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-/* Button Styles */
-.btn {
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  text-decoration: none;
+.avatar-placeholder {
+  color: #00d4ff;
+  font-size: 2.2rem;
   font-weight: 600;
-  transition: all 0.3s ease;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
 }
-
-.btn-primary {
-  background: var(--text-accent);
-  color: #1a1a2e;
+.modal-actions {
+  display: flex;
+  gap: 1.2rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
 }
-
-.btn-secondary {
-  background: rgba(0, 212, 255, 0.2);
-  color: var(--text-accent);
-  border: 1px solid rgba(0, 212, 255, 0.3);
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
-.btn-outline {
-  background: transparent;
-  color: var(--text-accent);
-  border: 1px solid rgba(0, 212, 255, 0.5);
-}
-
-.btn-danger {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.btn:hover {
-  transform: translateY(-2px);
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Responsive Design */
-@media (max-width: 1024px) {
-  .profile-main {
-    flex-direction: column;
-    text-align: center;
-    gap: 1.5rem;
-  }
-
-  .profile-stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
-
-  .info-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .wishlist-grid {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  }
-
-  .seller-actions {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .products-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .profile-page {
-    padding: 1rem 0;
-  }
-
-  .profile-cover {
-    padding: 1.5rem;
-  }
-
-  .profile-avatar {
-    width: 100px;
-    height: 100px;
-  }
-
-  .profile-name {
-    font-size: 1.5rem;
-  }
-
-  .profile-stats {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-
-  .profile-nav {
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .nav-tab {
-    justify-content: center;
-    padding: 0.75rem;
-  }
-
-  .content-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .order-footer {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-
-  .order-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .wishlist-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .wishlist-actions {
-    flex-direction: column;
-  }
-
-  .setting-item {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-
-  .seller-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .seller-actions {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .profile-cover {
-    padding: 1rem;
-  }
-
-  .profile-avatar {
-    width: 80px;
-    height: 80px;
-  }
-
-  .avatar-edit-btn {
-    width: 30px;
-    height: 30px;
-  }
-
-  .profile-name {
-    font-size: 1.3rem;
-  }
-
-  .profile-badges {
-    justify-content: center;
-  }
-
-  .info-card {
-    padding: 1.5rem;
-  }
-
-  .order-card,
-  .wishlist-item {
-    padding: 1rem;
-  }
-
-  .modal-content {
-    margin: 1rem;
-  }
-
-  .upload-area {
-    padding: 1.5rem;
-  }
-
-  .avatar-preview {
-    width: 100px;
-    height: 100px;
-  }
-
-  .seller-stats {
-    grid-template-columns: 1fr;
-  }
-
-  .become-seller {
-    padding: 2rem 1rem;
-  }
-}
-
-/* Space Card Effect */
-.space-card {
-  background: rgba(26, 26, 46, 0.8);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  border-radius: 16px;
-  position: relative;
-  overflow: hidden;
-}
-
-.space-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(45deg, transparent, rgba(0, 212, 255, 0.05), transparent);
+.fade-slide-enter-from {
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transform: translateY(30px);
 }
-
-.space-card:hover::before {
-  opacity: 1;
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-30px);
 }
-
-/* CSS Variables for theming */
-:root {
-  --text-primary: #ffffff;
-  --text-secondary: #a0aec0;
-  --text-accent: #00d4ff;
-  --text-warning: #fbbf24;
-  --aurora-gradient: linear-gradient(135deg, #00d4ff 0%, #667eea 100%);
-  --accent-gradient: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
-  --neon-glow: 0 10px 30px rgba(0, 212, 255, 0.3);
+@media (max-width: 600px) {
+  .container {
+    padding: 0.5rem;
+  }
+  .profile-header {
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+  .avatar {
+    width: 90px;
+    height: 90px;
+  }
+  .avatar-preview {
+    width: 90px;
+    height: 90px;
+  }
+  .glass-card {
+    padding: 1rem;
+  }
+  .modal-content {
+    padding: 1rem;
+  }
 }
 </style>

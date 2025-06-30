@@ -10,9 +10,7 @@
         <button @click="saveDraft" class="btn btn-secondary" :disabled="saving">
           💾 {{ saving ? 'Đang lưu...' : 'Lưu nháp' }}
         </button>
-        <button @click="previewProduct" class="btn btn-outline">
-          👁️ Xem trước
-        </button>
+        <button @click="previewProduct" class="btn btn-outline">👁️ Xem trước</button>
       </div>
     </header>
 
@@ -21,21 +19,18 @@
       <div class="form-layout">
         <!-- Left Column - Main Form -->
         <div class="main-form">
-          
           <!-- Basic Information -->
           <div class="form-section">
             <h3>📝 Thông tin cơ bản</h3>
-            
+
             <div class="form-field">
-              <label for="productName">
-                Tên sản phẩm <span class="required">*</span>
-              </label>
+              <label for="productName"> Tên sản phẩm <span class="required">*</span> </label>
               <input
                 id="productName"
                 v-model="form.name"
                 type="text"
                 class="form-input"
-                :class="{ 'error': errors.name }"
+                :class="{ error: errors.name }"
                 placeholder="Nhập tên sản phẩm..."
                 maxlength="100"
                 @input="validateField('name')"
@@ -79,17 +74,25 @@
                     <u>U</u>
                   </button>
                   <div class="toolbar-divider"></div>
-                  <button type="button" @click="formatText('insertUnorderedList')" class="toolbar-btn">
+                  <button
+                    type="button"
+                    @click="formatText('insertUnorderedList')"
+                    class="toolbar-btn"
+                  >
                     • List
                   </button>
-                  <button type="button" @click="formatText('insertOrderedList')" class="toolbar-btn">
+                  <button
+                    type="button"
+                    @click="formatText('insertOrderedList')"
+                    class="toolbar-btn"
+                  >
                     1. List
                   </button>
                 </div>
                 <div
                   ref="descriptionEditor"
                   class="editor-content"
-                  :class="{ 'error': errors.description }"
+                  :class="{ error: errors.description }"
                   contenteditable="true"
                   @input="updateDescription"
                   @blur="validateField('description')"
@@ -98,20 +101,20 @@
               </div>
               <div class="field-info">
                 <span class="word-count">{{ descriptionWordCount }} từ</span>
-                <span v-if="errors.description" class="error-message">{{ errors.description }}</span>
+                <span v-if="errors.description" class="error-message">{{
+                  errors.description
+                }}</span>
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-field">
-                <label for="productCategory">
-                  Danh mục <span class="required">*</span>
-                </label>
+                <label for="productCategory"> Danh mục <span class="required">*</span> </label>
                 <select
                   id="productCategory"
                   v-model="form.category"
                   class="form-select"
-                  :class="{ 'error': errors.category }"
+                  :class="{ error: errors.category }"
                   @change="validateField('category')"
                 >
                   <option value="">Chọn danh mục</option>
@@ -138,11 +141,7 @@
               <label>Tags sản phẩm</label>
               <div class="tags-input">
                 <div class="tags-list">
-                  <span
-                    v-for="(tag, index) in form.tags"
-                    :key="index"
-                    class="tag-item"
-                  >
+                  <span v-for="(tag, index) in form.tags" :key="index" class="tag-item">
                     {{ tag }}
                     <button type="button" @click="removeTag(index)" class="tag-remove">×</button>
                   </span>
@@ -163,11 +162,11 @@
           <!-- Images Section -->
           <div class="form-section">
             <h3>📸 Hình ảnh sản phẩm</h3>
-            
+
             <div class="image-upload-area">
               <div
                 class="upload-zone"
-                :class="{ 'dragover': isDragOver }"
+                :class="{ dragover: isDragOver }"
                 @drop.prevent="handleDrop"
                 @dragover.prevent="isDragOver = true"
                 @dragleave="isDragOver = false"
@@ -181,39 +180,47 @@
                   class="file-input"
                   @change="handleFileSelect"
                 />
-                
+
                 <div v-if="form.images.length === 0" class="upload-placeholder">
                   <div class="upload-icon">📸</div>
                   <h4>Kéo thả hoặc click để upload hình ảnh</h4>
                   <p>Hỗ trợ: JPG, PNG, GIF (tối đa 5MB mỗi file)</p>
                 </div>
-                
+
                 <div v-else class="images-grid">
                   <div
                     v-for="(image, index) in form.images"
                     :key="index"
                     class="image-item"
-                    :class="{ 'primary': index === 0 }"
+                    :class="{ primary: index === 0 }"
                   >
                     <img :src="image.url || image" :alt="`Product image ${index + 1}`" />
                     <div class="image-overlay">
                       <button type="button" @click.stop="setMainImage(index)" class="btn-overlay">
                         {{ index === 0 ? '⭐ Chính' : '🔄 Đặt chính' }}
                       </button>
-                      <button type="button" @click.stop="removeImage(index)" class="btn-overlay danger">
+                      <button
+                        type="button"
+                        @click.stop="removeImage(index)"
+                        class="btn-overlay danger"
+                      >
                         🗑️ Xóa
                       </button>
                     </div>
                     <div v-if="index === 0" class="primary-badge">Ảnh chính</div>
                   </div>
-                  
-                  <div v-if="form.images.length < 10" class="add-more-images" @click="triggerFileInput">
+
+                  <div
+                    v-if="form.images.length < 10"
+                    class="add-more-images"
+                    @click="triggerFileInput"
+                  >
                     <div class="add-icon">➕</div>
                     <span>Thêm ảnh</span>
                   </div>
                 </div>
               </div>
-              
+
               <div class="image-guidelines">
                 <h5>📋 Hướng dẫn ảnh sản phẩm:</h5>
                 <ul>
@@ -229,12 +236,10 @@
           <!-- Pricing & Inventory -->
           <div class="form-section">
             <h3>💰 Giá bán & Kho hàng</h3>
-            
+
             <div class="form-row">
               <div class="form-field">
-                <label for="productPrice">
-                  Giá bán <span class="required">*</span>
-                </label>
+                <label for="productPrice"> Giá bán <span class="required">*</span> </label>
                 <div class="price-input">
                   <input
                     id="productPrice"
@@ -243,7 +248,7 @@
                     min="0"
                     step="1000"
                     class="form-input"
-                    :class="{ 'error': errors.price }"
+                    :class="{ error: errors.price }"
                     placeholder="0"
                     @input="validateField('price')"
                   />
@@ -275,20 +280,20 @@
 
             <div class="form-row">
               <div class="form-field">
-                <label for="productStock">
-                  Số lượng tồn kho <span class="required">*</span>
-                </label>
+                <label for="productStock"> Số lượng tồn kho <span class="required">*</span> </label>
                 <input
                   id="productStock"
                   v-model.number="form.stockQuantity"
                   type="number"
                   min="0"
                   class="form-input"
-                  :class="{ 'error': errors.stockQuantity }"
+                  :class="{ error: errors.stockQuantity }"
                   placeholder="0"
                   @input="validateField('stockQuantity')"
                 />
-                <span v-if="errors.stockQuantity" class="error-message">{{ errors.stockQuantity }}</span>
+                <span v-if="errors.stockQuantity" class="error-message">{{
+                  errors.stockQuantity
+                }}</span>
               </div>
 
               <div class="form-field">
@@ -306,11 +311,7 @@
 
             <div class="form-field">
               <label class="checkbox-label">
-                <input
-                  v-model="form.trackQuantity"
-                  type="checkbox"
-                  class="form-checkbox"
-                />
+                <input v-model="form.trackQuantity" type="checkbox" class="form-checkbox" />
                 <span class="checkmark"></span>
                 Theo dõi số lượng tồn kho
               </label>
@@ -320,7 +321,7 @@
           <!-- Shipping Information -->
           <div class="form-section">
             <h3>🚚 Thông tin vận chuyển</h3>
-            
+
             <div class="form-field">
               <label class="checkbox-label">
                 <input
@@ -417,11 +418,10 @@
 
         <!-- Right Column - Sidebar -->
         <div class="form-sidebar">
-          
           <!-- SEO Settings -->
           <div class="sidebar-section">
             <h4>🔍 SEO & Tìm kiếm</h4>
-            
+
             <div class="form-field">
               <label for="seoTitle">Tiêu đề SEO</label>
               <input
@@ -457,8 +457,12 @@
               <h5>📋 Preview Google:</h5>
               <div class="search-result-preview">
                 <div class="result-title">{{ form.seoTitle || form.name || 'Tên sản phẩm' }}</div>
-                <div class="result-url">cosmicmarketplace.com/products/{{ form.slug || 'san-pham' }}</div>
-                <div class="result-description">{{ form.seoDescription || 'Mô tả sản phẩm...' }}</div>
+                <div class="result-url">
+                  cosmicmarketplace.com/products/{{ form.slug || 'san-pham' }}
+                </div>
+                <div class="result-description">
+                  {{ form.seoDescription || 'Mô tả sản phẩm...' }}
+                </div>
               </div>
             </div>
           </div>
@@ -466,14 +470,10 @@
           <!-- Product Status -->
           <div class="sidebar-section">
             <h4>📊 Trạng thái sản phẩm</h4>
-            
+
             <div class="form-field">
               <label for="productStatus">Trạng thái</label>
-              <select
-                id="productStatus"
-                v-model="form.status"
-                class="form-select"
-              >
+              <select id="productStatus" v-model="form.status" class="form-select">
                 <option value="draft">Nháp</option>
                 <option value="active">Đang bán</option>
                 <option value="inactive">Tạm ngưng</option>
@@ -482,11 +482,7 @@
 
             <div class="form-field">
               <label for="visibility">Hiển thị</label>
-              <select
-                id="visibility"
-                v-model="form.visibility"
-                class="form-select"
-              >
+              <select id="visibility" v-model="form.visibility" class="form-select">
                 <option value="public">Công khai</option>
                 <option value="hidden">Ẩn</option>
               </select>
@@ -494,11 +490,7 @@
 
             <div class="form-field">
               <label class="checkbox-label">
-                <input
-                  v-model="form.featured"
-                  type="checkbox"
-                  class="form-checkbox"
-                />
+                <input v-model="form.featured" type="checkbox" class="form-checkbox" />
                 <span class="checkmark"></span>
                 Sản phẩm nổi bật
               </label>
@@ -508,7 +500,7 @@
           <!-- Quick Actions -->
           <div class="sidebar-section">
             <h4>⚡ Thao tác nhanh</h4>
-            
+
             <div class="quick-actions">
               <button type="button" @click="fillSampleData" class="btn btn-outline btn-full">
                 🎲 Điền dữ liệu mẫu
@@ -525,29 +517,23 @@
           <!-- Form Progress -->
           <div class="sidebar-section">
             <h4>📈 Tiến độ hoàn thành</h4>
-            
+
             <div class="progress-bar">
               <div class="progress-fill" :style="{ width: formProgress + '%' }"></div>
             </div>
             <div class="progress-text">{{ formProgress }}% hoàn thành</div>
-            
+
             <div class="completion-checklist">
-              <div class="checklist-item" :class="{ 'completed': form.name }">
-                ✅ Tên sản phẩm
-              </div>
-              <div class="checklist-item" :class="{ 'completed': form.description }">
+              <div class="checklist-item" :class="{ completed: form.name }">✅ Tên sản phẩm</div>
+              <div class="checklist-item" :class="{ completed: form.description }">
                 ✅ Mô tả sản phẩm
               </div>
-              <div class="checklist-item" :class="{ 'completed': form.images.length > 0 }">
+              <div class="checklist-item" :class="{ completed: form.images.length > 0 }">
                 ✅ Hình ảnh ({{ form.images.length }}/10)
               </div>
-              <div class="checklist-item" :class="{ 'completed': form.price > 0 }">
-                ✅ Giá bán
-              </div>
-              <div class="checklist-item" :class="{ 'completed': form.category }">
-                ✅ Danh mục
-              </div>
-              <div class="checklist-item" :class="{ 'completed': form.stockQuantity > 0 }">
+              <div class="checklist-item" :class="{ completed: form.price > 0 }">✅ Giá bán</div>
+              <div class="checklist-item" :class="{ completed: form.category }">✅ Danh mục</div>
+              <div class="checklist-item" :class="{ completed: form.stockQuantity > 0 }">
                 ✅ Tồn kho
               </div>
             </div>
@@ -562,7 +548,7 @@
             ← Quay lại danh sách
           </router-link>
         </div>
-        
+
         <div class="actions-right">
           <button type="button" @click="saveDraft" class="btn btn-secondary" :disabled="saving">
             💾 Lưu nháp
@@ -585,7 +571,10 @@
           <!-- Product Preview Content -->
           <div class="preview-content">
             <div class="preview-images">
-              <img :src="form.images[0]?.url || form.images[0] || '/placeholder-product.jpg'" alt="Preview" />
+              <img
+                :src="form.images[0]?.url || form.images[0] || '/placeholder-product.jpg'"
+                alt="Preview"
+              />
             </div>
             <div class="preview-info">
               <h1>{{ form.name || 'Tên sản phẩm' }}</h1>
@@ -634,12 +623,12 @@ const form = ref({
   dimensions: {
     length: 0,
     width: 0,
-    height: 0
+    height: 0,
   },
   shippingInfo: {
     freeShipping: false,
     shippingCost: 0,
-    processingTime: '1-2 days'
+    processingTime: '1-2 days',
   },
   images: [],
   tags: [],
@@ -647,7 +636,7 @@ const form = ref({
   seoDescription: '',
   status: 'active',
   visibility: 'public',
-  featured: false
+  featured: false,
 })
 
 // Validation errors
@@ -662,7 +651,7 @@ const categories = ref([
   { id: 5, name: 'Thể thao' },
   { id: 6, name: 'Làm đẹp' },
   { id: 7, name: 'Ô tô & Xe máy' },
-  { id: 8, name: 'Mẹ & Bé' }
+  { id: 8, name: 'Mẹ & Bé' },
 ])
 
 // Computed properties
@@ -680,9 +669,9 @@ const formProgress = computed(() => {
     form.value.category,
     form.value.price > 0,
     form.value.stockQuantity > 0,
-    form.value.images.length > 0
+    form.value.images.length > 0,
   ]
-  
+
   const completed = requiredFields.filter(Boolean).length
   return Math.round((completed / requiredFields.length) * 100)
 })
@@ -711,7 +700,7 @@ const validateField = (field) => {
         delete errors.value.name
       }
       break
-      
+
     case 'description':
       const textContent = form.value.description.replace(/<[^>]*>/g, '').trim()
       if (!textContent) {
@@ -722,7 +711,7 @@ const validateField = (field) => {
         delete errors.value.description
       }
       break
-      
+
     case 'category':
       if (!form.value.category) {
         errors.value.category = 'Vui lòng chọn danh mục'
@@ -730,7 +719,7 @@ const validateField = (field) => {
         delete errors.value.category
       }
       break
-      
+
     case 'price':
       if (form.value.price <= 0) {
         errors.value.price = 'Giá sản phẩm phải lớn hơn 0'
@@ -738,7 +727,7 @@ const validateField = (field) => {
         delete errors.value.price
       }
       break
-      
+
     case 'stockQuantity':
       if (form.value.trackQuantity && form.value.stockQuantity < 0) {
         errors.value.stockQuantity = 'Số lượng tồn kho không được âm'
@@ -800,39 +789,82 @@ const triggerFileInput = () => {
   fileInput.value?.click()
 }
 
-const handleFileSelect = (event) => {
+const handleFileSelect = async (event) => {
   const files = Array.from(event.target.files)
-  processFiles(files)
-}
-
-const handleDrop = (event) => {
-  isDragOver.value = false
-  const files = Array.from(event.dataTransfer.files)
-  processFiles(files.filter(file => file.type.startsWith('image/')))
-}
-
-const processFiles = (files) => {
-  files.forEach(file => {
-    if (form.value.images.length >= 10) return
-    
+  for (const file of files) {
+    if (form.value.images.length >= 10) break
     if (file.size > 5 * 1024 * 1024) {
       notificationStore.addNotification({
         type: 'error',
-        message: `File ${file.name} quá lớn. Kích thước tối đa 5MB.`
+        message: `File ${file.name} quá lớn. Kích thước tối đa 5MB.`,
       })
-      return
+      continue
     }
-    
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      form.value.images.push({
-        file: file,
-        url: e.target.result,
-        name: file.name
+    // Upload lên backend
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const res = await fetch('http://localhost:8080/api/upload/image', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include', // hoặc thêm header Authorization nếu cần
+      })
+      const data = await res.json()
+      if (data.imageUrl) {
+        form.value.images.push(data.imageUrl)
+      } else {
+        notificationStore.addNotification({
+          type: 'error',
+          message: `Lỗi upload ảnh: ${file.name}`,
+        })
+      }
+    } catch (e) {
+      notificationStore.addNotification({
+        type: 'error',
+        message: `Lỗi upload ảnh: ${file.name}`,
       })
     }
-    reader.readAsDataURL(file)
-  })
+  }
+}
+
+const handleDrop = async (event) => {
+  isDragOver.value = false
+  const files = Array.from(event.dataTransfer.files).filter((file) =>
+    file.type.startsWith('image/')
+  )
+  for (const file of files) {
+    if (form.value.images.length >= 10) break
+    if (file.size > 5 * 1024 * 1024) {
+      notificationStore.addNotification({
+        type: 'error',
+        message: `File ${file.name} quá lớn. Kích thước tối đa 5MB.`,
+      })
+      continue
+    }
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const res = await fetch('http://localhost:8080/api/upload/image', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      })
+      const data = await res.json()
+      if (data.imageUrl) {
+        form.value.images.push(data.imageUrl)
+      } else {
+        notificationStore.addNotification({
+          type: 'error',
+          message: `Lỗi upload ảnh: ${file.name}`,
+        })
+      }
+    } catch (e) {
+      notificationStore.addNotification({
+        type: 'error',
+        message: `Lỗi upload ảnh: ${file.name}`,
+      })
+    }
+  }
 }
 
 const setMainImage = (index) => {
@@ -851,7 +883,8 @@ const fillSampleData = () => {
   form.value = {
     ...form.value,
     name: 'iPhone 15 Pro Max 256GB',
-    description: '<p><strong>iPhone 15 Pro Max</strong> - Điện thoại thông minh cao cấp nhất từ Apple</p><ul><li>Chip A17 Pro mạnh mẽ</li><li>Camera chính 48MP với zoom quang học</li><li>Màn hình Super Retina XDR 6.7 inch</li><li>Pin sử dụng cả ngày</li></ul>',
+    description:
+      '<p><strong>iPhone 15 Pro Max</strong> - Điện thoại thông minh cao cấp nhất từ Apple</p><ul><li>Chip A17 Pro mạnh mẽ</li><li>Camera chính 48MP với zoom quang học</li><li>Màn hình Super Retina XDR 6.7 inch</li><li>Pin sử dụng cả ngày</li></ul>',
     category: 'Điện tử',
     brand: 'Apple',
     price: 32990000,
@@ -860,7 +893,8 @@ const fillSampleData = () => {
     weight: 221,
     tags: ['iPhone', 'Apple', 'Premium', 'Hot'],
     seoTitle: 'iPhone 15 Pro Max 256GB - Mua ngay với giá tốt nhất',
-    seoDescription: 'iPhone 15 Pro Max 256GB chính hãng, giá tốt nhất thị trường. Chip A17 Pro, camera 48MP, màn hình 6.7 inch. Bảo hành 12 tháng.'
+    seoDescription:
+      'iPhone 15 Pro Max 256GB chính hãng, giá tốt nhất thị trường. Chip A17 Pro, camera 48MP, màn hình 6.7 inch. Bảo hành 12 tháng.',
   }
   generateSlug()
 }
@@ -883,7 +917,7 @@ const clearForm = () => {
       shippingInfo: {
         freeShipping: false,
         shippingCost: 0,
-        processingTime: '1-2 days'
+        processingTime: '1-2 days',
       },
       images: [],
       tags: [],
@@ -891,7 +925,7 @@ const clearForm = () => {
       seoDescription: '',
       status: 'active',
       visibility: 'public',
-      featured: false
+      featured: false,
     }
     errors.value = {}
     if (descriptionEditor.value) {
@@ -904,7 +938,7 @@ const duplicateLastProduct = () => {
   // Implementation would get last product and populate form
   notificationStore.addNotification({
     type: 'info',
-    message: 'Tính năng sẽ được thêm sau khi có dữ liệu sản phẩm'
+    message: 'Tính năng sẽ được thêm sau khi có dữ liệu sản phẩm',
   })
 }
 
@@ -913,16 +947,16 @@ const saveDraft = async () => {
   saving.value = true
   try {
     // Auto-save logic would go here
-    await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000)) // Simulate API call
+
     notificationStore.addNotification({
       type: 'success',
-      message: 'Đã lưu nháp thành công'
+      message: 'Đã lưu nháp thành công',
     })
   } catch (error) {
     notificationStore.addNotification({
       type: 'error',
-      message: 'Có lỗi xảy ra khi lưu nháp'
+      message: 'Có lỗi xảy ra khi lưu nháp',
     })
   } finally {
     saving.value = false
@@ -936,38 +970,37 @@ const submitForm = async () => {
   validateField('category')
   validateField('price')
   validateField('stockQuantity')
-  
+
   if (!isFormValid.value) {
     notificationStore.addNotification({
       type: 'error',
-      message: 'Vui lòng kiểm tra và điền đầy đủ thông tin bắt buộc'
+      message: 'Vui lòng kiểm tra và điền đầy đủ thông tin bắt buộc',
     })
     return
   }
-  
+
   saving.value = true
-  
+
   try {
     if (isEdit.value) {
       await sellerStore.updateProduct(route.params.id, form.value)
       notificationStore.addNotification({
         type: 'success',
-        message: 'Cập nhật sản phẩm thành công!'
+        message: 'Cập nhật sản phẩm thành công!',
       })
     } else {
       await sellerStore.createProduct(form.value)
       notificationStore.addNotification({
         type: 'success',
-        message: 'Tạo sản phẩm thành công!'
+        message: 'Tạo sản phẩm thành công!',
       })
     }
-    
+
     router.push('/seller/products')
-    
   } catch (error) {
     notificationStore.addNotification({
       type: 'error',
-      message: `Có lỗi xảy ra: ${error.message}`
+      message: `Có lỗi xảy ra: ${error.message}`,
     })
   } finally {
     saving.value = false
@@ -987,7 +1020,7 @@ const closePreview = () => {
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'VND'
+    currency: 'VND',
   }).format(amount || 0)
 }
 
@@ -1002,7 +1035,7 @@ onMounted(async () => {
     //   form.value = { ...product }
     // }
   }
-  
+
   // Set up description editor
   await nextTick()
   if (descriptionEditor.value) {
@@ -1012,13 +1045,17 @@ onMounted(async () => {
 
 // Auto-save functionality
 let autoSaveTimer = null
-watch(form, () => {
-  if (autoSaveTimer) clearTimeout(autoSaveTimer)
-  autoSaveTimer = setTimeout(() => {
-    // Auto-save draft
-    console.log('Auto-saving draft...', form.value)
-  }, 3000)
-}, { deep: true })
+watch(
+  form,
+  () => {
+    if (autoSaveTimer) clearTimeout(autoSaveTimer)
+    autoSaveTimer = setTimeout(() => {
+      // Auto-save draft
+      console.log('Auto-saving draft...', form.value)
+    }, 3000)
+  },
+  { deep: true }
+)
 </script>
 
 <style scoped>
@@ -1771,7 +1808,7 @@ label {
   .form-layout {
     grid-template-columns: 1fr;
   }
-  
+
   .form-sidebar {
     order: -1;
   }
@@ -1781,32 +1818,32 @@ label {
   .product-form {
     padding: 1rem;
   }
-  
+
   .page-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .header-actions {
     width: 100%;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .form-actions {
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .actions-left,
   .actions-right {
     width: 100%;
     justify-content: center;
   }
-  
+
   .preview-content {
     grid-template-columns: 1fr;
   }

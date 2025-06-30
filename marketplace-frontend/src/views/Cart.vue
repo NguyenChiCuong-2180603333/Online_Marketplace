@@ -14,103 +14,110 @@
           <div class="cart-items">
             <div class="cart-header">
               <h2>Sản phẩm trong giỏ ({{ totalItems }})</h2>
-              <button @click="clearCart" class="clear-cart-btn">
-                🗑️ Xóa tất cả
-              </button>
+              <button @click="clearCart" class="clear-cart-btn">🗑️ Xóa tất cả</button>
             </div>
 
             <div class="items-list">
-              <div 
-                v-for="item in cartItems" 
-                :key="item.id" 
+              <div
+                v-for="item in cartItems"
+                :key="item.id"
                 class="cart-item space-card"
-                :class="{ 'removing': item.isRemoving }"
+                :class="{ removing: item.isRemoving }"
               >
                 <div class="item-image">
-  <img :src="item.productImage || '/placeholder-product.jpg'" :alt="item.productName" />
-  <div v-if="item.discount" class="discount-badge">
-    -{{ item.discount }}%
-  </div>
-</div>
+                  <img
+                    :src="item.productImage || '/placeholder-product.jpg'"
+                    :alt="item.productName"
+                  />
+                  <div v-if="item.discount" class="discount-badge">-{{ item.discount }}%</div>
+                </div>
 
                 <div class="item-details">
                   <div class="item-info">
-  <h3 class="item-name">
-    <router-link :to="`/products/${item.productId}`">
-      {{ item.productName }}
-    </router-link>
-  </h3>
-  <p class="item-category">{{ item.category?.name || 'Electronics' }}</p>
-  
-  <div class="item-features">
-    <span v-for="feature in item.keyFeatures?.slice(0, 2)" :key="feature" class="feature-tag">
-      {{ feature }}
-    </span>
-  </div>
+                    <h3 class="item-name">
+                      <router-link :to="`/products/${item.productId}`">
+                        {{ item.productName }}
+                      </router-link>
+                    </h3>
+                    <p class="item-category">{{ item.category?.name || 'Electronics' }}</p>
 
-  <div class="item-seller">
-    <span class="seller-info">
-      🏪 {{ item.seller?.name || 'Cosmic Store' }}
-    </span>
-    <span class="shipping-info">
-      🚀 Giao hàng từ {{ item.seller?.location || 'Thiên hà Milky Way' }}
-    </span>
-  </div>
-</div>
+                    <div class="item-features">
+                      <span
+                        v-for="feature in item.keyFeatures?.slice(0, 2)"
+                        :key="feature"
+                        class="feature-tag"
+                      >
+                        {{ feature }}
+                      </span>
+                    </div>
 
+                    <div class="item-seller">
+                      <span class="seller-info">
+                        🏪 {{ item.seller?.name || 'Cosmic Store' }}
+                      </span>
+                      <span class="shipping-info">
+                        🚀 Giao hàng từ {{ item.seller?.location || 'Thiên hà Milky Way' }}
+                      </span>
+                    </div>
+                  </div>
 
                   <div class="item-actions">
                     <div class="quantity-controls">
-  <label>Số lượng:</label>
-  <div class="quantity-selector">
-    <button 
-      @click="updateQuantity(item.productId, item.quantity - 1)"
-      :disabled="item.quantity <= 1 || loading"
-      class="quantity-btn"
-    >
-      -
-    </button>
-    <input 
-      v-model.number="item.quantity"
-      @change="updateQuantity(item.productId, item.quantity)"
-      type="number" 
-      min="1" 
-      :max="item.stock || 100"
-      class="quantity-input"
-      :disabled="loading"
-    />
-    <button 
-      @click="updateQuantity(item.productId, item.quantity + 1)"
-      :disabled="item.quantity >= (item.stock || 100) || loading"
-      class="quantity-btn"
-    >
-      +
-    </button>
-  </div>
-</div>
-
+                      <label>Số lượng:</label>
+                      <div class="quantity-selector">
+                        <button
+                          @click="updateQuantity(item.productId, item.quantity - 1)"
+                          :disabled="item.quantity <= 1 || loading"
+                          class="quantity-btn"
+                        >
+                          -
+                        </button>
+                        <input
+                          v-model.number="item.quantity"
+                          @change="updateQuantity(item.productId, item.quantity)"
+                          type="number"
+                          min="1"
+                          :max="item.stock || 100"
+                          class="quantity-input"
+                          :disabled="loading"
+                        />
+                        <button
+                          @click="updateQuantity(item.productId, item.quantity + 1)"
+                          :disabled="item.quantity >= (item.stock || 100) || loading"
+                          class="quantity-btn"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
 
                     <div class="item-price-section">
-  <div class="price-details">
-    <span v-if="item.originalPrice && item.originalPrice > item.productPrice" 
-          class="original-price">
-      {{ formatCurrency(item.originalPrice) }}
-    </span>
-    <span class="unit-price">{{ formatCurrency(item.productPrice) }}</span>
-  </div>
-  <div class="total-price">
-    {{ formatCurrency(item.subtotal) }}
-  </div>
-</div>
+                      <div class="price-details">
+                        <span
+                          v-if="item.originalPrice && item.originalPrice > item.productPrice"
+                          class="original-price"
+                        >
+                          {{ formatCurrency(item.originalPrice) }}
+                        </span>
+                        <span class="unit-price">{{ formatCurrency(item.productPrice) }}</span>
+                      </div>
+                      <div class="total-price">
+                        {{ formatCurrency(item.subtotal) }}
+                      </div>
+                    </div>
 
                     <div class="item-controls">
-  <button @click="saveForLater(item.productId)" class="action-btn">
-    💾 Lưu lại sau
-  </button>
-  <button @click="removeItem(item.productId)" class="action-btn remove-btn" :disabled="loading">
-    {{ loading ? '🔄' : '🗑️' }} Xóa
-  </button>
-</div>
+                      <button @click="saveForLater(item.productId)" class="action-btn">
+                        💾 Lưu lại sau
+                      </button>
+                      <button
+                        @click="removeItem(item.productId)"
+                        class="action-btn remove-btn"
+                        :disabled="loading"
+                      >
+                        {{ loading ? '🔄' : '🗑️' }} Xóa
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -128,7 +135,10 @@
             <div class="saved-items-list">
               <div v-for="item in savedItems" :key="item.id" class="saved-item space-card">
                 <div class="saved-item-image">
-                  <img :src="item.product.images?.[0] || '/placeholder-product.jpg'" :alt="item.product.name" />
+                  <img
+                    :src="item.product.images?.[0] || '/placeholder-product.jpg'"
+                    :alt="item.product.name"
+                  />
                 </div>
                 <div class="saved-item-info">
                   <h4>{{ item.product.name }}</h4>
@@ -151,27 +161,27 @@
         <div class="cart-summary">
           <div class="summary-card space-card">
             <h3>📊 Tóm tắt đơn hàng</h3>
-            
+
             <div class="summary-details">
               <div class="summary-row">
                 <span>Tạm tính ({{ totalItems }} sản phẩm):</span>
                 <span>{{ formatCurrency(subtotal) }}</span>
               </div>
-              
+
               <div class="summary-row">
                 <span>Phí vận chuyển:</span>
                 <span class="shipping-fee">
                   {{ shippingFee > 0 ? formatCurrency(shippingFee) : 'Miễn phí' }}
                 </span>
               </div>
-              
+
               <div v-if="discount > 0" class="summary-row discount-row">
                 <span>Giảm giá:</span>
                 <span class="discount-amount">-{{ formatCurrency(discount) }}</span>
               </div>
-              
+
               <div class="summary-divider"></div>
-              
+
               <div class="summary-row total-row">
                 <span>Tổng cộng:</span>
                 <span class="total-amount">{{ formatCurrency(totalAmount) }}</span>
@@ -181,29 +191,33 @@
             <!-- Promo Code -->
             <div class="promo-section">
               <div class="promo-input-group">
-                <input 
-                  v-model="promoCode" 
-                  type="text" 
+                <input
+                  v-model="promoCode"
+                  type="text"
                   placeholder="Nhập mã giảm giá"
                   class="promo-input"
                   :disabled="promoLoading"
                 />
-                <button 
-                  @click="applyPromoCode" 
+                <button
+                  @click="applyPromoCode"
                   class="promo-btn"
                   :disabled="!promoCode.trim() || promoLoading"
                 >
                   {{ promoLoading ? '🔄' : '✨' }} Áp dụng
                 </button>
               </div>
-              <div v-if="promoMessage" class="promo-message" :class="{ error: promoError, success: !promoError }">
+              <div
+                v-if="promoMessage"
+                class="promo-message"
+                :class="{ error: promoError, success: !promoError }"
+              >
                 {{ promoMessage }}
               </div>
             </div>
 
             <!-- Checkout Button -->
-            <button 
-              @click="proceedToCheckout" 
+            <button
+              @click="proceedToCheckout"
               class="checkout-btn"
               :disabled="cartItems.length === 0 || hasOutOfStockItems"
             >
@@ -219,7 +233,7 @@
                   <p>Giao trong 24h với công nghệ teleport</p>
                 </div>
               </div>
-              
+
               <div class="shipping-option">
                 <div class="shipping-icon">🛸</div>
                 <div class="shipping-details">
@@ -250,10 +264,17 @@
           <div class="recommended-products space-card">
             <h3>🌟 Có thể bạn sẽ thích</h3>
             <div class="recommended-list">
-              <div v-for="product in recommendedProducts" :key="product.id" class="recommended-item">
+              <div
+                v-for="product in recommendedProducts"
+                :key="product.id"
+                class="recommended-item"
+              >
                 <router-link :to="`/products/${product.id}`" class="recommended-link">
                   <div class="recommended-image">
-                    <img :src="product.images?.[0] || '/placeholder-product.jpg'" :alt="product.name" />
+                    <img
+                      :src="product.images?.[0] || '/placeholder-product.jpg'"
+                      :alt="product.name"
+                    />
                   </div>
                   <div class="recommended-info">
                     <h4>{{ product.name }}</h4>
@@ -285,10 +306,10 @@
               <span class="particle">⭐</span>
             </div>
           </div>
-          
+
           <h2>Giỏ hành tinh của bạn đang trống</h2>
           <p>Hãy khám phá vũ trụ sản phẩm và thêm những món đồ tuyệt vời vào giỏ hàng!</p>
-          
+
           <div class="empty-cart-actions">
             <router-link to="/products" class="btn btn-primary btn-large">
               🚀 Khám phá sản phẩm
@@ -302,9 +323,12 @@
           <div class="quick-categories">
             <h3>Danh mục phổ biến</h3>
             <div class="category-chips">
-              <router-link v-for="category in popularCategories" :key="category.id" 
-                           :to="`/categories/${category.slug}`" 
-                           class="category-chip">
+              <router-link
+                v-for="category in popularCategories"
+                :key="category.id"
+                :to="`/categories/${category.slug}`"
+                class="category-chip"
+              >
                 {{ category.icon }} {{ category.name }}
               </router-link>
             </div>
@@ -320,6 +344,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
+import { recommendationAPI, categoryAPI, profileAPI, orderAPI } from '@/services/api'
 
 export default {
   name: 'Cart',
@@ -327,7 +352,7 @@ export default {
     const router = useRouter()
     const cartStore = useCartStore()
     const authStore = useAuthStore()
-    
+
     // Reactive data
     const loading = ref(false)
     const promoCode = ref('')
@@ -335,121 +360,136 @@ export default {
     const promoMessage = ref('')
     const promoError = ref(false)
     const freeShippingThreshold = ref(1000000) // 1M VND
-    
+
     // ✅ FIX: Use real cart data from store
     const cartItems = computed(() => cartStore.items || [])
     const isEmpty = computed(() => cartStore.isEmpty)
-    
-    // Keep some mock data for features not yet implemented
-    const savedItems = ref([
-      {
-        id: 3,
-        product: {
-          id: 3,
-          name: 'Mechanical Keyboard Cosmos',
-          price: 2200000,
-          images: ['/placeholder-product.jpg']
-        }
-      }
-    ])
-    
-    const recommendedProducts = ref([
-      { id: 4, name: 'Gaming Headset Galaxy', price: 1800000, reviewCount: 89, images: ['/placeholder-product.jpg'] },
-      { id: 5, name: 'Monitor 4K Stardust', price: 8500000, reviewCount: 156, images: ['/placeholder-product.jpg'] },
-      { id: 6, name: 'Gaming Chair Cosmic', price: 6200000, reviewCount: 67, images: ['/placeholder-product.jpg'] }
-    ])
-    
-    const popularCategories = ref([
-      { id: 1, name: 'Công nghệ', slug: 'tech', icon: '💻' },
-      { id: 2, name: 'Thời trang', slug: 'fashion', icon: '👗' },
-      { id: 3, name: 'Gia đình', slug: 'home', icon: '🏠' },
-      { id: 4, name: 'Sách', slug: 'books', icon: '📚' }
-    ])
-    
+
+    // ✅ FIX: Use real API data instead of mock
+    const savedItems = ref([])
+    const recommendedProducts = ref([])
+    const popularCategories = ref([])
+
     // ✅ FIX: Use real computed properties from store
     const totalItems = computed(() => cartStore.totalItems || 0)
     const subtotal = computed(() => cartStore.totalAmount || 0)
-    
+
     const shippingFee = computed(() => {
       return subtotal.value >= freeShippingThreshold.value ? 0 : 50000
     })
-    
+
     const discount = computed(() => {
       // Calculate discount based on promo code or other factors
       return 0
     })
-    
+
     const totalAmount = computed(() => {
       return subtotal.value + shippingFee.value - discount.value
     })
-    
+
     const hasOutOfStockItems = computed(() => {
-  return cartItems.value.some(item => item.quantity > (item.stock || 100))
-})
-    
+      return cartItems.value.some((item) => item.quantity > (item.stock || 100))
+    })
+
     // Methods
     const formatCurrency = (amount) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
       }).format(amount)
     }
-    
+
+    // ✅ FIX: Load saved items from API
+    const loadSavedItems = async () => {
+      try {
+        const response = await profileAPI.getSavedItems()
+        savedItems.value = response.data || []
+      } catch (error) {
+        console.error('Error loading saved items:', error)
+        // Fallback to empty array
+        savedItems.value = []
+      }
+    }
+
+    // ✅ FIX: Load recommended products from API
+    const loadRecommendedProducts = async () => {
+      try {
+        const response = await recommendationAPI.forUser(3)
+        recommendedProducts.value = response.data?.recommendations || []
+      } catch (error) {
+        console.error('Error loading recommended products:', error)
+        // Fallback to empty array
+        recommendedProducts.value = []
+      }
+    }
+
+    // ✅ FIX: Load popular categories from API
+    const loadPopularCategories = async () => {
+      try {
+        const response = await categoryAPI.getAll()
+        popularCategories.value = response.data?.slice(0, 4) || []
+      } catch (error) {
+        console.error('Error loading popular categories:', error)
+        // Fallback to empty array
+        popularCategories.value = []
+      }
+    }
+
     const updateQuantity = async (productId, newQuantity) => {
-  console.log('🔄 Update quantity called:', { productId, newQuantity })
-  
-  if (newQuantity < 1) {
-    console.log('❌ Invalid quantity:', newQuantity)
-    return
-  }
-  
-  try {
-    loading.value = true
-    console.log('📡 Calling cartStore.updateItemQuantity...')
-    
-    await cartStore.updateItemQuantity(productId, newQuantity)
-    
-    console.log('✅ Quantity updated successfully')
-    
-    await cartStore.loadCart()
-    
-  } catch (error) {
-    console.error('❌ Error updating quantity:', error)
-    console.error('Error details:', error.response?.data)
-    alert('Có lỗi xảy ra khi cập nhật số lượng: ' + (error.response?.data?.message || error.message))
-  } finally {
-    loading.value = false
-  }
-}
-    
+      console.log('🔄 Update quantity called:', { productId, newQuantity })
+
+      if (newQuantity < 1) {
+        console.log('❌ Invalid quantity:', newQuantity)
+        return
+      }
+
+      try {
+        loading.value = true
+        console.log('📡 Calling cartStore.updateItemQuantity...')
+
+        await cartStore.updateItemQuantity(productId, newQuantity)
+
+        console.log('✅ Quantity updated successfully')
+
+        await cartStore.loadCart()
+      } catch (error) {
+        console.error('❌ Error updating quantity:', error)
+        console.error('Error details:', error.response?.data)
+        alert(
+          'Có lỗi xảy ra khi cập nhật số lượng: ' + (error.response?.data?.message || error.message)
+        )
+      } finally {
+        loading.value = false
+      }
+    }
+
     const removeItem = async (productId) => {
-  console.log('🗑️ Remove item called:', { productId })
-  
-  if (!confirm('Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?')) return
-  
-  try {
-    loading.value = true
-    console.log('📡 Calling cartStore.removeItem...')
-    
-    await cartStore.removeItem(productId)
-    
-    console.log('✅ Item removed successfully')
-    
-    await cartStore.loadCart()
-    
-  } catch (error) {
-    console.error('❌ Error removing item:', error)
-    console.error('Error details:', error.response?.data)
-    alert('Có lỗi xảy ra khi xóa sản phẩm: ' + (error.response?.data?.message || error.message))
-  } finally {
-    loading.value = false
-  }
-}
-    
+      console.log('🗑️ Remove item called:', { productId })
+
+      if (!confirm('Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?')) return
+
+      try {
+        loading.value = true
+        console.log('📡 Calling cartStore.removeItem...')
+
+        await cartStore.removeItem(productId)
+
+        console.log('✅ Item removed successfully')
+
+        await cartStore.loadCart()
+      } catch (error) {
+        console.error('❌ Error removing item:', error)
+        console.error('Error details:', error.response?.data)
+        alert('Có lỗi xảy ra khi xóa sản phẩm: ' + (error.response?.data?.message || error.message))
+      } finally {
+        loading.value = false
+      }
+    }
+
     // ✅ FIX: Real API call for clear cart
     const clearCart = async () => {
       if (!confirm('Bạn có chắc muốn xóa tất cả sản phẩm trong giỏ hàng?')) return
-      
+
       try {
         loading.value = true
         await cartStore.clearCart()
@@ -462,89 +502,93 @@ export default {
         loading.value = false
       }
     }
-    
+
     const saveForLater = async (productId) => {
-  const item = cartItems.value.find(item => item.productId === productId)
-  if (!item) return
-  
-  try {
-    const productObj = {
-      id: item.productId,
-      name: item.productName,
-      price: item.productPrice,
-      images: [item.productImage || '/placeholder-product.jpg']
+      const item = cartItems.value.find((item) => item.productId === productId)
+      if (!item) return
+
+      try {
+        await profileAPI.saveForLater(productId)
+
+        const productObj = {
+          id: item.productId,
+          name: item.productName,
+          price: item.productPrice,
+          images: [item.productImage || '/placeholder-product.jpg'],
+        }
+
+        savedItems.value.push({
+          id: productId,
+          product: productObj,
+        })
+
+        await removeItem(productId)
+
+        alert('Đã lưu sản phẩm để mua sau')
+      } catch (error) {
+        console.error('Error saving item:', error)
+        alert('Có lỗi xảy ra khi lưu sản phẩm')
+      }
     }
-    
-    savedItems.value.push({
-      id: productId,
-      product: productObj
-    })
-    
-    await removeItem(productId)
-    
-    alert('Đã lưu sản phẩm để mua sau')
-  } catch (error) {
-    console.error('Error saving item:', error)
-    alert('Có lỗi xảy ra khi lưu sản phẩm')
-  }
-}
-    
+
     const moveToCart = async (itemId) => {
-      const savedItem = savedItems.value.find(item => item.id === itemId)
+      const savedItem = savedItems.value.find((item) => item.id === itemId)
       if (!savedItem) return
-      
+
       try {
         // Add to cart via store
         await cartStore.addItem(savedItem.product.id, 1)
-        
+
+        // Remove from saved items via API
+        await profileAPI.removeFromSavedItems(itemId)
+
         // Remove from saved items
-        const index = savedItems.value.findIndex(item => item.id === itemId)
+        const index = savedItems.value.findIndex((item) => item.id === itemId)
         if (index > -1) {
           savedItems.value.splice(index, 1)
         }
-        
+
         alert('Đã thêm sản phẩm vào giỏ hàng')
       } catch (error) {
         console.error('Error moving to cart:', error)
         alert('Có lỗi xảy ra khi thêm vào giỏ hàng')
       }
     }
-    
+
     const deleteSavedItem = async (itemId) => {
       if (!confirm('Bạn có chắc muốn xóa sản phẩm đã lưu này?')) return
-      
+
       try {
-        const index = savedItems.value.findIndex(item => item.id === itemId)
+        // Remove from saved items via API
+        await profileAPI.removeFromSavedItems(itemId)
+
+        const index = savedItems.value.findIndex((item) => item.id === itemId)
         if (index > -1) {
           savedItems.value.splice(index, 1)
         }
-        
+
         alert('Đã xóa sản phẩm khỏi danh sách lưu')
       } catch (error) {
         console.error('Error deleting saved item:', error)
         alert('Có lỗi xảy ra khi xóa sản phẩm')
       }
     }
-    
+
     const applyPromoCode = async () => {
       if (!promoCode.value.trim()) return
-      
+
       promoLoading.value = true
       promoMessage.value = ''
       promoError.value = false
-      
+
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        // Mock promo code validation
-        const validCodes = ['COSMIC20', 'GALAXY15', 'SPACE10']
-        if (validCodes.includes(promoCode.value.toUpperCase())) {
+        const response = await orderAPI.validatePromoCode(promoCode.value)
+        if (response.data.valid) {
           promoMessage.value = 'Mã giảm giá đã được áp dụng thành công!'
           promoError.value = false
           // Apply discount logic here
         } else {
-          promoMessage.value = 'Mã giảm giá không hợp lệ hoặc đã hết hạn'
+          promoMessage.value = response.data.message || 'Mã giảm giá không hợp lệ'
           promoError.value = true
         }
       } catch (error) {
@@ -555,7 +599,7 @@ export default {
         promoLoading.value = false
       }
     }
-    
+
     const proceedToCheckout = () => {
       if (!authStore.isAuthenticated) {
         if (confirm('Bạn cần đăng nhập để tiếp tục. Chuyển đến trang đăng nhập?')) {
@@ -563,34 +607,39 @@ export default {
         }
         return
       }
-      
+
       if (hasOutOfStockItems.value) {
         alert('Có sản phẩm trong giỏ hàng vượt quá số lượng tồn kho. Vui lòng điều chỉnh lại.')
         return
       }
-      
+
       router.push('/checkout')
     }
-    
+
     const addRecommendedToCart = async (product) => {
-  try {
-    await cartStore.addItem(product.id, 1)
-    alert('Đã thêm sản phẩm vào giỏ hàng!')
-  } catch (error) {
-    console.error('Error adding recommended product:', error)
-    alert('Có lỗi xảy ra khi thêm sản phẩm')
-  }
-}
-    
+      try {
+        await cartStore.addItem(product.id, 1)
+        alert('Đã thêm sản phẩm vào giỏ hàng!')
+      } catch (error) {
+        console.error('Error adding recommended product:', error)
+        alert('Có lỗi xảy ra khi thêm sản phẩm')
+      }
+    }
+
     // ✅ FIX: Load real cart data on mount
     onMounted(async () => {
       console.log('Cart page mounted - loading real cart data...')
-      
+
       if (authStore.isAuthenticated) {
         try {
           loading.value = true
+
+          // Load cart data
           await cartStore.loadCart()
           console.log('✅ Cart data loaded:', cartStore.items)
+
+          // Load additional data
+          await Promise.all([loadSavedItems(), loadRecommendedProducts(), loadPopularCategories()])
         } catch (error) {
           console.error('❌ Error loading cart:', error)
         } finally {
@@ -601,25 +650,32 @@ export default {
         router.push('/login')
       }
     })
-    
+
     return {
-      loading,
+      // Cart data
       cartItems,
       isEmpty,
-      savedItems,
-      recommendedProducts,
-      popularCategories,
+      totalItems,
+      subtotal,
+      totalAmount,
+      shippingFee,
+      discount,
+      hasOutOfStockItems,
+
+      // UI state
+      loading,
       promoCode,
       promoLoading,
       promoMessage,
       promoError,
       freeShippingThreshold,
-      totalItems,
-      subtotal,
-      shippingFee,
-      discount,
-      totalAmount,
-      hasOutOfStockItems,
+
+      // Additional data
+      savedItems,
+      recommendedProducts,
+      popularCategories,
+
+      // Methods
       formatCurrency,
       updateQuantity,
       removeItem,
@@ -629,9 +685,9 @@ export default {
       deleteSavedItem,
       applyPromoCode,
       proceedToCheckout,
-      addRecommendedToCart
+      addRecommendedToCart,
     }
-  }
+  },
 }
 </script>
 
@@ -939,8 +995,12 @@ export default {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .saved-items {
@@ -1367,13 +1427,25 @@ export default {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 @keyframes twinkle {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.2); }
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 
 .empty-cart-content h2 {
@@ -1443,7 +1515,7 @@ export default {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
-  
+
   .cart-summary {
     position: static;
     order: -1;
@@ -1454,59 +1526,59 @@ export default {
   .cart-page {
     padding: 1rem 0;
   }
-  
+
   .page-title {
     font-size: 2rem;
   }
-  
+
   .cart-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .cart-item {
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .item-details {
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .item-actions {
     align-items: flex-start;
     min-width: auto;
   }
-  
+
   .quantity-controls {
     justify-content: flex-start;
   }
-  
+
   .item-controls {
     flex-direction: column;
     width: 100%;
   }
-  
+
   .empty-cart-actions {
     flex-direction: column;
   }
-  
+
   .promo-input-group {
     flex-direction: column;
   }
-  
+
   .recommended-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
   }
-  
+
   .recommended-link {
     width: 100%;
   }
-  
+
   .add-recommended-btn {
     align-self: flex-end;
   }
@@ -1517,23 +1589,23 @@ export default {
     width: 100px;
     height: 100px;
   }
-  
+
   .summary-card {
     padding: 1rem;
   }
-  
+
   .empty-cart-content {
     padding: 2rem 1rem;
   }
-  
+
   .floating-cart {
     font-size: 3rem;
   }
-  
+
   .category-chips {
     flex-direction: column;
   }
-  
+
   .category-chip {
     text-align: center;
   }

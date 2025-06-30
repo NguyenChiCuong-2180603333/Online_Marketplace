@@ -36,6 +36,9 @@ public class User {
 
     private String avatar; // Ảnh đại diện
 
+    private String birthday; // Ngày sinh
+    private String address; // Địa chỉ
+
     @Pattern(regexp = "USER|ADMIN", message = "Role must be USER or ADMIN")
     private String role = "USER"; // USER or ADMIN
     private boolean enabled = true; // Cho phép khóa tài khoản
@@ -83,6 +86,12 @@ public class User {
 
     public String getAvatar() { return avatar; }
     public void setAvatar(String avatar) { this.avatar = avatar; }
+
+    public String getBirthday() { return birthday; }
+    public void setBirthday(String birthday) { this.birthday = birthday; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }

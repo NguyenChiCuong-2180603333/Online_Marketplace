@@ -103,6 +103,8 @@ public class UserService implements UserDetailsService {
         user.setFirstName(updateRequest.getFirstName());
         user.setLastName(updateRequest.getLastName());
         user.setPhone(updateRequest.getPhone());
+        user.setBirthday(updateRequest.getBirthday());
+        user.setAddress(updateRequest.getAddress());
         if (updateRequest.getAvatar() != null) {
             user.setAvatar(updateRequest.getAvatar());
         }

@@ -873,17 +873,35 @@ export default {
       }
     }
 
-    const handleImageUpload = (event) => {
+    const handleImageUpload = async (event) => {
       const files = Array.from(event.target.files)
-      files.forEach((file) => {
+      const token = localStorage.getItem('token')
+      for (const file of files) {
         if (file.type.startsWith('image/')) {
-          const reader = new FileReader()
-          reader.onload = (e) => {
-            productForm.value.images.push(e.target.result)
+          if (file.size > 5 * 1024 * 1024) {
+            alert(`File ${file.name} quá lớn. Kích thước tối đa 5MB.`)
+            continue
           }
-          reader.readAsDataURL(file)
+          const formData = new FormData()
+          formData.append('file', file)
+          try {
+            const res = await fetch('http://localhost:8080/api/upload/image', {
+              method: 'POST',
+              body: formData,
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+              credentials: 'include',
+            })
+            const data = await res.json()
+            if (data.imageUrl) {
+              productForm.value.images.push(data.imageUrl)
+            } else {
+              alert(`Lỗi upload ảnh: ${file.name}`)
+            }
+          } catch (e) {
+            alert(`Lỗi upload ảnh: ${file.name}`)
+          }
         }
-      })
+      }
     }
 
     const removeImage = (index) => {

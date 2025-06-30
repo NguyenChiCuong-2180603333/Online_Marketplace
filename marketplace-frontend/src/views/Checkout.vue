@@ -41,10 +41,10 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="firstName" class="form-label">Họ *</label>
-                  <input 
+                  <input
                     id="firstName"
-                    v-model="shippingInfo.firstName" 
-                    type="text" 
+                    v-model="shippingInfo.firstName"
+                    type="text"
                     class="form-input"
                     :class="{ error: errors.firstName }"
                     placeholder="Nhập họ của bạn"
@@ -52,13 +52,13 @@
                   />
                   <span v-if="errors.firstName" class="error-message">{{ errors.firstName }}</span>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="lastName" class="form-label">Tên *</label>
-                  <input 
+                  <input
                     id="lastName"
-                    v-model="shippingInfo.lastName" 
-                    type="text" 
+                    v-model="shippingInfo.lastName"
+                    type="text"
                     class="form-input"
                     :class="{ error: errors.lastName }"
                     placeholder="Nhập tên của bạn"
@@ -70,10 +70,10 @@
 
               <div class="form-group">
                 <label for="email" class="form-label">Email *</label>
-                <input 
+                <input
                   id="email"
-                  v-model="shippingInfo.email" 
-                  type="email" 
+                  v-model="shippingInfo.email"
+                  type="email"
                   class="form-input"
                   :class="{ error: errors.email }"
                   placeholder="example@galaxy.com"
@@ -84,10 +84,10 @@
 
               <div class="form-group">
                 <label for="phone" class="form-label">Số điện thoại *</label>
-                <input 
+                <input
                   id="phone"
-                  v-model="shippingInfo.phone" 
-                  type="tel" 
+                  v-model="shippingInfo.phone"
+                  type="tel"
                   class="form-input"
                   :class="{ error: errors.phone }"
                   placeholder="0123456789"
@@ -98,10 +98,10 @@
 
               <div class="form-group">
                 <label for="address" class="form-label">Địa chỉ *</label>
-                <input 
+                <input
                   id="address"
-                  v-model="shippingInfo.address" 
-                  type="text" 
+                  v-model="shippingInfo.address"
+                  type="text"
                   class="form-input"
                   :class="{ error: errors.address }"
                   placeholder="Số nhà, tên đường"
@@ -113,9 +113,9 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="city" class="form-label">Thành phố *</label>
-                  <select 
+                  <select
                     id="city"
-                    v-model="shippingInfo.city" 
+                    v-model="shippingInfo.city"
                     class="form-input"
                     :class="{ error: errors.city }"
                     @change="loadDistricts"
@@ -128,12 +128,12 @@
                   </select>
                   <span v-if="errors.city" class="error-message">{{ errors.city }}</span>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="district" class="form-label">Quận/Huyện *</label>
-                  <select 
+                  <select
                     id="district"
-                    v-model="shippingInfo.district" 
+                    v-model="shippingInfo.district"
                     class="form-input"
                     :class="{ error: errors.district }"
                     :disabled="!shippingInfo.city"
@@ -141,18 +141,22 @@
                     required
                   >
                     <option value="">Chọn quận/huyện</option>
-                    <option v-for="district in districts" :key="district.code" :value="district.code">
+                    <option
+                      v-for="district in districts"
+                      :key="district.code"
+                      :value="district.code"
+                    >
                       {{ district.name }}
                     </option>
                   </select>
                   <span v-if="errors.district" class="error-message">{{ errors.district }}</span>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="ward" class="form-label">Phường/Xã *</label>
-                  <select 
+                  <select
                     id="ward"
-                    v-model="shippingInfo.ward" 
+                    v-model="shippingInfo.ward"
                     class="form-input"
                     :class="{ error: errors.ward }"
                     :disabled="!shippingInfo.district"
@@ -169,9 +173,9 @@
 
               <div class="form-group">
                 <label for="notes" class="form-label">Ghi chú (tùy chọn)</label>
-                <textarea 
+                <textarea
                   id="notes"
-                  v-model="shippingInfo.notes" 
+                  v-model="shippingInfo.notes"
                   class="form-input"
                   rows="3"
                   placeholder="Ghi chú về địa chỉ giao hàng, thời gian nhận hàng..."
@@ -182,8 +186,8 @@
               <div class="delivery-options">
                 <h3>🚀 Phương thức giao hàng</h3>
                 <div class="delivery-list">
-                  <div 
-                    v-for="option in deliveryOptions" 
+                  <div
+                    v-for="option in deliveryOptions"
                     :key="option.id"
                     class="delivery-option"
                     :class="{ selected: selectedDelivery === option.id }"
@@ -199,9 +203,9 @@
                       {{ option.price > 0 ? formatCurrency(option.price) : 'Miễn phí' }}
                     </div>
                     <div class="delivery-radio">
-                      <input 
-                        type="radio" 
-                        :value="option.id" 
+                      <input
+                        type="radio"
+                        :value="option.id"
                         v-model="selectedDelivery"
                         :id="`delivery-${option.id}`"
                       />
@@ -230,8 +234,8 @@
 
             <div class="payment-methods space-card">
               <div class="payment-tabs">
-                <button 
-                  v-for="method in paymentMethods" 
+                <button
+                  v-for="method in paymentMethods"
                   :key="method.id"
                   class="payment-tab"
                   :class="{ active: selectedPayment === method.id }"
@@ -247,10 +251,10 @@
                 <form @submit.prevent="processPayment">
                   <div class="form-group">
                     <label for="cardNumber" class="form-label">Số thẻ *</label>
-                    <input 
+                    <input
                       id="cardNumber"
-                      v-model="paymentInfo.cardNumber" 
-                      type="text" 
+                      v-model="paymentInfo.cardNumber"
+                      type="text"
                       class="form-input"
                       placeholder="1234 5678 9012 3456"
                       maxlength="19"
@@ -262,10 +266,10 @@
                   <div class="form-row">
                     <div class="form-group">
                       <label for="expiryDate" class="form-label">Ngày hết hạn *</label>
-                      <input 
+                      <input
                         id="expiryDate"
-                        v-model="paymentInfo.expiryDate" 
-                        type="text" 
+                        v-model="paymentInfo.expiryDate"
+                        type="text"
                         class="form-input"
                         placeholder="MM/YY"
                         maxlength="5"
@@ -273,13 +277,13 @@
                         required
                       />
                     </div>
-                    
+
                     <div class="form-group">
                       <label for="cvv" class="form-label">CVV *</label>
-                      <input 
+                      <input
                         id="cvv"
-                        v-model="paymentInfo.cvv" 
-                        type="text" 
+                        v-model="paymentInfo.cvv"
+                        type="text"
                         class="form-input"
                         placeholder="123"
                         maxlength="4"
@@ -290,10 +294,10 @@
 
                   <div class="form-group">
                     <label for="cardName" class="form-label">Tên trên thẻ *</label>
-                    <input 
+                    <input
                       id="cardName"
-                      v-model="paymentInfo.cardName" 
-                      type="text" 
+                      v-model="paymentInfo.cardName"
+                      type="text"
                       class="form-input"
                       placeholder="NGUYEN VAN A"
                       required
@@ -305,7 +309,10 @@
                     <div class="security-icon">🔒</div>
                     <div class="security-text">
                       <strong>Thanh toán bảo mật</strong>
-                      <p>Thông tin thẻ của bạn được mã hóa 256-bit SSL và không được lưu trữ trên hệ thống của chúng tôi</p>
+                      <p>
+                        Thông tin thẻ của bạn được mã hóa 256-bit SSL và không được lưu trữ trên hệ
+                        thống của chúng tôi
+                      </p>
                     </div>
                   </div>
                 </form>
@@ -314,8 +321,8 @@
               <!-- E-wallet Payment -->
               <div v-if="selectedPayment === 'ewallet'" class="payment-form">
                 <div class="ewallet-options">
-                  <div 
-                    v-for="wallet in ewalletOptions" 
+                  <div
+                    v-for="wallet in ewalletOptions"
                     :key="wallet.id"
                     class="ewallet-option"
                     :class="{ selected: selectedEwallet === wallet.id }"
@@ -327,9 +334,9 @@
                       <p>{{ wallet.description }}</p>
                     </div>
                     <div class="ewallet-radio">
-                      <input 
-                        type="radio" 
-                        :value="wallet.id" 
+                      <input
+                        type="radio"
+                        :value="wallet.id"
                         v-model="selectedEwallet"
                         :id="`ewallet-${wallet.id}`"
                       />
@@ -363,7 +370,10 @@
                     </div>
                   </div>
                   <div class="bank-note">
-                    <p><strong>Lưu ý:</strong> Vui lòng chuyển khoản đúng số tiền và nội dung để đơn hàng được xử lý tự động.</p>
+                    <p>
+                      <strong>Lưu ý:</strong> Vui lòng chuyển khoản đúng số tiền và nội dung để đơn
+                      hàng được xử lý tự động.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -373,7 +383,9 @@
                   ← Quay lại thông tin
                 </button>
                 <button @click="processPayment" class="btn btn-primary" :disabled="processing">
-                  {{ processing ? '🔄 Đang xử lý...' : `💳 Thanh toán ${formatCurrency(totalAmount)}` }}
+                  {{
+                    processing ? '🔄 Đang xử lý...' : `💳 Thanh toán ${formatCurrency(totalAmount)}`
+                  }}
                 </button>
               </div>
             </div>
@@ -391,20 +403,28 @@
                   <span class="particle">💫</span>
                 </div>
               </div>
-              
+
               <h2>🎉 Đặt hàng thành công!</h2>
-              <p>Cảm ơn bạn đã mua hàng tại Cosmic Marketplace. Đơn hàng của bạn đang được xử lý.</p>
-              
+              <p>
+                Cảm ơn bạn đã mua hàng tại Cosmic Marketplace. Đơn hàng của bạn đang được xử lý.
+              </p>
+
               <div class="order-summary">
                 <div class="order-info">
                   <h3>📋 Thông tin đơn hàng</h3>
                   <div class="order-item">
                     <span>Mã đơn hàng:</span>
-                    <span class="order-code">{{ orderCode }}</span>
+                    <span class="order-code">{{ createdOrder?.orderCode || orderCode }}</span>
+                  </div>
+                  <div class="order-item">
+                    <span>Trạng thái:</span>
+                    <span class="order-status">{{ createdOrder?.status || 'Đang xử lý' }}</span>
                   </div>
                   <div class="order-item">
                     <span>Tổng tiền:</span>
-                    <span class="order-total">{{ formatCurrency(totalAmount) }}</span>
+                    <span class="order-total">{{
+                      formatCurrency(createdOrder?.totalAmount || totalAmount)
+                    }}</span>
                   </div>
                   <div class="order-item">
                     <span>Phương thức thanh toán:</span>
@@ -414,13 +434,15 @@
                     <span>Thời gian giao hàng dự kiến:</span>
                     <span>{{ getEstimatedDelivery() }}</span>
                   </div>
+                  <div v-if="createdOrder?.createdAt" class="order-item">
+                    <span>Ngày đặt hàng:</span>
+                    <span>{{ new Date(createdOrder.createdAt).toLocaleDateString('vi-VN') }}</span>
+                  </div>
                 </div>
               </div>
 
               <div class="success-actions">
-                <router-link to="/orders" class="btn btn-primary">
-                  📋 Xem đơn hàng
-                </router-link>
+                <router-link to="/orders" class="btn btn-primary"> 📋 Xem đơn hàng </router-link>
                 <router-link to="/products" class="btn btn-secondary">
                   🛍️ Tiếp tục mua sắm
                 </router-link>
@@ -430,19 +452,30 @@
         </div>
 
         <!-- Order Summary Sidebar -->
-        <div class="order-summary-sidebar">
+        <div class="order-summary-sidebar" v-if="orderItems && orderItems.length > 0">
           <div class="summary-card space-card">
             <h3>📦 Đơn hàng của bạn</h3>
-            
+
             <div class="order-items">
-              <div v-for="item in orderItems" :key="item.id" class="order-item-summary">
+              <div
+                v-for="item in currentStep === 4 && createdOrder?.items
+                  ? createdOrder.items
+                  : orderItems"
+                :key="item.id"
+                class="order-item-summary"
+              >
                 <div class="item-image">
-                  <img :src="item.product.images?.[0] || '/placeholder-product.jpg'" :alt="item.product.name" />
+                  <img
+                    :src="item.product?.images?.[0] || '/placeholder-product.jpg'"
+                    :alt="item.product?.name || ''"
+                  />
                   <span class="item-quantity">{{ item.quantity }}</span>
                 </div>
                 <div class="item-details">
-                  <h4>{{ item.product.name }}</h4>
-                  <div class="item-price">{{ formatCurrency(item.product.price * item.quantity) }}</div>
+                  <h4>{{ item.product?.name || 'Sản phẩm không xác định' }}</h4>
+                  <div class="item-price">
+                    {{ formatCurrency((item.product?.price || 0) * item.quantity) }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -493,19 +526,21 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
+import { orderAPI, paymentAPI, productAPI } from '@/services/api'
 
 export default {
   name: 'Checkout',
   setup() {
     const router = useRouter()
     const cartStore = useCartStore()
-    
+
     // Reactive data
     const currentStep = ref(2) // Start at shipping info step
     const submitting = ref(false)
     const processing = ref(false)
     const orderCode = ref(`CM${Date.now()}`)
-    
+    const createdOrder = ref(null) // Store the created order from API
+
     // Form data
     const shippingInfo = ref({
       firstName: '',
@@ -516,31 +551,31 @@ export default {
       city: '',
       district: '',
       ward: '',
-      notes: ''
+      notes: '',
     })
-    
+
     const paymentInfo = ref({
       cardNumber: '',
       expiryDate: '',
       cvv: '',
-      cardName: ''
+      cardName: '',
     })
-    
+
     const errors = ref({})
     const selectedDelivery = ref('standard')
     const selectedPayment = ref('card')
     const selectedEwallet = ref('momo')
-    
+
     // Mock data
     const cities = ref([
       { code: 'HCM', name: 'TP. Hồ Chí Minh' },
       { code: 'HN', name: 'Hà Nội' },
-      { code: 'DN', name: 'Đà Nẵng' }
+      { code: 'DN', name: 'Đà Nẵng' },
     ])
-    
+
     const districts = ref([])
     const wards = ref([])
-    
+
     const deliveryOptions = ref([
       {
         id: 'express',
@@ -548,7 +583,7 @@ export default {
         description: 'Giao trong 2-4 giờ',
         time: '2-4 giờ',
         price: 100000,
-        icon: '🚀'
+        icon: '🚀',
       },
       {
         id: 'standard',
@@ -556,7 +591,7 @@ export default {
         description: 'Giao trong 1-2 ngày',
         time: '1-2 ngày',
         price: 50000,
-        icon: '🚚'
+        icon: '🚚',
       },
       {
         id: 'free',
@@ -564,163 +599,146 @@ export default {
         description: 'Giao trong 3-5 ngày',
         time: '3-5 ngày',
         price: 0,
-        icon: '🛸'
-      }
+        icon: '🛸',
+      },
     ])
-    
+
     const paymentMethods = ref([
       { id: 'card', name: 'Thẻ tín dụng/ghi nợ', icon: '💳' },
       { id: 'ewallet', name: 'Ví điện tử', icon: '📱' },
-      { id: 'bank', name: 'Chuyển khoản ngân hàng', icon: '🏦' }
+      { id: 'bank', name: 'Chuyển khoản ngân hàng', icon: '🏦' },
     ])
-    
+
     const ewalletOptions = ref([
       {
         id: 'momo',
         name: 'MoMo',
         description: 'Thanh toán qua ví MoMo',
-        icon: '🟣'
+        icon: '🟣',
       },
       {
         id: 'zalopay',
         name: 'ZaloPay',
         description: 'Thanh toán qua ZaloPay',
-        icon: '🔵'
+        icon: '🔵',
       },
       {
         id: 'vnpay',
         name: 'VNPay',
         description: 'Thanh toán qua VNPay',
-        icon: '🟢'
-      }
-    ])
-    
-    const orderItems = ref([
-      {
-        id: 1,
-        quantity: 2,
-        product: {
-          id: 1,
-          name: 'Laptop Gaming Galactic Pro',
-          price: 25000000,
-          images: ['/placeholder-product.jpg']
-        }
+        icon: '🟢',
       },
-      {
-        id: 2,
-        quantity: 1,
-        product: {
-          id: 2,
-          name: 'Gaming Mouse Nebula',
-          price: 1500000,
-          images: ['/placeholder-product.jpg']
-        }
-      }
     ])
-    
+
+    // Lấy orderItems từ cartStore (giỏ hàng thực tế)
+    const orderItems = computed(() => cartStore.items)
+
     const discount = ref(0)
-    
+
     // Computed properties
     const subtotal = computed(() => {
-      return orderItems.value.reduce((total, item) => total + (item.product.price * item.quantity), 0)
+      return orderItems.value.reduce(
+        (total, item) => total + (item.product?.price || 0) * item.quantity,
+        0
+      )
     })
-    
+
     const deliveryPrice = computed(() => {
-      const option = deliveryOptions.value.find(opt => opt.id === selectedDelivery.value)
+      const option = deliveryOptions.value.find((opt) => opt.id === selectedDelivery.value)
       return option ? option.price : 0
     })
-    
+
     const totalAmount = computed(() => {
       return subtotal.value + deliveryPrice.value - discount.value
     })
-    
+
     // Methods
     const formatCurrency = (amount) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
       }).format(amount)
     }
-    
+
     const loadDistricts = () => {
       // Mock loading districts based on city
       if (shippingInfo.value.city === 'HCM') {
         districts.value = [
           { code: 'Q1', name: 'Quận 1' },
           { code: 'Q3', name: 'Quận 3' },
-          { code: 'Q7', name: 'Quận 7' }
+          { code: 'Q7', name: 'Quận 7' },
         ]
       } else {
         districts.value = [
           { code: 'BA', name: 'Ba Đình' },
-          { code: 'HK', name: 'Hoàn Kiếm' }
+          { code: 'HK', name: 'Hoàn Kiếm' },
         ]
       }
       shippingInfo.value.district = ''
       shippingInfo.value.ward = ''
       wards.value = []
     }
-    
+
     const loadWards = () => {
       // Mock loading wards based on district
       wards.value = [
         { code: 'P1', name: 'Phường 1' },
         { code: 'P2', name: 'Phường 2' },
-        { code: 'P3', name: 'Phường 3' }
+        { code: 'P3', name: 'Phường 3' },
       ]
       shippingInfo.value.ward = ''
     }
-    
+
     const validateShippingInfo = () => {
       errors.value = {}
-      
+
       if (!shippingInfo.value.firstName.trim()) {
         errors.value.firstName = 'Vui lòng nhập họ'
       }
-      
+
       if (!shippingInfo.value.lastName.trim()) {
         errors.value.lastName = 'Vui lòng nhập tên'
       }
-      
+
       if (!shippingInfo.value.email.trim()) {
         errors.value.email = 'Vui lòng nhập email'
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shippingInfo.value.email)) {
         errors.value.email = 'Email không hợp lệ'
       }
-      
+
       if (!shippingInfo.value.phone.trim()) {
         errors.value.phone = 'Vui lòng nhập số điện thoại'
       } else if (!/^[0-9]{10,11}$/.test(shippingInfo.value.phone.replace(/\s/g, ''))) {
         errors.value.phone = 'Số điện thoại không hợp lệ'
       }
-      
+
       if (!shippingInfo.value.address.trim()) {
         errors.value.address = 'Vui lòng nhập địa chỉ'
       }
-      
+
       if (!shippingInfo.value.city) {
         errors.value.city = 'Vui lòng chọn thành phố'
       }
-      
+
       if (!shippingInfo.value.district) {
         errors.value.district = 'Vui lòng chọn quận/huyện'
       }
-      
+
       if (!shippingInfo.value.ward) {
         errors.value.ward = 'Vui lòng chọn phường/xã'
       }
-      
+
       if (Object.keys(errors.value).length === 0) {
         goToNextStep()
       }
     }
-    
+
     const formatCardNumber = (event) => {
       let value = event.target.value.replace(/\D/g, '')
       value = value.replace(/(\d{4})(?=\d)/g, '$1 ')
       paymentInfo.value.cardNumber = value
     }
-    
+
     const formatExpiryDate = (event) => {
       let value = event.target.value.replace(/\D/g, '')
       if (value.length >= 2) {
@@ -728,52 +746,127 @@ export default {
       }
       paymentInfo.value.expiryDate = value
     }
-    
+
     const copyBankAccount = () => {
       navigator.clipboard.writeText('1234567890123456')
       alert('Đã sao chép số tài khoản!')
     }
-    
+
     const copyOrderCode = () => {
       navigator.clipboard.writeText(orderCode.value)
       alert('Đã sao chép mã đơn hàng!')
     }
-    
+
     const processPayment = async () => {
       if (selectedPayment.value === 'card') {
-        if (!paymentInfo.value.cardNumber || !paymentInfo.value.expiryDate || 
-            !paymentInfo.value.cvv || !paymentInfo.value.cardName) {
+        if (
+          !paymentInfo.value.cardNumber ||
+          !paymentInfo.value.expiryDate ||
+          !paymentInfo.value.cvv ||
+          !paymentInfo.value.cardName
+        ) {
           alert('Vui lòng điền đầy đủ thông tin thẻ')
           return
         }
       }
-      
+
       processing.value = true
-      
+
       try {
-        // Simulate payment processing
-        await new Promise(resolve => setTimeout(resolve, 3000))
-        
+        // Create order first
+        const orderData = {
+          shippingAddress: JSON.stringify({
+            firstName: shippingInfo.value.firstName,
+            lastName: shippingInfo.value.lastName,
+            email: shippingInfo.value.email,
+            phone: shippingInfo.value.phone,
+            address: shippingInfo.value.address,
+            city: shippingInfo.value.city,
+            district: shippingInfo.value.district,
+            ward: shippingInfo.value.ward,
+            notes: shippingInfo.value.notes,
+            deliveryMethod: selectedDelivery.value,
+          }),
+          billingAddress: JSON.stringify({
+            firstName: shippingInfo.value.firstName,
+            lastName: shippingInfo.value.lastName,
+            email: shippingInfo.value.email,
+            phone: shippingInfo.value.phone,
+            address: shippingInfo.value.address,
+            city: shippingInfo.value.city,
+            district: shippingInfo.value.district,
+            ward: shippingInfo.value.ward,
+          }),
+        }
+
+        console.log('🔄 Creating order...')
+        const orderResponse = await orderAPI.create(
+          orderData.shippingAddress,
+          orderData.billingAddress
+        )
+        const order = orderResponse.data
+
+        console.log('✅ Order created:', order)
+
+        // Store the created order
+        createdOrder.value = order
+        orderCode.value = order.orderCode || order.id // Use real order code from API
+
+        // Process payment based on selected method
+        if (selectedPayment.value === 'card') {
+          // Create payment intent for card payment
+          const paymentIntentResponse = await paymentAPI.createPaymentIntent(
+            order.id,
+            totalAmount.value
+          )
+
+          console.log('✅ Payment intent created:', paymentIntentResponse.data)
+
+          // Confirm payment (in real implementation, this would integrate with payment gateway)
+          const confirmResponse = await paymentAPI.confirmPayment(
+            paymentIntentResponse.data.paymentIntentId
+          )
+
+          console.log('✅ Payment confirmed:', confirmResponse.data)
+        } else if (selectedPayment.value === 'ewallet') {
+          // Handle e-wallet payment
+          const paymentIntentResponse = await paymentAPI.createPaymentIntent(
+            order.id,
+            totalAmount.value
+          )
+
+          console.log('✅ E-wallet payment intent created:', paymentIntentResponse.data)
+        } else if (selectedPayment.value === 'bank') {
+          // Handle bank transfer
+          const paymentIntentResponse = await paymentAPI.createPaymentIntent(
+            order.id,
+            totalAmount.value
+          )
+
+          console.log('✅ Bank transfer payment intent created:', paymentIntentResponse.data)
+        }
+
         // Clear cart after successful payment
         await cartStore.clearCart()
-        
+
         // Go to success step
         currentStep.value = 4
-        
       } catch (error) {
-        console.error('Payment error:', error)
-        alert('Có lỗi xảy ra khi thanh toán. Vui lòng thử lại.')
+        console.error('❌ Payment error:', error)
+        const errorMessage =
+          error.response?.data?.message || 'Có lỗi xảy ra khi thanh toán. Vui lòng thử lại.'
+        alert(errorMessage)
       } finally {
         processing.value = false
       }
     }
-    
+
     const goToNextStep = () => {
       if (currentStep.value < 4) {
         currentStep.value++
       }
     }
-    
+
     const goToPreviousStep = () => {
       if (currentStep.value === 2) {
         router.push('/cart')
@@ -781,19 +874,19 @@ export default {
         currentStep.value--
       }
     }
-    
+
     const getDeliveryPrice = () => {
-      const option = deliveryOptions.value.find(opt => opt.id === selectedDelivery.value)
+      const option = deliveryOptions.value.find((opt) => opt.id === selectedDelivery.value)
       return option && option.price > 0 ? formatCurrency(option.price) : 'Miễn phí'
     }
-    
+
     const getPaymentMethodName = () => {
-      const method = paymentMethods.value.find(m => m.id === selectedPayment.value)
+      const method = paymentMethods.value.find((m) => m.id === selectedPayment.value)
       return method ? method.name : ''
     }
-    
+
     const getEstimatedDelivery = () => {
-      const option = deliveryOptions.value.find(opt => opt.id === selectedDelivery.value)
+      const option = deliveryOptions.value.find((opt) => opt.id === selectedDelivery.value)
       if (option) {
         const days = option.id === 'express' ? 1 : option.id === 'standard' ? 2 : 5
         const date = new Date()
@@ -802,20 +895,30 @@ export default {
       }
       return ''
     }
-    
+
     // Lifecycle
-    onMounted(() => {
-      // Check if cart is empty
-      if (orderItems.value.length === 0) {
-        router.push('/cart')
+    onMounted(async () => {
+      await cartStore.loadCart()
+      // Join product info for each cart item if missing
+      const items = cartStore.items
+      for (const item of items) {
+        if (!item.product && item.productId) {
+          try {
+            const res = await productAPI.getById(item.productId)
+            item.product = res.data
+          } catch (e) {
+            item.product = { name: 'Không tìm thấy', price: 0, images: [] }
+          }
+        }
       }
     })
-    
+
     return {
       currentStep,
       submitting,
       processing,
       orderCode,
+      createdOrder,
       shippingInfo,
       paymentInfo,
       errors,
@@ -846,9 +949,9 @@ export default {
       goToPreviousStep,
       getDeliveryPrice,
       getPaymentMethodName,
-      getEstimatedDelivery
+      getEstimatedDelivery,
     }
-  }
+  },
 }
 </script>
 
@@ -1353,7 +1456,11 @@ export default {
 }
 
 @keyframes bounce {
-  0%, 20%, 50%, 80%, 100% {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
     transform: translateY(0);
   }
   40% {
@@ -1365,11 +1472,12 @@ export default {
 }
 
 @keyframes float {
-  0%, 100% { 
+  0%,
+  100% {
     transform: translateY(0px) rotate(0deg);
     opacity: 0.7;
   }
-  50% { 
+  50% {
     transform: translateY(-15px) rotate(5deg);
     opacity: 1;
   }
@@ -1411,6 +1519,12 @@ export default {
   color: var(--text-accent);
   font-weight: 600;
   font-family: monospace;
+}
+
+.order-status {
+  color: var(--text-accent);
+  font-weight: 600;
+  font-size: 1.2rem;
 }
 
 .order-total {
@@ -1567,7 +1681,7 @@ export default {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
-  
+
   .order-summary-sidebar {
     position: static;
     order: -1;
@@ -1578,59 +1692,59 @@ export default {
   .checkout-page {
     padding: 1rem 0;
   }
-  
+
   .page-title {
     font-size: 2rem;
   }
-  
+
   .checkout-steps {
     gap: 0.5rem;
   }
-  
+
   .step span {
     font-size: 0.7rem;
   }
-  
+
   .step-line {
     width: 30px;
     margin: 0 0.5rem;
   }
-  
+
   .shipping-form,
   .payment-methods,
   .summary-card {
     padding: 1.5rem;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
     gap: 0;
   }
-  
+
   .form-row.three-cols {
     grid-template-columns: 1fr;
   }
-  
+
   .form-actions {
     flex-direction: column;
   }
-  
+
   .delivery-option {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
   }
-  
+
   .delivery-price {
     text-align: left;
     min-width: auto;
   }
-  
+
   .payment-tabs {
     flex-direction: column;
     gap: 0;
   }
-  
+
   .success-actions {
     flex-direction: column;
   }
@@ -1642,33 +1756,33 @@ export default {
     gap: 1rem;
     justify-content: space-around;
   }
-  
+
   .step-line {
     display: none;
   }
-  
+
   .step-icon {
     width: 40px;
     height: 40px;
     font-size: 1.2rem;
   }
-  
+
   .bank-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   .bank-value {
     text-align: left;
     margin-right: 0;
     word-break: break-all;
   }
-  
+
   .success-content {
     padding: 2rem 1rem;
   }
-  
+
   .success-icon {
     font-size: 3rem;
   }

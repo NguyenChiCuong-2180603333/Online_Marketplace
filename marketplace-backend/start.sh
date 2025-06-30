@@ -5,10 +5,6 @@ echo "🚀 Starting Marketplace Backend..."
 # Set production profile
 export SPRING_PROFILES_ACTIVE=production
 
-# Create necessary directories
-mkdir -p /tmp/uploads/images
-mkdir -p /tmp/uploads/avatars
-
 # Find the JAR file
 JAR_FILE=$(find target -name "*.jar" -type f | head -n 1)
 

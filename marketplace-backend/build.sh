@@ -1,3 +1,4 @@
+#!/bin/bash
 
 echo "🚀 Starting Render build process..."
 
@@ -12,11 +13,6 @@ java -version
 # Make mvnw executable
 echo "🔧 Making Maven wrapper executable..."
 chmod +x mvnw
-
-# Create uploads directory
-echo "📁 Creating uploads directory..."
-mkdir -p /tmp/uploads/images
-mkdir -p /tmp/uploads/avatars
 
 # Download dependencies and build
 echo "📦 Downloading dependencies..."

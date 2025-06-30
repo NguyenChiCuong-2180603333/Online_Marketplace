@@ -19,9 +19,6 @@ FROM openjdk:17-jdk-slim
 
 WORKDIR /app
 
-# Create uploads directory
-RUN mkdir -p uploads/images uploads/avatars
-
 # Copy jar file
 COPY --from=build /app/target/*.jar app.jar
 

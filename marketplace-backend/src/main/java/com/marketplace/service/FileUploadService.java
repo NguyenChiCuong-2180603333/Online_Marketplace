@@ -1,68 +1,88 @@
 package com.marketplace.service;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.Transformation;
+import com.cloudinary.utils.ObjectUtils;
 import com.marketplace.exception.BadRequestException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.UUID;
+import java.util.Map;
 
 @Service
 public class FileUploadService {
 
-    private static final String UPLOAD_DIR = "uploads/";
-    private static final String IMAGE_DIR = UPLOAD_DIR + "images/";
-    private static final String AVATAR_DIR = UPLOAD_DIR + "avatars/";
+    @Autowired
+    private Cloudinary cloudinary;
+
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
     public String uploadImage(MultipartFile file) {
         validateImageFile(file);
-        return saveFile(file, IMAGE_DIR);
+        return uploadToCloudinary(file, "marketplace/products");
     }
 
     public String uploadAvatar(MultipartFile file) {
         validateImageFile(file);
-        return saveFile(file, AVATAR_DIR);
+        return uploadToCloudinary(file, "marketplace/avatars");
     }
 
     public void deleteImage(String imageUrl) {
         try {
-            // Extract filename from URL
-            String fileName = imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
-            Path filePath = Paths.get(UPLOAD_DIR).resolve(fileName);
-            Files.deleteIfExists(filePath);
-        } catch (IOException e) {
+            // Extract public_id from Cloudinary URL
+            String publicId = extractPublicIdFromUrl(imageUrl);
+            if (publicId != null) {
+                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            }
+        } catch (Exception e) {
             throw new BadRequestException("Không thể xóa file: " + e.getMessage());
         }
     }
 
-    private String saveFile(MultipartFile file, String directory) {
+    private String uploadToCloudinary(MultipartFile file, String folder) {
         try {
-            // Create upload directory if it doesn't exist
-            Path uploadPath = Paths.get(directory);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
+            Map<String, Object> uploadParams = ObjectUtils.asMap(
+                "folder", folder,
+                "resource_type", "image",
+                "transformation", new Transformation()
+                    .width(800).height(800).crop("limit").quality("auto")
+            );
 
-            // Generate unique filename
-            String originalFileName = file.getOriginalFilename();
-            String fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
-            String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
+            Map<String, Object> result = cloudinary.uploader().upload(
+                file.getBytes(), 
+                uploadParams
+            );
 
-            // Save file
-            Path filePath = uploadPath.resolve(uniqueFileName);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            // Return URL - in production, this would be your CDN/storage URL
-            return "/api/files/" + directory.replace(UPLOAD_DIR, "") + uniqueFileName;
+            return (String) result.get("secure_url");
 
         } catch (IOException e) {
-            throw new BadRequestException("Không thể lưu file: " + e.getMessage());
+            throw new BadRequestException("Không thể upload file: " + e.getMessage());
         }
+    }
+
+    private String extractPublicIdFromUrl(String imageUrl) {
+        try {
+            // Cloudinary URL format: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/folder/filename.jpg
+            String[] parts = imageUrl.split("/upload/");
+            if (parts.length > 1) {
+                String afterUpload = parts[1];
+                // Remove version if present
+                if (afterUpload.contains("/v")) {
+                    afterUpload = afterUpload.substring(afterUpload.indexOf("/", 2) + 1);
+                }
+                // Remove file extension
+                int lastDotIndex = afterUpload.lastIndexOf(".");
+                if (lastDotIndex > 0) {
+                    afterUpload = afterUpload.substring(0, lastDotIndex);
+                }
+                return afterUpload;
+            }
+        } catch (Exception e) {
+            // If we can't extract public_id, return null
+        }
+        return null;
     }
 
     private void validateImageFile(MultipartFile file) {

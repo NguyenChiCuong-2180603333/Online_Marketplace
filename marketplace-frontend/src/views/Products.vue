@@ -11,9 +11,9 @@
       <div class="search-filters">
         <div class="search-container">
           <div class="search-box">
-            <input 
-              v-model="searchQuery" 
-              type="text" 
+            <input
+              v-model="searchQuery"
+              type="text"
               placeholder="Tìm kiếm sản phẩm trong vũ trụ..."
               class="search-input"
               @keyup.enter="performSearch"
@@ -28,7 +28,12 @@
         <div class="filter-controls">
           <div class="filter-group">
             <label for="category">Danh mục:</label>
-            <select id="category" v-model="filters.category" @change="applyFilters" class="filter-select">
+            <select
+              id="category"
+              v-model="filters.category"
+              @change="applyFilters"
+              class="filter-select"
+            >
               <option value="">Tất cả danh mục</option>
               <option v-for="category in categories" :key="category.id" :value="category.name">
                 {{ category.name }}
@@ -38,7 +43,12 @@
 
           <div class="filter-group">
             <label for="priceRange">Giá:</label>
-            <select id="priceRange" v-model="filters.priceRange" @change="applyFilters" class="filter-select">
+            <select
+              id="priceRange"
+              v-model="filters.priceRange"
+              @change="applyFilters"
+              class="filter-select"
+            >
               <option value="">Tất cả mức giá</option>
               <option value="0-500000">Dưới 500k</option>
               <option value="500000-2000000">500k - 2M</option>
@@ -49,7 +59,12 @@
 
           <div class="filter-group">
             <label for="sortBy">Sắp xếp:</label>
-            <select id="sortBy" v-model="filters.sortBy" @change="applyFilters" class="filter-select">
+            <select
+              id="sortBy"
+              v-model="filters.sortBy"
+              @change="applyFilters"
+              class="filter-select"
+            >
               <option value="newest">Mới nhất</option>
               <option value="price-asc">Giá tăng dần</option>
               <option value="price-desc">Giá giảm dần</option>
@@ -58,9 +73,7 @@
             </select>
           </div>
 
-          <button @click="clearAllFilters" class="clear-filters-btn">
-            🔄 Xóa bộ lọc
-          </button>
+          <button @click="clearAllFilters" class="clear-filters-btn">🔄 Xóa bộ lọc</button>
         </div>
       </div>
 
@@ -73,17 +86,17 @@
           </span>
           <span v-else>Đang tìm kiếm...</span>
         </div>
-        
+
         <div class="view-toggle">
-          <button 
-            @click="viewMode = 'grid'" 
+          <button
+            @click="viewMode = 'grid'"
             class="view-btn"
             :class="{ active: viewMode === 'grid' }"
           >
             ⚏ Lưới
           </button>
-          <button 
-            @click="viewMode = 'list'" 
+          <button
+            @click="viewMode = 'list'"
             class="view-btn"
             :class="{ active: viewMode === 'list' }"
           >
@@ -95,15 +108,15 @@
       <!-- Products Grid/List -->
       <div v-if="!loading && products.length > 0" class="products-container">
         <div class="products-grid" :class="{ 'list-view': viewMode === 'list' }">
-          <div 
-            v-for="product in products" 
-            :key="product.id" 
+          <div
+            v-for="product in products"
+            :key="product.id"
             class="product-card space-card"
             @click="viewProduct(product.id)"
           >
             <div class="product-image">
-              <img 
-                :src="product.imageUrl || product.images?.[0] || '/placeholder-product.jpg'" 
+              <img
+                :src="product.imageUrl || product.images?.[0] || '/placeholder-product.jpg'"
                 :alt="product.name"
                 loading="lazy"
                 @error="handleImageError"
@@ -113,20 +126,14 @@
                 <span v-if="product.discount && product.discount > 0" class="badge discount-badge">
                   -{{ product.discount }}%
                 </span>
-                <span v-if="product.featured" class="badge bestseller-badge">
-                  🔥 Nổi bật
-                </span>
+                <span v-if="product.featured" class="badge bestseller-badge"> 🔥 Nổi bật </span>
               </div>
               <div class="product-actions-overlay">
-                <button 
-                  @click.stop="quickView(product)" 
-                  class="action-btn"
-                  title="Xem nhanh"
-                >
+                <button @click.stop="quickView(product)" class="action-btn" title="Xem nhanh">
                   👁️
                 </button>
-                <button 
-                  @click.stop="toggleWishlist(product.id)" 
+                <button
+                  @click.stop="toggleWishlist(product.id)"
                   class="action-btn"
                   :class="{ active: isInWishlist(product.id) }"
                   title="Yêu thích"
@@ -139,34 +146,43 @@
             <div class="product-info">
               <div class="product-category">{{ product.category }}</div>
               <h3 class="product-title">{{ product.name }}</h3>
-              
+
               <div class="product-rating">
                 <div class="rating-stars">
-                  <span v-for="i in 5" :key="i" class="star" :class="[i <= Math.round(product.rating || 0) ? 'filled' : '']">⭐</span>
+                  <span
+                    v-for="i in 5"
+                    :key="i"
+                    class="star"
+                    :class="[i <= Math.round(product.rating || 0) ? 'filled' : '']"
+                    >⭐</span
+                  >
                 </div>
                 <span class="rating-text">({{ product.reviewCount || 0 }})</span>
               </div>
-              
+
               <p class="product-description">{{ truncateText(product.description, 80) }}</p>
-              
+
               <div class="product-price">
-                <span v-if="product.originalPrice && product.originalPrice > product.price" class="original-price">
+                <span
+                  v-if="product.originalPrice && product.originalPrice > product.price"
+                  class="original-price"
+                >
                   {{ formatCurrency(product.originalPrice) }}
                 </span>
                 <span class="current-price">{{ formatCurrency(product.price) }}</span>
               </div>
-              
+
               <div class="product-actions">
-                <button 
-                  @click.stop="addToCart(product)" 
-                  class="btn btn-primary" 
+                <button
+                  @click.stop="addToCart(product)"
+                  class="btn btn-primary"
                   :disabled="cartLoading || product.stock <= 0"
-                  :class="{ 'loading': cartLoading }"
+                  :class="{ loading: cartLoading }"
                 >
                   {{ product.stock <= 0 ? '🚫 Hết hàng' : '🛒 Thêm vào giỏ' }}
                 </button>
-                <button 
-                  @click.stop="buyNow(product)" 
+                <button
+                  @click.stop="buyNow(product)"
                   class="btn btn-secondary"
                   :disabled="product.stock <= 0"
                 >
@@ -211,17 +227,17 @@
       <!-- Pagination -->
       <div v-if="totalPages > 1 && !loading" class="pagination-container">
         <div class="pagination">
-          <button 
-            @click="goToPage(currentPage - 1)" 
+          <button
+            @click="goToPage(currentPage - 1)"
             :disabled="currentPage === 1"
             class="pagination-btn"
           >
             ← Trước
           </button>
-          
+
           <div class="pagination-numbers">
-            <button 
-              v-for="page in visiblePages" 
+            <button
+              v-for="page in visiblePages"
               :key="page"
               @click="goToPage(page)"
               class="pagination-btn"
@@ -231,16 +247,16 @@
               {{ page }}
             </button>
           </div>
-          
-          <button 
-            @click="goToPage(currentPage + 1)" 
+
+          <button
+            @click="goToPage(currentPage + 1)"
             :disabled="currentPage === totalPages"
             class="pagination-btn"
           >
             Sau →
           </button>
         </div>
-        
+
         <div class="pagination-info">
           Trang {{ currentPage }} / {{ totalPages }} ({{ totalResults }} sản phẩm)
         </div>
@@ -253,29 +269,45 @@
         <button @click="closeQuickView" class="modal-close">✕</button>
         <div v-if="selectedProduct" class="quick-view-content">
           <div class="quick-view-image">
-            <img 
-              :src="selectedProduct.imageUrl || selectedProduct.images?.[0] || '/placeholder-product.jpg'" 
-              :alt="selectedProduct.name" 
+            <img
+              :src="
+                selectedProduct.imageUrl ||
+                selectedProduct.images?.[0] ||
+                '/placeholder-product.jpg'
+              "
+              :alt="selectedProduct.name"
             />
           </div>
           <div class="quick-view-info">
             <h3>{{ selectedProduct.name }}</h3>
             <div class="quick-view-rating">
               <div class="rating-stars">
-                <span v-for="i in 5" :key="i" class="star" :class="[i <= Math.round(selectedProduct.rating || 0) ? 'filled' : '']">⭐</span>
+                <span
+                  v-for="i in 5"
+                  :key="i"
+                  class="star"
+                  :class="[i <= Math.round(selectedProduct.rating || 0) ? 'filled' : '']"
+                  >⭐</span
+                >
               </div>
               <span>({{ selectedProduct.reviewCount || 0 }} đánh giá)</span>
             </div>
             <div class="quick-view-price">
-              <span v-if="selectedProduct.originalPrice && selectedProduct.originalPrice > selectedProduct.price" class="original-price">
+              <span
+                v-if="
+                  selectedProduct.originalPrice &&
+                  selectedProduct.originalPrice > selectedProduct.price
+                "
+                class="original-price"
+              >
                 {{ formatCurrency(selectedProduct.originalPrice) }}
               </span>
               <span class="current-price">{{ formatCurrency(selectedProduct.price) }}</span>
             </div>
             <p class="quick-view-description">{{ selectedProduct.description }}</p>
             <div class="quick-view-actions">
-              <button 
-                @click="addToCart(selectedProduct)" 
+              <button
+                @click="addToCart(selectedProduct)"
                 class="btn btn-primary"
                 :disabled="selectedProduct.stock <= 0"
               >
@@ -304,7 +336,7 @@ export default {
     const router = useRouter()
     const route = useRoute()
     const cartStore = useCartStore()
-    
+
     // Reactive data
     const loading = ref(false)
     const cartLoading = ref(false)
@@ -314,31 +346,31 @@ export default {
     const showQuickView = ref(false)
     const selectedProduct = ref(null)
     const wishlist = ref([])
-    
+
     const filters = ref({
       category: '',
       priceRange: '',
-      sortBy: 'newest'
+      sortBy: 'newest',
     })
-    
+
     const currentPage = ref(1)
     const itemsPerPage = ref(12)
     const totalResults = ref(0)
-    
+
     // Data from API
     const products = ref([])
     const categories = ref([])
-    
+
     // Computed properties
     const totalPages = computed(() => {
       return Math.ceil(totalResults.value / itemsPerPage.value)
     })
-    
+
     const visiblePages = computed(() => {
       const pages = []
       const current = currentPage.value
       const total = totalPages.value
-      
+
       if (total <= 7) {
         for (let i = 1; i <= total; i++) {
           pages.push(i)
@@ -360,32 +392,32 @@ export default {
           pages.push(total)
         }
       }
-      
+
       return pages
     })
-    
+
     // API Methods
     const loadProducts = async () => {
       try {
         loading.value = true
         error.value = null
-        
+
         // Prepare API parameters
         const params = {
           page: currentPage.value - 1, // Backend uses 0-based pagination
-          size: itemsPerPage.value
+          size: itemsPerPage.value,
         }
-        
+
         // Add search query
         if (searchQuery.value.trim()) {
           params.search = searchQuery.value.trim()
         }
-        
+
         // Add category filter
         if (filters.value.category) {
           params.category = filters.value.category
         }
-        
+
         // Add price range filter
         if (filters.value.priceRange) {
           const [min, max] = filters.value.priceRange.split('-').map(Number)
@@ -394,16 +426,16 @@ export default {
             params.maxPrice = max
           }
         }
-        
+
         // Add sorting
         if (filters.value.sortBy) {
           params.sort = filters.value.sortBy
         }
-        
+
         console.log('Loading products with params:', params)
-        
+
         const response = await productAPI.getAll(params)
-        
+
         // Handle different response formats
         if (response.data.content) {
           // Paginated response
@@ -417,9 +449,8 @@ export default {
           products.value = []
           totalResults.value = 0
         }
-        
+
         console.log('Loaded products:', products.value)
-        
       } catch (err) {
         console.error('Error loading products:', err)
         error.value = err.response?.data?.message || 'Không thể tải danh sách sản phẩm'
@@ -429,7 +460,7 @@ export default {
         loading.value = false
       }
     }
-    
+
     const loadCategories = async () => {
       try {
         const response = await categoryAPI.getAll()
@@ -439,20 +470,20 @@ export default {
         categories.value = []
       }
     }
-    
+
     // Utility Methods
     const formatCurrency = (amount) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
       }).format(amount)
     }
-    
+
     const truncateText = (text, length) => {
       if (!text) return ''
       return text.length > length ? text.substring(0, length) + '...' : text
     }
-    
+
     const isNewProduct = (product) => {
       if (!product.createdAt) return false
       const createdDate = new Date(product.createdAt)
@@ -460,33 +491,33 @@ export default {
       const daysDiff = (now - createdDate) / (1000 * 60 * 60 * 24)
       return daysDiff <= 7 // Products created within 7 days are considered "new"
     }
-    
+
     const handleImageError = (event) => {
       event.target.src = '/placeholder-product.jpg'
     }
-    
+
     // Filter & Search Methods
     const performSearch = () => {
       currentPage.value = 1
       loadProducts()
     }
-    
+
     const applyFilters = () => {
       currentPage.value = 1
       loadProducts()
     }
-    
+
     const clearAllFilters = () => {
       searchQuery.value = ''
       filters.value = {
         category: '',
         priceRange: '',
-        sortBy: 'newest'
+        sortBy: 'newest',
       }
       currentPage.value = 1
       loadProducts()
     }
-    
+
     // Navigation Methods
     const goToPage = (page) => {
       if (page >= 1 && page <= totalPages.value) {
@@ -496,34 +527,33 @@ export default {
         window.scrollTo({ top: 0, behavior: 'smooth' })
       }
     }
-    
+
     const viewProduct = (productId) => {
       router.push(`/products/${productId}`)
     }
-    
+
     // Modal Methods
     const quickView = (product) => {
       selectedProduct.value = product
       showQuickView.value = true
     }
-    
+
     const closeQuickView = () => {
       showQuickView.value = false
       selectedProduct.value = null
     }
-    
+
     // Cart Methods
     const addToCart = async (product) => {
       if (cartLoading.value || product.stock <= 0) return
-      
+
       try {
         cartLoading.value = true
-        await cartStore.addToCart(product.id, 1)
-        
+        await cartStore.addItem(product.id, 1)
+
         // Show success message
         const message = `Đã thêm "${product.name}" vào giỏ hàng!`
         alert(message) // Replace with toast notification
-        
       } catch (error) {
         console.error('Error adding to cart:', error)
         const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng'
@@ -532,16 +562,16 @@ export default {
         cartLoading.value = false
       }
     }
-    
+
     const buyNow = async (product) => {
       if (product.stock <= 0) return
-      
+
       await addToCart(product)
       if (!cartLoading.value) {
         router.push('/cart')
       }
     }
-    
+
     // Wishlist Methods
     const toggleWishlist = (productId) => {
       const index = wishlist.value.indexOf(productId)
@@ -552,19 +582,16 @@ export default {
       }
       // TODO: Persist to backend
     }
-    
+
     const isInWishlist = (productId) => {
       return wishlist.value.includes(productId)
     }
-    
+
     // Lifecycle hooks
     onMounted(async () => {
       // Load initial data
-      await Promise.all([
-        loadCategories(),
-        loadProducts()
-      ])
-      
+      await Promise.all([loadCategories(), loadProducts()])
+
       // Load from route query parameters
       if (route.query.search) {
         searchQuery.value = route.query.search
@@ -572,27 +599,30 @@ export default {
       if (route.query.category) {
         filters.value.category = route.query.category
       }
-      
+
       // Reload products if query params exist
       if (route.query.search || route.query.category) {
         await loadProducts()
       }
     })
-    
+
     // Watch for route changes
-    watch(() => route.query, async (newQuery) => {
-      if (newQuery.search !== searchQuery.value) {
-        searchQuery.value = newQuery.search || ''
+    watch(
+      () => route.query,
+      async (newQuery) => {
+        if (newQuery.search !== searchQuery.value) {
+          searchQuery.value = newQuery.search || ''
+        }
+        if (newQuery.category !== filters.value.category) {
+          filters.value.category = newQuery.category || ''
+        }
+
+        // Reload products when route query changes
+        currentPage.value = 1
+        await loadProducts()
       }
-      if (newQuery.category !== filters.value.category) {
-        filters.value.category = newQuery.category || ''
-      }
-      
-      // Reload products when route query changes
-      currentPage.value = 1
-      await loadProducts()
-    })
-    
+    )
+
     return {
       // State
       loading,
@@ -608,11 +638,11 @@ export default {
       totalResults,
       products,
       categories,
-      
+
       // Computed
       totalPages,
       visiblePages,
-      
+
       // Methods
       formatCurrency,
       truncateText,
@@ -629,9 +659,9 @@ export default {
       buyNow,
       toggleWishlist,
       isInWishlist,
-      loadProducts
+      loadProducts,
     }
-  }
+  },
 }
 </script>
 
@@ -1068,13 +1098,22 @@ export default {
 }
 
 @keyframes pulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); }
-  50% { transform: translate(-50%, -50%) scale(1.1); }
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .no-results {
@@ -1266,7 +1305,7 @@ export default {
   .filter-controls {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .products-grid {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 1.5rem;
@@ -1277,58 +1316,58 @@ export default {
   .products-page {
     padding: 1rem 0;
   }
-  
+
   .page-title {
     font-size: 2rem;
   }
-  
+
   .search-box {
     flex-direction: column;
   }
-  
+
   .search-btn {
     border-radius: 12px;
   }
-  
+
   .filter-controls {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .results-info {
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
   }
-  
+
   .products-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .products-grid.list-view .product-card {
     flex-direction: column;
   }
-  
+
   .products-grid.list-view .product-image {
     width: 100%;
     height: 200px;
   }
-  
+
   .pagination {
     flex-wrap: wrap;
     gap: 0.25rem;
   }
-  
+
   .pagination-numbers {
     flex-wrap: wrap;
   }
-  
+
   .quick-view-content {
     grid-template-columns: 1fr;
     gap: 1rem;
     padding: 1.5rem;
   }
-  
+
   .quick-view-actions {
     flex-direction: column;
   }
@@ -1338,23 +1377,23 @@ export default {
   .product-card {
     padding: 1rem;
   }
-  
+
   .product-image {
     height: 150px;
   }
-  
+
   .product-actions {
     flex-direction: column;
   }
-  
+
   .quick-view-image img {
     height: 200px;
   }
-  
+
   .modal-content {
     margin: 1rem;
   }
-  
+
   .pagination-btn {
     padding: 0.5rem 0.75rem;
     font-size: 0.8rem;
@@ -1383,8 +1422,12 @@ export default {
 }
 
 @keyframes spin {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 /* Custom scrollbar for modal */

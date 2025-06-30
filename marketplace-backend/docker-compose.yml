@@ -7,7 +7,7 @@ services:
     container_name: marketplace-mongodb
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - '27017:27017'
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password123
@@ -24,7 +24,7 @@ services:
     container_name: marketplace-backend
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - '8080:8080'
     environment:
       # Database
       SPRING_DATA_MONGODB_URI: mongodb://marketplace_user:marketplace123@mongodb:27017/marketplace
@@ -42,6 +42,11 @@ services:
       EMAIL_PASSWORD: your-app-password
       SUPPORT_EMAIL: support@cosmicmarketplace.com
 
+      # Cloudinary
+      CLOUDINARY_CLOUD_NAME: your_cloud_name
+      CLOUDINARY_API_KEY: your_api_key
+      CLOUDINARY_API_SECRET: your_api_secret
+
       # App
       APP_URL: http://localhost:5173
       CORS_ORIGINS: http://localhost:5173,http://localhost:3000
@@ -49,14 +54,12 @@ services:
       # Other
       SPRING_PROFILES_ACTIVE: docker
 
-    volumes:
-      - uploads_data:/app/uploads
     depends_on:
       - mongodb
     networks:
       - marketplace-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/actuator/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -67,7 +70,7 @@ services:
     container_name: marketplace-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - '6379:6379'
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -76,7 +79,6 @@ services:
 
 volumes:
   mongodb_data:
-  uploads_data:
   redis_data:
 
 networks:

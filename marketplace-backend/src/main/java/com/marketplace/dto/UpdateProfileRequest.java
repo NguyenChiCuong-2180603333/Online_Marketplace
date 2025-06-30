@@ -19,6 +19,9 @@ public class UpdateProfileRequest {
 
     private String avatar;
 
+    private String birthday;
+    private String address;
+
     // Constructors
     public UpdateProfileRequest() {}
 
@@ -26,6 +29,14 @@ public class UpdateProfileRequest {
         this.firstName = firstName;
         this.lastName = lastName;
         this.phone = phone;
+    }
+
+    public UpdateProfileRequest(String firstName, String lastName, String phone, String birthday, String address) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.phone = phone;
+        this.birthday = birthday;
+        this.address = address;
     }
 
     // Getters and Setters
@@ -40,5 +51,11 @@ public class UpdateProfileRequest {
 
     public String getAvatar() { return avatar; }
     public void setAvatar(String avatar) { this.avatar = avatar; }
+
+    public String getBirthday() { return birthday; }
+    public void setBirthday(String birthday) { this.birthday = birthday; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
 }
 

@@ -8,6 +8,7 @@ import com.marketplace.model.Order;
 import com.marketplace.service.UserService;
 import com.marketplace.service.ProductService;
 import com.marketplace.service.OrderService;
+import com.marketplace.service.FileUploadService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,9 @@ public class UserProfileController {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private FileUploadService fileUploadService;
+
     // Lấy thông tin profile
     @GetMapping
     public ResponseEntity<Map<String, Object>> getProfile() {
@@ -49,6 +53,8 @@ public class UserProfileController {
         profile.put("lastName", user.getLastName());
         profile.put("phone", user.getPhone());
         profile.put("avatar", user.getAvatar());
+        profile.put("birthday", user.getBirthday());
+        profile.put("address", user.getAddress());
         profile.put("role", user.getRole());
         profile.put("enabled", user.isEnabled());
         profile.put("createdAt", user.getCreatedAt());
@@ -80,18 +86,10 @@ public class UserProfileController {
     public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file) {
         String userId = getCurrentUserId();
 
-        // Validate file
-        if (file.isEmpty()) {
-            throw new RuntimeException("File không được để trống");
-        }
+        // Upload to Cloudinary using FileUploadService
+        String avatarUrl = fileUploadService.uploadAvatar(file);
 
-        if (!isImageFile(file)) {
-            throw new RuntimeException("Chỉ cho phép upload file ảnh (JPG, PNG, GIF)");
-        }
-
-        // For now, return a mock URL - in production, implement actual file upload
-        String avatarUrl = "https://via.placeholder.com/150?text=" + file.getOriginalFilename();
-
+        // Update user's avatar in database
         User user = userService.getUserById(userId);
         user.setAvatar(avatarUrl);
         userService.updateUser(userId, user);
@@ -176,6 +174,181 @@ public class UserProfileController {
         return ResponseEntity.ok(result);
     }
 
+    // Addresses endpoints - Simplified to use User.address field
+    @GetMapping("/addresses")
+    public ResponseEntity<Map<String, Object>> getAddresses() {
+        String userId = getCurrentUserId();
+        User user = userService.getUserById(userId);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("addresses", List.of(Map.of(
+            "id", "default",
+            "fullName", user.getFirstName() + " " + user.getLastName(),
+            "phone", user.getPhone(),
+            "address", user.getAddress(),
+            "isDefault", true
+        )));
+        result.put("defaultAddressId", "default");
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/addresses")
+    public ResponseEntity<Map<String, Object>> addAddress(@RequestBody Map<String, Object> addressData) {
+        String userId = getCurrentUserId();
+        User user = userService.getUserById(userId);
+        
+        // Update user's address
+        user.setAddress((String) addressData.get("address"));
+        userService.updateUser(userId, user);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Địa chỉ đã được thêm thành công");
+        return ResponseEntity.ok(result);
+    }
+
+    @PutMapping("/addresses/{addressId}")
+    public ResponseEntity<Map<String, Object>> updateAddress(@PathVariable String addressId, 
+                                                           @RequestBody Map<String, Object> addressData) {
+        String userId = getCurrentUserId();
+        User user = userService.getUserById(userId);
+        
+        // Update user's address
+        user.setAddress((String) addressData.get("address"));
+        userService.updateUser(userId, user);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Địa chỉ đã được cập nhật thành công");
+        return ResponseEntity.ok(result);
+    }
+
+    @DeleteMapping("/addresses/{addressId}")
+    public ResponseEntity<Map<String, Object>> deleteAddress(@PathVariable String addressId) {
+        String userId = getCurrentUserId();
+        User user = userService.getUserById(userId);
+        
+        // Clear user's address
+        user.setAddress(null);
+        userService.updateUser(userId, user);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Địa chỉ đã được xóa thành công");
+        return ResponseEntity.ok(result);
+    }
+
+    @PutMapping("/addresses/{addressId}/default")
+    public ResponseEntity<Map<String, Object>> setDefaultAddress(@PathVariable String addressId) {
+        // Already default since we only have one address
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Đã đặt địa chỉ mặc định");
+        return ResponseEntity.ok(result);
+    }
+
+    // Payment methods endpoints
+    @GetMapping("/payment-methods")
+    public ResponseEntity<Map<String, Object>> getPaymentMethods() {
+        String userId = getCurrentUserId();
+        // TODO: Implement payment method service
+        Map<String, Object> result = new HashMap<>();
+        result.put("paymentMethods", List.of());
+        result.put("defaultPaymentMethodId", null);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/payment-methods")
+    public ResponseEntity<Map<String, Object>> addPaymentMethod(@RequestBody Map<String, Object> paymentData) {
+        String userId = getCurrentUserId();
+        // TODO: Implement payment method service
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Phương thức thanh toán đã được thêm thành công");
+        return ResponseEntity.ok(result);
+    }
+
+    @PutMapping("/payment-methods/{methodId}")
+    public ResponseEntity<Map<String, Object>> updatePaymentMethod(@PathVariable String methodId, 
+                                                                 @RequestBody Map<String, Object> paymentData) {
+        String userId = getCurrentUserId();
+        // TODO: Implement payment method service
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Phương thức thanh toán đã được cập nhật thành công");
+        return ResponseEntity.ok(result);
+    }
+
+    @DeleteMapping("/payment-methods/{methodId}")
+    public ResponseEntity<Map<String, Object>> deletePaymentMethod(@PathVariable String methodId) {
+        String userId = getCurrentUserId();
+        // TODO: Implement payment method service
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Phương thức thanh toán đã được xóa thành công");
+        return ResponseEntity.ok(result);
+    }
+
+    @PutMapping("/payment-methods/{methodId}/default")
+    public ResponseEntity<Map<String, Object>> setDefaultPaymentMethod(@PathVariable String methodId) {
+        String userId = getCurrentUserId();
+        // TODO: Implement payment method service
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Đã đặt phương thức thanh toán mặc định");
+        return ResponseEntity.ok(result);
+    }
+
+    // Wishlist endpoints
+    @GetMapping("/wishlist")
+    public ResponseEntity<Map<String, Object>> getWishlist() {
+        String userId = getCurrentUserId();
+        // TODO: Implement wishlist service
+        Map<String, Object> result = new HashMap<>();
+        result.put("wishlist", List.of());
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/wishlist")
+    public ResponseEntity<Map<String, Object>> addToWishlist(@RequestBody Map<String, Object> request) {
+        String userId = getCurrentUserId();
+        String productId = (String) request.get("productId");
+        // TODO: Implement wishlist service
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Sản phẩm đã được thêm vào danh sách yêu thích");
+        return ResponseEntity.ok(result);
+    }
+
+    @DeleteMapping("/wishlist/{productId}")
+    public ResponseEntity<Map<String, Object>> removeFromWishlist(@PathVariable String productId) {
+        String userId = getCurrentUserId();
+        // TODO: Implement wishlist service
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Sản phẩm đã được xóa khỏi danh sách yêu thích");
+        return ResponseEntity.ok(result);
+    }
+
+    // Saved for Later endpoints
+    @GetMapping("/saved-items")
+    public ResponseEntity<Map<String, Object>> getSavedItems() {
+        String userId = getCurrentUserId();
+        // TODO: Implement saved items service
+        Map<String, Object> result = new HashMap<>();
+        result.put("savedItems", List.of());
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/saved-items")
+    public ResponseEntity<Map<String, Object>> saveForLater(@RequestBody Map<String, Object> request) {
+        String userId = getCurrentUserId();
+        String productId = (String) request.get("productId");
+        // TODO: Implement saved items service
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Sản phẩm đã được lưu để mua sau");
+        return ResponseEntity.ok(result);
+    }
+
+    @DeleteMapping("/saved-items/{itemId}")
+    public ResponseEntity<Map<String, Object>> removeFromSavedItems(@PathVariable String itemId) {
+        String userId = getCurrentUserId();
+        // TODO: Implement saved items service
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Sản phẩm đã được xóa khỏi danh sách lưu");
+        return ResponseEntity.ok(result);
+    }
+
     private String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated() &&
@@ -216,15 +389,5 @@ public class UserProfileController {
             // Ignore
         }
         return null;
-    }
-
-    private boolean isImageFile(MultipartFile file) {
-        String contentType = file.getContentType();
-        return contentType != null && (
-                contentType.equals("image/jpeg") ||
-                        contentType.equals("image/jpg") ||
-                        contentType.equals("image/png") ||
-                        contentType.equals("image/gif")
-        );
     }
 }

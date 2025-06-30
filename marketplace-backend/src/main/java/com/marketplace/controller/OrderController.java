@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -39,25 +40,25 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
-    @GetMapping("/{orderId}")
+    @GetMapping("/{id}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<Order> getOrderById(@PathVariable String orderId) {
+    public ResponseEntity<Order> getOrderById(@PathVariable String id) {
         String userId = getCurrentUserId();
-        Order order = orderService.getOrderById(orderId);
-
+        Order order = orderService.getOrderById(id);
+        
         // Verify user owns this order (or is admin)
         if (!order.getUserId().equals(userId) && !isAdmin()) {
             return ResponseEntity.status(403).build();
         }
-
+        
         return ResponseEntity.ok(order);
     }
 
-    @PutMapping("/{orderId}/cancel")
+    @PutMapping("/{id}/cancel")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<Order> cancelOrder(@PathVariable String orderId) {
+    public ResponseEntity<Order> cancelOrder(@PathVariable String id) {
         String userId = getCurrentUserId();
-        Order order = orderService.cancelOrder(orderId, userId);
+        Order order = orderService.cancelOrder(id, userId);
         return ResponseEntity.ok(order);
     }
 
@@ -79,11 +80,34 @@ public class OrderController {
         return ResponseEntity.ok(order);
     }
 
+    @PostMapping("/validate-promo")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> validatePromoCode(@RequestBody Map<String, String> request) {
+        String promoCode = request.get("promoCode");
+        String userId = getCurrentUserId();
+        
+        // TODO: Implement promo code validation service
+        Map<String, Object> result = new HashMap<>();
+        
+        // Mock validation for now
+        if ("COSMIC20".equals(promoCode) || "GALAXY15".equals(promoCode) || "SPACE10".equals(promoCode)) {
+            result.put("valid", true);
+            result.put("message", "Mã giảm giá hợp lệ");
+            result.put("discount", promoCode.equals("COSMIC20") ? 20 : promoCode.equals("GALAXY15") ? 15 : 10);
+        } else {
+            result.put("valid", false);
+            result.put("message", "Mã giảm giá không hợp lệ hoặc đã hết hạn");
+        }
+        
+        return ResponseEntity.ok(result);
+    }
+
     private String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated() &&
                 !authentication.getPrincipal().equals("anonymousUser")) {
 
+            // Extract user ID from JWT token
             String token = getJwtFromCurrentRequest();
             if (token != null) {
                 try {
@@ -123,7 +147,8 @@ public class OrderController {
 
     private boolean isAdmin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return authentication != null && 
+               authentication.getAuthorities().stream()
+                   .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 }
