@@ -1,4 +1,10 @@
-FROM maven:3.9.6-openjdk-17-slim AS build
+
+FROM eclipse-temurin:17-jdk-jammy AS build
+
+# Install Maven
+RUN apt-get update && \
+    apt-get install -y maven && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -19,8 +25,8 @@ COPY src src
 # Build application (skip tests for faster build)
 RUN ./mvnw clean package -DskipTests -B --no-transfer-progress
 
-# Production stage với JRE nhẹ hơn
-FROM openjdk:17-jre-slim
+# Production stage với JRE
+FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
 
