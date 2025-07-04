@@ -1,334 +1,317 @@
 <template>
-  <div class="order-details-modal">
-    <!-- Modal Header -->
-    <div class="modal-header">
-      <div class="header-left">
-        <h2>Chi tiết Đơn hàng #{{ order.id.slice(-8) }}</h2>
-        <div class="order-status">
-          <span class="status-badge" :style="{ backgroundColor: getStatusColor(order.status) }">
-            {{ getStatusLabel(order.status) }}
-          </span>
-          <span class="order-date">{{ formatDate(order.createdAt) }}</span>
-        </div>
-      </div>
-      <button @click="$emit('close')" class="close-btn">✕</button>
-    </div>
-
-    <!-- Modal Content -->
-    <div class="modal-body">
-      <!-- Order Summary -->
-      <div class="section order-summary">
-        <h3>📋 Tổng quan đơn hàng</h3>
-        <div class="summary-grid">
-          <div class="summary-item">
-            <span class="label">Mã đơn hàng:</span>
-            <span class="value">#{{ order.id.slice(-8) }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="label">Ngày đặt:</span>
-            <span class="value">{{ formatDate(order.createdAt) }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="label">Tổng tiền:</span>
-            <span class="value highlight">{{ formatCurrency(order.totalAmount) }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="label">Phương thức thanh toán:</span>
-            <span class="value">{{ order.paymentMethod || 'COD' }}</span>
+  <div class="order-details-modal-overlay" @click="$emit('close')">
+    <div class="order-details-modal" @click.stop>
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="header-left">
+          <h2>Chi tiết Đơn hàng #{{ order.id.slice(-8) }}</h2>
+          <div class="order-status">
+            <span class="status-badge" :style="{ backgroundColor: getStatusColor(order.status) }">
+              {{ getSellerStatusLabel(order.status) }}
+            </span>
+            <span class="order-date">{{ formatDate(order.createdAt) }}</span>
           </div>
         </div>
+        <button @click="$emit('close')" class="close-btn">✕</button>
       </div>
 
-      <!-- Customer Information -->
-      <div class="section customer-info">
-        <h3>👤 Thông tin khách hàng</h3>
-        <div class="customer-grid">
-          <div class="customer-card">
-            <div class="customer-avatar">
-              {{ order.customerName.charAt(0).toUpperCase() }}
+      <!-- Modal Content -->
+      <div class="modal-body">
+        <!-- Order Summary -->
+        <div class="section order-summary">
+          <h3>📋 Tổng quan đơn hàng</h3>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span class="label">Mã đơn hàng:</span>
+              <span class="value">#{{ order.id.slice(-8) }}</span>
             </div>
-            <div class="customer-details">
-              <h4>{{ order.customerName }}</h4>
-              <p class="customer-email">{{ order.customerEmail }}</p>
-              <p class="customer-phone">{{ order.customerPhone }}</p>
+            <div class="summary-item">
+              <span class="label">Ngày đặt:</span>
+              <span class="value">{{ formatDate(order.createdAt) }}</span>
             </div>
-            <button @click="openCustomerChat" class="btn-contact">💬 Liên hệ</button>
+            <div class="summary-item">
+              <span class="label">Tổng tiền:</span>
+              <span class="value highlight">{{ formatCurrency(order.totalAmount) }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">Phương thức thanh toán:</span>
+              <span class="value">{{ order.paymentMethod || 'COD' }}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Shipping Information -->
-      <div class="section shipping-info">
-        <h3>🚚 Thông tin giao hàng</h3>
-        <div class="address-grid">
-          <div class="address-card">
-            <h4>Địa chỉ giao hàng</h4>
-            <p>{{ order.shippingAddress }}</p>
-            <div class="address-actions">
-              <button @click="copyAddress('shipping')" class="btn-copy">📋 Copy</button>
-              <button @click="openMapsDirection" class="btn-map">🗺️ Chỉ đường</button>
-            </div>
-          </div>
-          <div class="address-card" v-if="order.billingAddress !== order.shippingAddress">
-            <h4>Địa chỉ thanh toán</h4>
-            <p>{{ order.billingAddress }}</p>
-            <button @click="copyAddress('billing')" class="btn-copy">📋 Copy</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Order Items -->
-      <div class="section order-items">
-        <h3>📦 Sản phẩm trong đơn hàng ({{ order.items.length }})</h3>
-        <div class="items-list">
-          <div v-for="item in order.items" :key="item.id" class="item-card">
-            <div class="item-image">
-              <img :src="item.productImage || '/placeholder-product.jpg'" :alt="item.productName" />
-            </div>
-            <div class="item-details">
-              <h4>{{ item.productName }}</h4>
-              <p class="item-sku">SKU: {{ item.productSku || 'N/A' }}</p>
-              <div class="item-variants" v-if="item.variants">
-                <span v-for="variant in item.variants" :key="variant.name" class="variant-tag">
-                  {{ variant.name }}: {{ variant.value }}
-                </span>
+        <!-- Customer Information -->
+        <div class="section customer-info">
+          <h3>👤 Thông tin khách hàng</h3>
+          <div class="customer-grid">
+            <div class="customer-card">
+              <div class="customer-avatar">
+                {{ order.customerName.charAt(0).toUpperCase() }}
+              </div>
+              <div class="customer-details">
+                <h4>{{ order.customerName }}</h4>
+                <p>{{ order.customerEmail }}</p>
+                <p>{{ order.customerPhone }}</p>
               </div>
             </div>
-            <div class="item-pricing">
-              <div class="quantity">
-                <span class="quantity-label">SL:</span>
-                <span class="quantity-value">{{ item.quantity }}</span>
+            <div class="shipping-address">
+              <h4>📍 Địa chỉ giao hàng</h4>
+              <p>{{ order.shippingAddress }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Items -->
+        <div class="section order-items">
+          <h3>📦 Sản phẩm đã đặt</h3>
+          <div class="items-list">
+            <div v-for="item in order.items" :key="item.id" class="item-card">
+              <div class="item-image">
+                <img :src="item.image || '/placeholder.jpg'" :alt="item.name" />
               </div>
-              <div class="price">
-                <span class="unit-price">{{ formatCurrency(item.price) }}</span>
-                <span class="total-price">{{ formatCurrency(item.price * item.quantity) }}</span>
+              <div class="item-info">
+                <h4>{{ item.name }}</h4>
+                <p class="item-description">{{ item.description }}</p>
+                <div class="item-variants" v-if="item.variants">
+                  <span v-for="variant in item.variants" :key="variant.key" class="variant">
+                    {{ variant.key }}: {{ variant.value }}
+                  </span>
+                </div>
+              </div>
+              <div class="item-pricing">
+                <div class="quantity">
+                  <span class="quantity-label">SL:</span>
+                  <span class="quantity-value">{{ item.quantity }}</span>
+                </div>
+                <div class="price">
+                  <span class="unit-price">{{ formatCurrency(item.price) }}</span>
+                  <span class="total-price">{{ formatCurrency(item.price * item.quantity) }}</span>
+                </div>
+              </div>
+              <div class="item-actions">
+                <button @click="viewProduct(item.productId)" class="btn-view-product">
+                  👁️ Xem SP
+                </button>
               </div>
             </div>
-            <div class="item-actions">
-              <button @click="viewProduct(item.productId)" class="btn-view-product">
-                👁️ Xem SP
+          </div>
+        </div>
+
+        <!-- Status Management -->
+        <div class="section status-management">
+          <h3>⚙️ Quản lý trạng thái</h3>
+          <div class="status-workflow">
+            <div class="current-status">
+              <span class="label">Trạng thái hiện tại:</span>
+              <span class="status-badge" :style="{ backgroundColor: getStatusColor(order.status) }">
+                {{ getSellerStatusLabel(order.status) }}
+              </span>
+            </div>
+
+            <div class="status-actions">
+              <button
+                v-if="canUpdateTo('PROCESSING')"
+                @click="updateStatus('PROCESSING')"
+                :disabled="updating"
+                class="status-btn processing"
+              >
+                ▶️ Bắt đầu xử lý
+              </button>
+
+              <button
+                v-if="canUpdateTo('SHIPPED')"
+                @click="showShippingModal = true"
+                :disabled="updating"
+                class="status-btn shipped"
+              >
+                🚚 Đánh dấu đã gửi
+              </button>
+
+              <button
+                v-if="canUpdateTo('DELIVERED')"
+                @click="updateStatus('DELIVERED')"
+                :disabled="updating"
+                class="status-btn delivered"
+              >
+                ✅ Hoàn thành
+              </button>
+
+              <button
+                v-if="canCancel()"
+                @click="showCancelModal = true"
+                :disabled="updating"
+                class="status-btn cancel"
+              >
+                ❌ Hủy đơn hàng
               </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Status Management -->
-      <div class="section status-management">
-        <h3>⚙️ Quản lý trạng thái</h3>
-        <div class="status-workflow">
-          <div class="current-status">
-            <span class="label">Trạng thái hiện tại:</span>
-            <span class="status-badge" :style="{ backgroundColor: getStatusColor(order.status) }">
-              {{ getStatusLabel(order.status) }}
-            </span>
-          </div>
-
-          <div class="status-actions">
-            <button
-              v-if="canUpdateTo('PROCESSING')"
-              @click="updateStatus('PROCESSING')"
-              :disabled="updating"
-              class="status-btn processing"
-            >
-              ▶️ Bắt đầu xử lý
-            </button>
-
-            <button
-              v-if="canUpdateTo('SHIPPED')"
-              @click="showShippingModal = true"
-              :disabled="updating"
-              class="status-btn shipped"
-            >
-              🚚 Đánh dấu đã gửi
-            </button>
-
-            <button
-              v-if="canUpdateTo('DELIVERED')"
-              @click="updateStatus('DELIVERED')"
-              :disabled="updating"
-              class="status-btn delivered"
-            >
-              ✅ Đánh dấu đã giao
-            </button>
-
-            <button
-              v-if="canCancel()"
-              @click="showCancelModal = true"
-              :disabled="updating"
-              class="status-btn cancel"
-            >
-              ❌ Hủy đơn hàng
-            </button>
-          </div>
-        </div>
-
-        <!-- Status Timeline -->
-        <div class="status-timeline">
-          <div class="timeline-header">
-            <h4>📅 Lịch sử trạng thái</h4>
-          </div>
-          <div class="timeline">
-            <div
-              v-for="statusItem in statusHistory"
-              :key="statusItem.timestamp"
-              class="timeline-item"
-              :class="{ active: statusItem.status === order.status }"
-            >
-              <div class="timeline-dot"></div>
-              <div class="timeline-content">
-                <div class="timeline-status">{{ getStatusLabel(statusItem.status) }}</div>
-                <div class="timeline-time">{{ formatDate(statusItem.timestamp) }}</div>
-                <div v-if="statusItem.note" class="timeline-note">{{ statusItem.note }}</div>
+          <!-- Status History -->
+          <div class="status-history">
+            <h4>📋 Lịch sử trạng thái</h4>
+            <div class="history-timeline">
+              <div v-for="(history, index) in statusHistory" :key="index" class="history-item">
+                <div class="history-icon">
+                  <span class="status-badge small" :style="{ backgroundColor: getStatusColor(history.status) }">
+                    {{ getSellerStatusLabel(history.status) }}
+                  </span>
+                </div>
+                <div class="history-content">
+                  <p class="history-note">{{ history.note }}</p>
+                  <p class="history-time">{{ formatDate(history.timestamp) }}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Order Notes & Communication -->
-      <div class="section order-communication">
-        <h3>💬 Ghi chú & Tin nhắn</h3>
-
-        <!-- Messages List -->
-        <div class="messages-list">
-          <div v-if="messages.length === 0" class="no-messages">
-            <p>Chưa có tin nhắn nào cho đơn hàng này</p>
-          </div>
-          <div v-else>
-            <div
-              v-for="message in messages"
-              :key="message.id"
-              class="message-item"
-              :class="{ 'seller-message': message.sender === 'seller' }"
-            >
+        <!-- Customer Communication -->
+        <div class="section communication">
+          <h3>💬 Tin nhắn với khách hàng</h3>
+          
+          <div class="messages-list">
+            <div v-for="message in messages" :key="message.id" 
+                 :class="['message-item', message.sender === 'seller' ? 'seller-message' : 'customer-message']">
               <div class="message-header">
-                <span class="sender">{{
-                  message.sender === 'seller' ? 'Bạn' : order.customerName
-                }}</span>
+                <span class="sender">{{ message.sender === 'seller' ? 'Bạn' : order.customerName }}</span>
                 <span class="message-time">{{ formatDate(message.timestamp) }}</span>
               </div>
               <div class="message-content">{{ message.content }}</div>
             </div>
           </div>
-        </div>
 
-        <!-- Send Message -->
-        <div class="send-message">
-          <div class="message-input-wrapper">
-            <textarea
-              v-model="newMessage"
-              placeholder="Nhập tin nhắn cho khách hàng..."
-              rows="3"
-              class="message-input"
-            ></textarea>
-            <div class="message-actions">
-              <div class="message-templates">
+          <div class="send-message">
+            <div class="message-input-wrapper">
+              <textarea
+                v-model="newMessage"
+                placeholder="Nhập tin nhắn cho khách hàng..."
+                class="message-input"
+                rows="3"
+              ></textarea>
+              <div class="message-actions">
+                <div class="message-templates">
+                  <button
+                    v-for="template in messageTemplates"
+                    :key="template.id"
+                    @click="useTemplate(template.content)"
+                    class="template-btn"
+                  >
+                    {{ template.name }}
+                  </button>
+                </div>
                 <button
-                  v-for="template in messageTemplates"
-                  :key="template.id"
-                  @click="useTemplate(template.content)"
-                  class="template-btn"
+                  @click="sendMessage"
+                  :disabled="!newMessage.trim() || sendingMessage"
+                  class="btn-send-message"
                 >
-                  {{ template.name }}
+                  {{ sendingMessage ? 'Đang gửi...' : 'Gửi' }}
                 </button>
               </div>
-              <button
-                @click="sendMessage"
-                :disabled="!newMessage.trim() || sendingMessage"
-                class="btn-send-message"
-              >
-                {{ sendingMessage ? 'Đang gửi...' : '📤 Gửi' }}
-              </button>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Action Buttons -->
-      <div class="section action-buttons">
-        <div class="button-group">
-          <button @click="printShippingLabel" class="action-btn print">🖨️ In nhãn giao hàng</button>
-          <button @click="printInvoice" class="action-btn invoice">📄 In hóa đơn</button>
-          <button @click="exportOrderDetails" class="action-btn export">💾 Xuất thông tin</button>
-          <button @click="duplicateOrder" class="action-btn duplicate">📋 Tạo đơn tương tự</button>
+        <!-- Action Buttons -->
+        <div class="section actions">
+          <h3>⚡ Hành động</h3>
+          <div class="button-group">
+            <button @click="printOrder" class="action-btn print">
+              🖨️ In đơn hàng
+            </button>
+            <button @click="generateInvoice" class="action-btn invoice">
+              📄 Tạo hóa đơn
+            </button>
+            <button @click="exportOrder" class="action-btn export">
+              📊 Xuất Excel
+            </button>
+            <button @click="duplicateOrder" class="action-btn duplicate">
+              📋 Tạo đơn tương tự
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Shipping Modal -->
-    <div v-if="showShippingModal" class="shipping-modal-overlay" @click="showShippingModal = false">
-      <div class="shipping-modal" @click.stop>
-        <h3>🚚 Thông tin giao hàng</h3>
-        <form @submit.prevent="confirmShipping">
-          <div class="form-group">
-            <label>Mã vận đơn:</label>
-            <input
-              v-model="shippingInfo.trackingNumber"
-              type="text"
-              placeholder="Nhập mã vận đơn"
-            />
+      <!-- Shipping Modal -->
+      <div v-if="showShippingModal" class="modal-overlay" @click="showShippingModal = false">
+        <div class="modal-content" @click.stop>
+          <div class="modal-header">
+            <h2>🚚 Thông tin giao hàng</h2>
+            <button @click="showShippingModal = false" class="close-btn">✕</button>
           </div>
-          <div class="form-group">
-            <label>Đơn vị vận chuyển:</label>
-            <select v-model="shippingInfo.carrier">
-              <option value="ghn">Giao Hàng Nhanh</option>
-              <option value="ghtk">Giao Hàng Tiết Kiệm</option>
-              <option value="viettel">Viettel Post</option>
-              <option value="vnpost">Vietnam Post</option>
-              <option value="other">Khác</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Ghi chú:</label>
-            <textarea
-              v-model="shippingInfo.note"
-              rows="3"
-              placeholder="Ghi chú về việc giao hàng..."
-            ></textarea>
-          </div>
-          <div class="modal-actions">
-            <button type="button" @click="showShippingModal = false" class="btn-cancel">Hủy</button>
-            <button type="submit" :disabled="!shippingInfo.trackingNumber" class="btn-confirm">
-              Xác nhận
-            </button>
-          </div>
-        </form>
+          <form @submit.prevent="confirmShipping" class="shipping-form">
+            <div class="form-group">
+              <label>Đơn vị vận chuyển:</label>
+              <select v-model="shippingInfo.carrier" required>
+                <option value="ghn">Giao Hàng Nhanh</option>
+                <option value="ghtk">Giao Hàng Tiết Kiệm</option>
+                <option value="viettel">Viettel Post</option>
+                <option value="vnpost">VN Post</option>
+                <option value="other">Khác</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Mã vận đơn:</label>
+              <input
+                v-model="shippingInfo.trackingNumber"
+                type="text"
+                placeholder="Nhập mã vận đơn..."
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label>Ghi chú:</label>
+              <textarea
+                v-model="shippingInfo.note"
+                rows="3"
+                placeholder="Thông tin bổ sung về giao hàng..."
+              ></textarea>
+            </div>
+            <div class="modal-actions">
+              <button type="button" @click="showShippingModal = false" class="btn-cancel">Hủy</button>
+              <button type="submit" :disabled="updating" class="btn-confirm">
+                {{ updating ? 'Đang cập nhật...' : 'Xác nhận gửi hàng' }}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
 
-    <!-- Cancel Modal -->
-    <div v-if="showCancelModal" class="cancel-modal-overlay" @click="showCancelModal = false">
-      <div class="cancel-modal" @click.stop>
-        <h3>❌ Hủy đơn hàng</h3>
-        <p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>
-        <form @submit.prevent="confirmCancel">
-          <div class="form-group">
-            <label>Lý do hủy:</label>
-            <select v-model="cancelInfo.reason" required>
-              <option value="">Chọn lý do hủy</option>
-              <option value="out_of_stock">Hết hàng</option>
-              <option value="customer_request">Khách hàng yêu cầu</option>
-              <option value="payment_issue">Vấn đề thanh toán</option>
-              <option value="shipping_issue">Vấn đề giao hàng</option>
-              <option value="other">Lý do khác</option>
-            </select>
+      <!-- Cancel Modal -->
+      <div v-if="showCancelModal" class="modal-overlay" @click="showCancelModal = false">
+        <div class="modal-content" @click.stop>
+          <div class="modal-header">
+            <h2>❌ Hủy đơn hàng</h2>
+            <button @click="showCancelModal = false" class="close-btn">✕</button>
           </div>
-          <div class="form-group">
-            <label>Ghi chú:</label>
-            <textarea
-              v-model="cancelInfo.note"
-              rows="3"
-              placeholder="Mô tả chi tiết lý do hủy..."
-            ></textarea>
-          </div>
-          <div class="modal-actions">
-            <button type="button" @click="showCancelModal = false" class="btn-cancel">Đóng</button>
-            <button type="submit" :disabled="!cancelInfo.reason" class="btn-confirm danger">
-              Xác nhận hủy
-            </button>
-          </div>
-        </form>
+          <form @submit.prevent="confirmCancel" class="cancel-form">
+            <div class="form-group">
+              <label>Lý do hủy:</label>
+              <select v-model="cancelInfo.reason" required>
+                <option value="">Chọn lý do...</option>
+                <option value="out_of_stock">Hết hàng</option>
+                <option value="customer_request">Khách hàng yêu cầu</option>
+                <option value="payment_issue">Vấn đề thanh toán</option>
+                <option value="shipping_issue">Vấn đề vận chuyển</option>
+                <option value="other">Khác</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Ghi chú:</label>
+              <textarea
+                v-model="cancelInfo.note"
+                rows="3"
+                placeholder="Mô tả chi tiết lý do hủy..."
+              ></textarea>
+            </div>
+            <div class="modal-actions">
+              <button type="button" @click="showCancelModal = false" class="btn-cancel">Đóng</button>
+              <button type="submit" :disabled="!cancelInfo.reason" class="btn-confirm danger">
+                Xác nhận hủy
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -407,7 +390,7 @@ const statusHistory = computed(() => {
           {
             status: props.order.status,
             timestamp: props.order.updatedAt,
-            note: `Cập nhật trạng thái thành ${getStatusLabel(props.order.status)}`,
+            note: `Cập nhật trạng thái thành ${getSellerStatusLabel(props.order.status)}`,
           },
         ]
       : []),
@@ -415,12 +398,8 @@ const statusHistory = computed(() => {
 })
 
 // Methods
-const getStatusLabel = (status) => {
+const getSellerStatusLabel = (status) => {
   return getStatusLabel(status, 'SELLER')
-}
-
-const getStatusColor = (status) => {
-  return getStatusColor(status)
 }
 
 const formatDate = (dateString) => {
@@ -497,13 +476,8 @@ const confirmCancel = async () => {
   }
 }
 
-const loadMessages = async () => {
-  try {
-    const orderMessages = await sellerStore.loadOrderMessages(props.order.id)
-    messages.value = orderMessages || []
-  } catch (error) {
-    console.error('Error loading messages:', error)
-  }
+const useTemplate = (content) => {
+  newMessage.value = content
 }
 
 const sendMessage = async () => {
@@ -511,714 +485,67 @@ const sendMessage = async () => {
 
   try {
     sendingMessage.value = true
-    const message = await sellerStore.sendOrderMessage(props.order.id, newMessage.value.trim())
+    
+    // Add message to local list
+    const message = {
+      id: Date.now(),
+      sender: 'seller',
+      content: newMessage.value,
+      timestamp: new Date().toISOString(),
+    }
+    
     messages.value.push(message)
+    
+    // Send to backend
+    await sellerStore.sendMessageToCustomer(props.order.id, newMessage.value)
+    
     newMessage.value = ''
-    emit('message-sent', props.order.id, message)
+    emit('message-sent', message)
   } catch (error) {
+    console.error('Error sending message:', error)
     alert('Có lỗi xảy ra khi gửi tin nhắn')
   } finally {
     sendingMessage.value = false
   }
 }
 
-const useTemplate = (content) => {
-  newMessage.value = content
-}
-
-const openCustomerChat = () => {
-  // Open customer chat in new modal
-  emit('open-chat', props.order)
-}
-
-const copyAddress = (type) => {
-  const address = type === 'shipping' ? props.order.shippingAddress : props.order.billingAddress
-  navigator.clipboard.writeText(address)
-  alert('Đã copy địa chỉ vào clipboard')
-}
-
-const openMapsDirection = () => {
-  const address = encodeURIComponent(props.order.shippingAddress)
-  window.open(`https://www.google.com/maps/search/?api=1&query=${address}`, '_blank')
-}
-
 const viewProduct = (productId) => {
-  // Navigate to product details
+  // Navigate to product page
   window.open(`/products/${productId}`, '_blank')
 }
 
-const printShippingLabel = () => {
-  const labelContent = `
-    <div style="width: 4in; height: 6in; border: 1px solid #000; padding: 10px; font-family: Arial;">
-      <h3>COSMIC MARKETPLACE</h3>
-      <p><strong>Đơn hàng:</strong> #${props.order.id.slice(-8)}</p>
-      <p><strong>Người nhận:</strong> ${props.order.customerName}</p>
-      <p><strong>Địa chỉ:</strong> ${props.order.shippingAddress}</p>
-      <p><strong>SĐT:</strong> ${props.order.customerPhone}</p>
-      <p><strong>Giá trị:</strong> ${formatCurrency(props.order.totalAmount)}</p>
-      <p><strong>Ngày:</strong> ${formatDate(props.order.createdAt)}</p>
-    </div>
-  `
-
-  const printWindow = window.open('', '_blank')
-  printWindow.document.write(`
-    <html>
-      <head><title>Shipping Label - ${props.order.id}</title></head>
-      <body>${labelContent}</body>
-    </html>
-  `)
-  printWindow.print()
+const printOrder = () => {
+  // Generate and print order
+  window.print()
 }
 
-const printInvoice = () => {
-  // Generate and print invoice
-  alert('Chức năng in hóa đơn sẽ được phát triển trong phiên bản tiếp theo')
+const generateInvoice = () => {
+  // Generate invoice
+  alert('Tính năng tạo hóa đơn đang được phát triển')
 }
 
-const exportOrderDetails = () => {
-  // Export order details to file
-  const orderData = {
-    ...props.order,
-    exportedAt: new Date().toISOString(),
-  }
-
-  const dataStr = JSON.stringify(orderData, null, 2)
-  const dataBlob = new Blob([dataStr], { type: 'application/json' })
-  const url = URL.createObjectURL(dataBlob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `order-${props.order.id.slice(-8)}.json`
-  link.click()
+const exportOrder = () => {
+  // Export order to Excel
+  alert('Tính năng xuất Excel đang được phát triển')
 }
 
 const duplicateOrder = () => {
-  // Create a new order based on this one
-  alert('Chức năng tạo đơn tương tự sẽ được phát triển trong phiên bản tiếp theo')
+  // Create similar order
+  alert('Tính năng tạo đơn tương tự đang được phát triển')
 }
 
-// Lifecycle
-onMounted(() => {
-  loadMessages()
+// Load messages on mount
+onMounted(async () => {
+  try {
+    messages.value = await sellerStore.getOrderMessages(props.order.id)
+  } catch (error) {
+    console.error('Error loading messages:', error)
+  }
 })
 </script>
 
 <style scoped>
-.order-details-modal {
-  width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
-  overflow-y: auto;
-  background: rgba(26, 26, 46, 0.95);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 12px;
-  color: #ffffff;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.header-left h2 {
-  margin: 0 0 0.5rem 0;
-  color: #00d4ff;
-  font-size: 1.5rem;
-}
-
-.order-status {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.status-badge {
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  color: white;
-  font-weight: 500;
-  font-size: 0.875rem;
-}
-
-.order-date {
-  color: #a0aec0;
-  font-size: 0.875rem;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: #a0aec0;
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.section {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: rgba(16, 16, 24, 0.6);
-  border: 1px solid rgba(0, 212, 255, 0.1);
-  border-radius: 12px;
-}
-
-.section h3 {
-  margin: 0 0 1rem 0;
-  color: #00d4ff;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.summary-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  background: rgba(26, 26, 46, 0.5);
-  border-radius: 8px;
-}
-
-.summary-item .label {
-  color: #a0aec0;
-  font-size: 0.875rem;
-}
-
-.summary-item .value {
-  font-weight: 500;
-}
-
-.summary-item .value.highlight {
-  color: #00d4ff;
-  font-weight: bold;
-  font-size: 1.1rem;
-}
-
-.customer-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(26, 26, 46, 0.5);
-  border-radius: 12px;
-}
-
-.customer-avatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #00d4ff, #0099cc);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: white;
-}
-
-.customer-details {
-  flex: 1;
-}
-
-.customer-details h4 {
-  margin: 0 0 0.25rem 0;
-  color: #ffffff;
-}
-
-.customer-email,
-.customer-phone {
-  margin: 0.25rem 0;
-  color: #a0aec0;
-  font-size: 0.875rem;
-}
-
-.btn-contact {
-  padding: 0.5rem 1rem;
-  background: rgba(0, 212, 255, 0.2);
-  border: 1px solid rgba(0, 212, 255, 0.5);
-  border-radius: 8px;
-  color: #00d4ff;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-contact:hover {
-  background: rgba(0, 212, 255, 0.3);
-}
-
-.address-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-}
-
-.address-card {
-  padding: 1rem;
-  background: rgba(26, 26, 46, 0.5);
-  border-radius: 8px;
-}
-
-.address-card h4 {
-  margin: 0 0 0.5rem 0;
-  color: #00d4ff;
-  font-size: 1rem;
-}
-
-.address-card p {
-  margin: 0 0 1rem 0;
-  color: #e2e8f0;
-  line-height: 1.4;
-}
-
-.address-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-copy,
-.btn-map {
-  padding: 0.5rem;
-  background: rgba(107, 114, 128, 0.3);
-  border: 1px solid rgba(107, 114, 128, 0.5);
-  border-radius: 6px;
-  color: #a0aec0;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-}
-
-.btn-copy:hover,
-.btn-map:hover {
-  background: rgba(107, 114, 128, 0.5);
-  color: #ffffff;
-}
-
-.items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.item-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(26, 26, 46, 0.5);
-  border-radius: 8px;
-}
-
-.item-image {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.item-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.item-details {
-  flex: 1;
-}
-
-.item-details h4 {
-  margin: 0 0 0.25rem 0;
-  color: #ffffff;
-  font-size: 1rem;
-}
-
-.item-sku {
-  margin: 0 0 0.5rem 0;
-  color: #a0aec0;
-  font-size: 0.875rem;
-}
-
-.item-variants {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.variant-tag {
-  padding: 0.25rem 0.5rem;
-  background: rgba(0, 212, 255, 0.1);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 4px;
-  color: #00d4ff;
-  font-size: 0.75rem;
-}
-
-.item-pricing {
-  text-align: right;
-  margin-right: 1rem;
-}
-
-.quantity {
-  margin-bottom: 0.5rem;
-}
-
-.quantity-label {
-  color: #a0aec0;
-  font-size: 0.875rem;
-}
-
-.quantity-value {
-  color: #ffffff;
-  font-weight: 500;
-  margin-left: 0.25rem;
-}
-
-.unit-price {
-  display: block;
-  color: #a0aec0;
-  font-size: 0.875rem;
-}
-
-.total-price {
-  display: block;
-  color: #00d4ff;
-  font-weight: bold;
-  font-size: 1rem;
-}
-
-.btn-view-product {
-  padding: 0.5rem;
-  background: rgba(0, 212, 255, 0.1);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 6px;
-  color: #00d4ff;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-}
-
-.btn-view-product:hover {
-  background: rgba(0, 212, 255, 0.2);
-}
-
-.status-workflow {
-  margin-bottom: 1.5rem;
-}
-
-.current-status {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.current-status .label {
-  color: #a0aec0;
-}
-
-.status-actions {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.status-btn {
-  padding: 0.75rem 1rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.status-btn.processing {
-  background: #3b82f6;
-  color: white;
-}
-.status-btn.shipped {
-  background: #8b5cf6;
-  color: white;
-}
-.status-btn.delivered {
-  background: #10b981;
-  color: white;
-}
-.status-btn.cancel {
-  background: #ef4444;
-  color: white;
-}
-
-.status-btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-}
-
-.status-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.status-timeline {
-  margin-top: 1.5rem;
-}
-
-.timeline-header h4 {
-  margin: 0 0 1rem 0;
-  color: #e2e8f0;
-  font-size: 1rem;
-}
-
-.timeline {
-  position: relative;
-  padding-left: 2rem;
-}
-
-.timeline::before {
-  content: '';
-  position: absolute;
-  left: 10px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: rgba(0, 212, 255, 0.3);
-}
-
-.timeline-item {
-  position: relative;
-  margin-bottom: 1rem;
-}
-
-.timeline-dot {
-  position: absolute;
-  left: -2rem;
-  top: 0.25rem;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: rgba(107, 114, 128, 0.5);
-  border: 3px solid rgba(26, 26, 46, 0.95);
-}
-
-.timeline-item.active .timeline-dot {
-  background: #00d4ff;
-}
-
-.timeline-content {
-  padding-left: 0.5rem;
-}
-
-.timeline-status {
-  font-weight: 500;
-  color: #ffffff;
-  margin-bottom: 0.25rem;
-}
-
-.timeline-time {
-  color: #a0aec0;
-  font-size: 0.875rem;
-  margin-bottom: 0.25rem;
-}
-
-.timeline-note {
-  color: #e2e8f0;
-  font-size: 0.875rem;
-  font-style: italic;
-}
-
-.messages-list {
-  max-height: 300px;
-  overflow-y: auto;
-  margin-bottom: 1rem;
-  padding: 1rem;
-  background: rgba(26, 26, 46, 0.3);
-  border-radius: 8px;
-}
-
-.no-messages {
-  text-align: center;
-  color: #a0aec0;
-  padding: 2rem;
-}
-
-.message-item {
-  margin-bottom: 1rem;
-  padding: 1rem;
-  background: rgba(107, 114, 128, 0.2);
-  border-radius: 8px;
-}
-
-.message-item.seller-message {
-  background: rgba(0, 212, 255, 0.1);
-  margin-left: 2rem;
-}
-
-.message-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.sender {
-  font-weight: 500;
-  color: #00d4ff;
-}
-
-.message-time {
-  color: #a0aec0;
-  font-size: 0.875rem;
-}
-
-.message-content {
-  color: #e2e8f0;
-  line-height: 1.4;
-}
-
-.send-message {
-  margin-top: 1rem;
-}
-
-.message-input-wrapper {
-  background: rgba(26, 26, 46, 0.5);
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.message-input {
-  width: 100%;
-  padding: 0.75rem;
-  background: rgba(16, 16, 24, 0.8);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 6px;
-  color: #ffffff;
-  resize: vertical;
-  font-family: inherit;
-  margin-bottom: 1rem;
-}
-
-.message-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
-
-.message-templates {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.template-btn {
-  padding: 0.5rem 0.75rem;
-  background: rgba(107, 114, 128, 0.3);
-  border: 1px solid rgba(107, 114, 128, 0.5);
-  border-radius: 6px;
-  color: #a0aec0;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-}
-
-.template-btn:hover {
-  background: rgba(107, 114, 128, 0.5);
-  color: #ffffff;
-}
-
-.btn-send-message {
-  padding: 0.75rem 1rem;
-  background: #00d4ff;
-  border: none;
-  border-radius: 6px;
-  color: #000000;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.btn-send-message:hover {
-  background: #0099cc;
-}
-
-.btn-send-message:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.button-group {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.action-btn {
-  padding: 0.75rem 1rem;
-  border: 1px solid;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.action-btn.print {
-  background: rgba(245, 158, 11, 0.1);
-  border-color: rgba(245, 158, 11, 0.5);
-  color: #f59e0b;
-}
-
-.action-btn.invoice {
-  background: rgba(139, 92, 246, 0.1);
-  border-color: rgba(139, 92, 246, 0.5);
-  color: #8b5cf6;
-}
-
-.action-btn.export {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.5);
-  color: #10b981;
-}
-
-.action-btn.duplicate {
-  background: rgba(107, 114, 128, 0.1);
-  border-color: rgba(107, 114, 128, 0.5);
-  color: #6b7280;
-}
-
-.action-btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.2);
-}
-
-/* Modals */
-.shipping-modal-overlay,
-.cancel-modal-overlay {
+.order-details-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -1228,78 +555,543 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.order-details-modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 1000px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #ecf0f1;
+  background: white;
+  border-radius: 12px 12px 0 0;
+}
+
+.header-left h2 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+}
+
+.order-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-badge.small {
+  padding: 4px 8px;
+  font-size: 0.7rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #7f8c8d;
+  padding: 5px;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.section h3 {
+  margin: 0 0 20px 0;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background: white;
+  border-radius: 6px;
+}
+
+.label {
+  font-weight: 500;
+  color: #7f8c8d;
+}
+
+.value {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.value.highlight {
+  color: #e74c3c;
+  font-size: 1.1rem;
+}
+
+.customer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.customer-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.customer-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #3498db;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.shipping-address {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.item-card {
+  display: flex;
+  gap: 15px;
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  align-items: center;
+}
+
+.item-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.item-info {
+  flex: 1;
+}
+
+.item-info h4 {
+  margin: 0 0 5px 0;
+  color: #2c3e50;
+}
+
+.item-description {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  margin: 0 0 10px 0;
+}
+
+.item-variants {
+  display: flex;
+  gap: 10px;
+}
+
+.variant {
+  background: #ecf0f1;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.item-pricing {
+  text-align: right;
+}
+
+.quantity {
+  margin-bottom: 5px;
+}
+
+.quantity-label {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.unit-price {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  display: block;
+}
+
+.total-price {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.btn-view-product {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.status-workflow {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.current-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.status-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.status-btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.status-btn.processing {
+  background: #3498db;
+  color: white;
+}
+
+.status-btn.shipped {
+  background: #9b59b6;
+  color: white;
+}
+
+.status-btn.delivered {
+  background: #27ae60;
+  color: white;
+}
+
+.status-btn.cancel {
+  background: #e74c3c;
+  color: white;
+}
+
+.status-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.history-timeline {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.history-item {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.history-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.messages-list {
+  max-height: 300px;
+  overflow-y: auto;
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.message-item {
+  margin-bottom: 15px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.message-item.customer-message {
+  background: #f8f9fa;
+  margin-right: 2rem;
+}
+
+.message-item.seller-message {
+  background: #e3f2fd;
+  margin-left: 2rem;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.sender {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.message-time {
+  color: #7f8c8d;
+  font-size: 0.8rem;
+}
+
+.message-input-wrapper {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.message-input {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #ecf0f1;
+  border-radius: 6px;
+  resize: vertical;
+  font-family: inherit;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.message-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.message-templates {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.template-btn {
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+}
+
+.template-btn:hover {
+  background: #e9ecef;
+}
+
+.btn-send-message {
+  padding: 10px 20px;
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-send-message:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 12px 20px;
+  border: 1px solid;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+}
+
+.action-btn.print {
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.action-btn.print:hover {
+  background: #fff3cd;
+}
+
+.action-btn.invoice {
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+}
+
+.action-btn.invoice:hover {
+  background: #f3e8ff;
+}
+
+.action-btn.export {
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.action-btn.export:hover {
+  background: #d1fae5;
+}
+
+.action-btn.duplicate {
+  border-color: #64748b;
+  color: #64748b;
+}
+
+.action-btn.duplicate:hover {
+  background: #f1f5f9;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 1001;
 }
 
-.shipping-modal,
-.cancel-modal {
-  background: rgba(26, 26, 46, 0.95);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 12px;
-  padding: 2rem;
+.modal-content {
+  background: white;
+  border-radius: 8px;
   max-width: 500px;
   width: 90%;
-  color: #ffffff;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
-.shipping-modal h3,
-.cancel-modal h3 {
-  margin: 0 0 1rem 0;
-  color: #00d4ff;
+.shipping-form,
+.cancel-form {
+  padding: 20px;
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 20px;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
-  color: #e2e8f0;
+  margin-bottom: 5px;
   font-weight: 500;
+  color: #2c3e50;
 }
 
-.form-group input,
 .form-group select,
+.form-group input,
 .form-group textarea {
   width: 100%;
-  padding: 0.75rem;
-  background: rgba(16, 16, 24, 0.8);
-  border: 1px solid rgba(0, 212, 255, 0.3);
+  padding: 10px;
+  border: 2px solid #ecf0f1;
   border-radius: 6px;
-  color: #ffffff;
-  font-family: inherit;
+  font-size: 0.9rem;
+  box-sizing: border-box;
 }
 
 .modal-actions {
   display: flex;
-  gap: 1rem;
   justify-content: flex-end;
-  margin-top: 1.5rem;
+  gap: 10px;
+  padding: 20px;
+  border-top: 1px solid #ecf0f1;
 }
 
 .btn-cancel {
-  padding: 0.75rem 1rem;
-  background: rgba(107, 114, 128, 0.5);
-  border: 1px solid rgba(107, 114, 128, 0.7);
+  padding: 10px 20px;
+  background: #95a5a6;
+  color: white;
+  border: none;
   border-radius: 6px;
-  color: #ffffff;
   cursor: pointer;
 }
 
 .btn-confirm {
-  padding: 0.75rem 1rem;
-  background: #00d4ff;
+  padding: 10px 20px;
+  background: #27ae60;
+  color: white;
   border: none;
   border-radius: 6px;
-  color: #000000;
   cursor: pointer;
-  font-weight: 500;
 }
 
 .btn-confirm.danger {
-  background: #ef4444;
-  color: #ffffff;
+  background: #e74c3c;
 }
 
 .btn-confirm:disabled {
@@ -1307,51 +1099,44 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
+  .order-details-modal-overlay {
+    padding: 10px;
+  }
+  
   .order-details-modal {
-    width: 95%;
     max-height: 95vh;
   }
-
-  .modal-header {
-    flex-direction: column;
-    gap: 1rem;
+  
+  .modal-body {
+    padding: 15px;
   }
-
-  .summary-grid {
+  
+  .customer-grid {
     grid-template-columns: 1fr;
   }
-
-  .address-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .customer-card {
-    flex-direction: column;
-    text-align: center;
-  }
-
+  
   .item-card {
     flex-direction: column;
-    text-align: center;
+    align-items: flex-start;
   }
-
+  
   .status-actions {
     flex-direction: column;
   }
-
-  .button-group {
-    flex-direction: column;
-  }
-
+  
   .message-actions {
     flex-direction: column;
     align-items: stretch;
   }
-
+  
   .message-templates {
     justify-content: center;
+    margin-bottom: 10px;
+  }
+  
+  .button-group {
+    flex-direction: column;
   }
 }
 </style>
