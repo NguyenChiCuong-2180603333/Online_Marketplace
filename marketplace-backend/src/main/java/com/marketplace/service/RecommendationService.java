@@ -34,39 +34,44 @@ public class RecommendationService {
 
     // Lấy recommendations chính cho user
     public List<Product> getRecommendationsForUser(String userId, int limit) {
-        Set<String> recommendedProductIds = new LinkedHashSet<>();
+        try {
+            Set<String> recommendedProductIds = new LinkedHashSet<>();
 
-        // 1. Content-based filtering (dựa trên preferences)
-        List<String> contentBasedIds = getContentBasedRecommendations(userId, limit / 3);
-        recommendedProductIds.addAll(contentBasedIds);
+            // 1. Content-based filtering (dựa trên preferences)
+            List<String> contentBasedIds = getContentBasedRecommendations(userId, limit / 3);
+            recommendedProductIds.addAll(contentBasedIds);
 
-        // 2. Collaborative filtering (dựa trên users tương tự)
-        List<String> collaborativeIds = getCollaborativeRecommendations(userId, limit / 3);
-        recommendedProductIds.addAll(collaborativeIds);
+            // 2. Collaborative filtering (dựa trên users tương tự)
+            List<String> collaborativeIds = getCollaborativeRecommendations(userId, limit / 3);
+            recommendedProductIds.addAll(collaborativeIds);
 
-        // 3. Popular products (trending)
-        List<String> popularIds = getPopularRecommendations(userId, limit / 3);
-        recommendedProductIds.addAll(popularIds);
+            // 3. Popular products (trending)
+            List<String> popularIds = getPopularRecommendations(userId, limit / 3);
+            recommendedProductIds.addAll(popularIds);
 
-        // 4. Bổ sung nếu chưa đủ
-        if (recommendedProductIds.size() < limit) {
-            List<String> fallbackIds = getFallbackRecommendations(userId,
-                    limit - recommendedProductIds.size(), recommendedProductIds);
-            recommendedProductIds.addAll(fallbackIds);
+            // 4. Bổ sung nếu chưa đủ
+            if (recommendedProductIds.size() < limit) {
+                List<String> fallbackIds = getFallbackRecommendations(userId,
+                        limit - recommendedProductIds.size(), recommendedProductIds);
+                recommendedProductIds.addAll(fallbackIds);
+            }
+
+            // Convert IDs to Products và sort theo relevance score
+            return recommendedProductIds.stream()
+                    .limit(limit)
+                    .map(id -> {
+                        try {
+                            return productService.getProductById(id);
+                        } catch (Exception e) {
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            System.err.println("Recommendation error for user " + userId + ": " + e.getMessage());
+            return Collections.emptyList();
         }
-
-        // Convert IDs to Products và sort theo relevance score
-        return recommendedProductIds.stream()
-                .limit(limit)
-                .map(id -> {
-                    try {
-                        return productService.getProductById(id);
-                    } catch (Exception e) {
-                        return null;
-                    }
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
     }
 
     // Content-based recommendations

@@ -2,7 +2,9 @@ package com.marketplace.service;
 
 import com.marketplace.dto.ProductRequest;
 import com.marketplace.model.Product;
+import com.marketplace.model.User;
 import com.marketplace.repository.ProductRepository;
+import com.marketplace.repository.UserRepository;
 import com.marketplace.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,9 @@ public class ProductService {
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     public Product saveProduct(Product product) {
         product.setUpdatedAt(LocalDateTime.now());
@@ -54,7 +59,7 @@ public class ProductService {
     }
 
     public List<Product> getProductsBySeller(String sellerId) {
-        return productRepository.findBySellerIdAndActiveTrue(sellerId);
+        return productRepository.findBySellerId(sellerId);
     }
 
     public Product createProduct(ProductRequest productRequest, String sellerId) {
@@ -64,6 +69,10 @@ public class ProductService {
         product.setPrice(productRequest.getPrice());
         product.setImages(productRequest.getImages());
         product.setCategory(productRequest.getCategory());
+        if (sellerId != null) {
+            sellerId = sellerId.trim();
+            if (sellerId.endsWith(",")) sellerId = sellerId.substring(0, sellerId.length() - 1);
+        }
         product.setSellerId(sellerId);
         product.setStockQuantity(productRequest.getStockQuantity());
         product.setTags(productRequest.getTags());
@@ -302,5 +311,32 @@ public class ProductService {
                 .sorted(Comparator.comparing(Product::getAverageRating).reversed())
                 .limit(limit)
                 .toList();
+    }
+
+    public Map<String, Object> getProductWithSellerById(String id) {
+        Product product = getProductById(id);
+        Map<String, Object> result = new HashMap<>();
+        result.put("product", product);
+        User seller = null;
+        if (product.getSellerId() != null) {
+            seller = userRepository.findById(product.getSellerId()).orElse(null);
+        }
+        if (seller != null) {
+            Map<String, Object> sellerInfo = new HashMap<>();
+            sellerInfo.put("id", seller.getId());
+            sellerInfo.put("name", seller.getFirstName() + " " + seller.getLastName());
+            sellerInfo.put("avatar", seller.getAvatar());
+            sellerInfo.put("rating", 0); // TODO: Tính rating thực tế nếu có
+            sellerInfo.put("totalProducts", seller.getProductsSold() != null ? seller.getProductsSold().size() : 0);
+            sellerInfo.put("completedOrders", 0); // TODO: Tính số đơn hoàn thành nếu có
+            result.put("seller", sellerInfo);
+        } else {
+            result.put("seller", null);
+        }
+        return result;
+    }
+
+    public ProductRepository getProductRepository() {
+        return productRepository;
     }
 }

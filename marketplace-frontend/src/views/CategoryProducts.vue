@@ -3,13 +3,6 @@
     <div class="container">
       <!-- Header -->
       <div class="page-header">
-        <div class="breadcrumb">
-          <router-link to="/">Trang chủ</router-link>
-          <span class="separator">/</span>
-          <router-link to="/categories">Danh mục</router-link>
-          <span class="separator">/</span>
-          <span class="current">{{ categoryName }}</span>
-        </div>
         <h1 class="page-title">{{ categoryName }}</h1>
         <p class="page-subtitle">{{ totalProducts }} sản phẩm trong danh mục này</p>
       </div>
@@ -64,7 +57,7 @@
           </div>
 
           <!-- Products Grid -->
-          <div v-else-if="products.length > 0" class="products-grid">
+          <div v-else-if="Array.isArray(products) && products.length > 0" class="products-grid">
             <div v-for="product in products" :key="product.id" class="product-card">
               <div class="product-image">
                 <img
@@ -88,7 +81,7 @@
                     <span
                       v-for="star in 5"
                       :key="star"
-                      :class="['star', star <= product.rating ? 'filled' : 'empty']"
+                      :class="['star', star <= product.averageRating ? 'filled' : 'empty']"
                     >
                       ★
                     </span>
@@ -109,9 +102,9 @@
                   <button
                     @click="addToCart(product)"
                     class="btn btn-primary btn-sm"
-                    :disabled="!product.inStock"
+                    :disabled="!product.stockQuantity || product.stockQuantity <= 0"
                   >
-                    {{ product.inStock ? '🛒 Thêm vào giỏ' : 'Hết hàng' }}
+                    {{ product.stockQuantity > 0 ? '🛒 Thêm vào giỏ' : 'Hết hàng' }}
                   </button>
                   <button
                     @click="toggleWishlist(product)"
@@ -173,7 +166,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
 import { useWishlistStore } from '@/stores/wishlist'
-import { api } from '@/services/api'
+import { searchAPI } from '@/services/api'
 
 export default {
   name: 'CategoryProducts',
@@ -224,23 +217,59 @@ export default {
     const loadProducts = async () => {
       loading.value = true
       try {
+        // Map sortBy/sortOrder for backend
+        let sortByParam = 'createdAt'
+        let sortOrder = 'desc'
+        switch (sortBy.value) {
+          case 'name':
+            sortByParam = 'name'
+            sortOrder = 'asc'
+            break
+          case 'name_desc':
+            sortByParam = 'name'
+            sortOrder = 'desc'
+            break
+          case 'price':
+            sortByParam = 'price'
+            sortOrder = 'asc'
+            break
+          case 'price_desc':
+            sortByParam = 'price'
+            sortOrder = 'desc'
+            break
+          case 'rating':
+            sortByParam = 'rating'
+            sortOrder = 'desc'
+            break
+          case 'newest':
+            sortByParam = 'createdAt'
+            sortOrder = 'desc'
+            break
+        }
         const params = {
           category: props.category,
-          page: currentPage.value,
-          limit: itemsPerPage.value,
-          sortBy: sortBy.value,
+          page: currentPage.value - 1, // backend expects 0-based page
+          size: itemsPerPage.value,
+          sortBy: sortByParam,
+          sortOrder,
         }
-
         if (priceRange.value.min) {
           params.minPrice = priceRange.value.min
         }
         if (priceRange.value.max) {
           params.maxPrice = priceRange.value.max
         }
-
-        const response = await api.get('/products', { params })
-        products.value = response.data.products
-        totalProducts.value = response.data.total
+        const response = await searchAPI.products('', params)
+        if (response.data && Array.isArray(response.data.products)) {
+          products.value = response.data.products
+          totalProducts.value =
+            typeof response.data.totalElements === 'number'
+              ? response.data.totalElements
+              : response.data.products.length
+        } else {
+          products.value = []
+          totalProducts.value = 0
+        }
       } catch (error) {
         console.error('Error loading products:', error)
       } finally {
@@ -271,14 +300,13 @@ export default {
       loadProducts()
     }
 
-    const addToCart = (product) => {
-      cartStore.addToCart({
-        id: product.id,
-        name: product.name,
-        price: getDiscountedPrice(product),
-        image: product.images[0],
-        quantity: 1,
-      })
+    const addToCart = async (product) => {
+      try {
+        await cartStore.addItem(product.id, 1)
+      } catch (error) {
+        // Có thể show thông báo lỗi ở đây nếu muốn
+        console.error('Không thể thêm vào giỏ hàng:', error)
+      }
     }
 
     const toggleWishlist = (product) => {
@@ -364,7 +392,6 @@ export default {
 <style scoped>
 .category-products-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 2rem 0;
 }
 
@@ -378,30 +405,6 @@ export default {
   text-align: center;
   margin-bottom: 2rem;
   color: white;
-}
-
-.breadcrumb {
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-}
-
-.breadcrumb a {
-  color: rgba(255, 255, 255, 0.8);
-  text-decoration: none;
-}
-
-.breadcrumb a:hover {
-  color: white;
-}
-
-.separator {
-  margin: 0 0.5rem;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.current {
-  color: white;
-  font-weight: 600;
 }
 
 .page-title {
@@ -424,12 +427,14 @@ export default {
 }
 
 .filters-sidebar {
-  background: white;
-  border-radius: 12px;
+  background: rgba(30, 34, 54, 0.92);
+  border-radius: 14px;
   padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.1);
   position: sticky;
   top: 2rem;
+  color: #eaf6fb;
 }
 
 .filter-section h3 {
@@ -474,10 +479,11 @@ export default {
 }
 
 .products-section {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background: rgba(26, 28, 44, 0.98);
+  border-radius: 16px;
+  padding: 2rem 1.2rem;
+  box-shadow: 0 6px 24px rgba(0, 212, 255, 0.07);
+  border: 1px solid rgba(0, 212, 255, 0.1);
 }
 
 .loading-container {
@@ -497,17 +503,19 @@ export default {
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.2rem;
+  margin-bottom: 1.2rem;
 }
 
 .product-card {
   border: 1px solid #eee;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
   background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: 0.5rem;
 }
 
 .product-card:hover {
@@ -524,7 +532,8 @@ export default {
 .product-image img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: #fff;
   transition: transform 0.3s;
 }
 
@@ -557,29 +566,29 @@ export default {
 }
 
 .product-info {
-  padding: 1rem;
+  padding: 0.6rem 0.7rem 0.7rem 0.7rem;
 }
 
 .product-name {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
   font-size: 1rem;
   font-weight: 600;
 }
 
 .product-name a {
-  color: #333;
+  color: #eaf6fb;
   text-decoration: none;
 }
 
 .product-name a:hover {
-  color: #667eea;
+  color: #00d4ff;
 }
 
 .product-rating {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
 }
 
 .stars {
@@ -605,7 +614,7 @@ export default {
 }
 
 .product-price {
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .original-price {
@@ -618,7 +627,7 @@ export default {
 .current-price {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #ff4757;
+  color: #00d4ff;
 }
 
 .product-actions {
@@ -640,18 +649,19 @@ export default {
 }
 
 .btn-primary {
-  background: #667eea;
-  color: white;
+  background: linear-gradient(90deg, #00d4ff 0%, #3a7bd5 100%);
+  color: #fff;
+  border: none;
 }
 
 .btn-primary:hover {
-  background: #5a6fd8;
+  background: #00d4ff;
 }
 
 .btn-outline {
   background: transparent;
-  border: 1px solid #ddd;
-  color: #666;
+  border: 1px solid #00d4ff;
+  color: #00d4ff;
 }
 
 .btn-outline:hover {
@@ -669,9 +679,9 @@ export default {
 }
 
 .in-wishlist {
-  background: #ff4757;
-  color: white;
-  border-color: #ff4757;
+  background: #00d4ff;
+  color: #fff;
+  border-color: #00d4ff;
 }
 
 .empty-state {
@@ -733,5 +743,41 @@ export default {
   .page-title {
     font-size: 2rem;
   }
+}
+
+.filters-sidebar label,
+.filters-sidebar h3,
+.filters-sidebar .form-select,
+.filters-sidebar input,
+.filters-sidebar button,
+.filters-sidebar .btn {
+  color: #eaf6fb !important;
+  background: transparent;
+}
+
+.filters-sidebar .form-select,
+.filters-sidebar input {
+  background: rgba(30, 34, 54, 0.85);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  color: #eaf6fb;
+}
+
+.filters-sidebar .btn-primary {
+  background: linear-gradient(90deg, #00d4ff 0%, #3a7bd5 100%);
+  color: #fff;
+  border: none;
+}
+
+.filters-sidebar .btn-outline {
+  border: 1px solid #00d4ff;
+  color: #00d4ff;
+  background: transparent;
+}
+
+.products-section .product-card {
+  background: rgba(30, 34, 54, 0.97);
+  color: #eaf6fb;
+  border: 1px solid rgba(0, 212, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 212, 255, 0.06);
 }
 </style>

@@ -1,397 +1,245 @@
 <template>
-  <div class="admin-orders-page">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">📋 Quản lý Đơn hàng</h1>
-        <p class="page-subtitle">Theo dõi và xử lý tất cả đơn hàng trong hệ thống</p>
+  <div class="admin-orders">
+    <div class="container">
+      <!-- Header -->
+      <div class="page-header">
+        <div class="header-info">
+          <h1>📋 Quản lý đơn hàng</h1>
+          <p>Quản lý tất cả đơn hàng trong hệ thống</p>
+        </div>
       </div>
-      
-      <div class="header-actions">
-        <button @click="refreshOrders" class="refresh-btn" :disabled="loading">
-          {{ loading ? '⏳ Đang tải...' : '🔄 Làm mới' }}
-        </button>
-        <button @click="exportOrders" class="export-btn">
-          📊 Xuất Excel
-        </button>
-      </div>
-    </div>
 
-    <!-- Stats Cards -->
-    <div class="stats-section">
-      <div class="stats-grid">
-        <div class="stat-card total">
-          <div class="stat-icon">📦</div>
-          <div class="stat-content">
-            <h3 class="stat-number">{{ orderStats.total }}</h3>
-            <p class="stat-label">Tổng đơn hàng</p>
-          </div>
-        </div>
-        
-        <div class="stat-card pending">
-          <div class="stat-icon">⏳</div>
-          <div class="stat-content">
-            <h3 class="stat-number">{{ orderStats.pending }}</h3>
-            <p class="stat-label">Chờ xử lý</p>
-          </div>
-        </div>
-        
-        <div class="stat-card processing">
-          <div class="stat-icon">🔄</div>
-          <div class="stat-content">
-            <h3 class="stat-number">{{ orderStats.processing }}</h3>
-            <p class="stat-label">Đang xử lý</p>
-          </div>
-        </div>
-        
-        <div class="stat-card shipped">
-          <div class="stat-icon">🚚</div>
-          <div class="stat-content">
-            <h3 class="stat-number">{{ orderStats.shipped }}</h3>
-            <p class="stat-label">Đang giao</p>
-          </div>
-        </div>
-        
-        <div class="stat-card delivered">
-          <div class="stat-icon">✅</div>
-          <div class="stat-content">
-            <h3 class="stat-number">{{ orderStats.delivered }}</h3>
-            <p class="stat-label">Đã giao</p>
-          </div>
-        </div>
-        
-        <div class="stat-card cancelled">
-          <div class="stat-icon">❌</div>
-          <div class="stat-content">
-            <h3 class="stat-number">{{ orderStats.cancelled }}</h3>
-            <p class="stat-label">Đã hủy</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Filters Section -->
-    <div class="filters-section">
-      <div class="filters-grid">
-        <!-- Status Filter -->
-        <div class="filter-group">
-          <label>Trạng thái:</label>
-          <select v-model="filters.status" @change="applyFilters">
-            <option value="">Tất cả</option>
-            <option value="PENDING">Chờ xử lý</option>
-            <option value="PROCESSING">Đang xử lý</option>
-            <option value="SHIPPED">Đang giao</option>
-            <option value="DELIVERED">Đã giao</option>
-            <option value="CANCELLED">Đã hủy</option>
-          </select>
-        </div>
-        
-        <!-- Date Range Filter -->
-        <div class="filter-group">
-          <label>Từ ngày:</label>
-          <input 
-            v-model="filters.startDate" 
-            type="date" 
-            @change="applyFilters"
-          />
-        </div>
-        
-        <div class="filter-group">
-          <label>Đến ngày:</label>
-          <input 
-            v-model="filters.endDate" 
-            type="date" 
-            @change="applyFilters"
-          />
-        </div>
-        
-        <!-- Search -->
-        <div class="filter-group search-group">
-          <label>Tìm kiếm:</label>
-          <input 
-            v-model="filters.search" 
-            type="text" 
-            placeholder="Mã đơn hàng, tên khách hàng..."
+      <!-- Filter và Search (gọn) -->
+      <div class="filter-section">
+        <div class="search-box">
+          <input
+            v-model="filters.search"
+            type="text"
+            placeholder="Tìm theo mã đơn, tên khách, email..."
+            class="search-input"
             @input="debounceSearch"
           />
         </div>
-        
-        <!-- Sort -->
-        <div class="filter-group">
-          <label>Sắp xếp:</label>
-          <select v-model="sortBy" @change="applySort">
-            <option value="newest">Mới nhất</option>
-            <option value="oldest">Cũ nhất</option>
-            <option value="totalAsc">Giá trị thấp → cao</option>
-            <option value="totalDesc">Giá trị cao → thấp</option>
-          </select>
-        </div>
-        
-        <div class="filter-actions">
-          <button @click="clearFilters" class="clear-btn">
-            🗑️ Xóa bộ lọc
-          </button>
-        </div>
+        <button class="btn-advanced-filter" @click="showFilterModal = true">
+          <span class="filter-icon">🔍</span> Bộ lọc nâng cao
+        </button>
       </div>
-    </div>
 
-    <!-- Orders Table -->
-    <div class="orders-section">
-      <div class="table-container">
-        <div v-if="loading" class="loading-state">
-          <div class="loading-spinner">⏳ Đang tải đơn hàng...</div>
-        </div>
-        
-        <div v-else-if="error" class="error-state">
-          <div class="error-content">
-            <div class="error-icon">⚠️</div>
-            <h3>Có lỗi xảy ra</h3>
-            <p>{{ error }}</p>
-            <button @click="refreshOrders" class="retry-btn">Thử lại</button>
+      <!-- Popup Modal Advanced Filter -->
+      <div v-if="showFilterModal" class="modal-overlay" @click="closeFilterModal">
+        <div class="modal-content filter-modal" @click.stop>
+          <div class="modal-header">
+            <h2>Bộ lọc nâng cao</h2>
+            <button @click="closeFilterModal" class="close-btn">✕</button>
           </div>
-        </div>
-        
-        <table v-else-if="paginatedOrders.length > 0" class="orders-table">
-          <thead>
-            <tr>
-              <th>Mã đơn hàng</th>
-              <th>Khách hàng</th>
-              <th>Sản phẩm</th>
-              <th>Tổng tiền</th>
-              <th>Trạng thái</th>
-              <th>Ngày đặt</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="order in paginatedOrders" :key="order.id" class="order-row">
-              <td>
-                <div class="order-id">
-                  <span class="order-code">#{{ order.id }}</span>
-                  <span v-if="order.isUrgent" class="urgent-badge">🔥 Khẩn cấp</span>
-                </div>
-              </td>
-              
-              <td>
-                <div class="customer-info">
-                  <div class="customer-name">{{ order.customerName }}</div>
-                  <div class="customer-email">{{ order.customerEmail }}</div>
-                  <div class="customer-phone">{{ order.customerPhone }}</div>
-                </div>
-              </td>
-              
-              <td>
-                <div class="products-summary">
-                  <div class="product-count">{{ order.itemCount }} sản phẩm</div>
-                  <div class="product-preview">
-                    {{ truncateText(order.productNames.join(', '), 40) }}
-                  </div>
-                </div>
-              </td>
-              
-              <td>
-                <div class="order-total">
-                  <span class="total-amount">{{ formatPrice(order.total) }}</span>
-                  <span v-if="order.discountAmount > 0" class="discount-info">
-                    (Giảm {{ formatPrice(order.discountAmount) }})
-                  </span>
-                </div>
-              </td>
-              
-              <td>
-                <select 
-                  v-model="order.status" 
-                  @change="updateOrderStatus(order)"
-                  class="status-select"
-                  :class="order.status.toLowerCase()"
-                >
+          <div class="modal-body">
+            <div class="filter-grid">
+              <div class="form-group">
+                <label>Trạng thái</label>
+                <select v-model="tempFilters.status" class="filter-select">
+                  <option value="">Tất cả trạng thái</option>
                   <option value="PENDING">Chờ xử lý</option>
                   <option value="PROCESSING">Đang xử lý</option>
                   <option value="SHIPPED">Đang giao</option>
                   <option value="DELIVERED">Đã giao</option>
                   <option value="CANCELLED">Đã hủy</option>
                 </select>
-              </td>
-              
-              <td>
-                <div class="order-date">
-                  <div class="date">{{ formatDate(order.createdAt) }}</div>
-                  <div class="time">{{ formatTime(order.createdAt) }}</div>
-                </div>
-              </td>
-              
-              <td>
-                <div class="action-buttons">
-                  <button 
-                    @click="viewOrderDetails(order)" 
-                    class="action-btn view-btn"
-                    title="Xem chi tiết"
-                  >
-                    👁️
-                  </button>
-                  
-                  <button 
-                    @click="printOrder(order)" 
-                    class="action-btn print-btn"
-                    title="In đơn hàng"
-                  >
-                    🖨️
-                  </button>
-                  
-                  <button 
-                    v-if="order.status === 'PENDING'"
-                    @click="cancelOrder(order)" 
-                    class="action-btn cancel-btn"
-                    title="Hủy đơn hàng"
-                  >
-                    ❌
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        
-        <div v-else class="no-orders">
-          <div class="no-orders-content">
-            <div class="no-orders-icon">📭</div>
-            <h3>Không có đơn hàng nào</h3>
-            <p>Thử thay đổi bộ lọc hoặc kiểm tra lại từ khóa tìm kiếm</p>
+              </div>
+              <div class="form-group">
+                <label>Từ ngày</label>
+                <input type="date" v-model="tempFilters.startDate" class="filter-select" />
+              </div>
+              <div class="form-group">
+                <label>Đến ngày</label>
+                <input type="date" v-model="tempFilters.endDate" class="filter-select" />
+              </div>
+              <div class="form-group">
+                <label>Sắp xếp</label>
+                <select v-model="tempSortBy" class="filter-select">
+                  <option value="newest">Mới nhất</option>
+                  <option value="oldest">Cũ nhất</option>
+                  <option value="totalAsc">Giá trị thấp → cao</option>
+                  <option value="totalDesc">Giá trị cao → thấp</option>
+                </select>
+              </div>
+            </div>
           </div>
+          <div class="modal-footer">
+            <button @click="clearTempFilters" class="btn-clear">Xóa bộ lọc</button>
+            <button @click="applyTempFilters" class="btn-primary">Áp dụng</button>
+            <button @click="closeFilterModal" class="btn-secondary">Đóng</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-info">
+            <h3>{{ orderStats.total }}</h3>
+            <p>Tổng đơn hàng</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏳</div>
+          <div class="stat-info">
+            <h3>{{ orderStats.pending }}</h3>
+            <p>Chờ xử lý</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🔄</div>
+          <div class="stat-info">
+            <h3>{{ orderStats.processing }}</h3>
+            <p>Đang xử lý</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🚚</div>
+          <div class="stat-info">
+            <h3>{{ orderStats.shipped }}</h3>
+            <p>Đang giao</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-info">
+            <h3>{{ orderStats.delivered }}</h3>
+            <p>Đã giao</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">❌</div>
+          <div class="stat-info">
+            <h3>{{ orderStats.cancelled }}</h3>
+            <p>Đã hủy</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orders Table -->
+      <div class="orders-table-container">
+        <div v-if="loading" class="loading">
+          <div class="spinner"></div>
+          <p>Đang tải đơn hàng...</p>
+        </div>
+        <div v-else-if="paginatedOrders.length === 0" class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3>Không có đơn hàng nào</h3>
+          <p>
+            {{
+              filters.search || filters.status || filters.startDate || filters.endDate
+                ? 'Không tìm thấy đơn hàng nào với bộ lọc hiện tại. Hãy thử thay đổi điều kiện tìm kiếm.'
+                : 'Chưa có đơn hàng nào trong hệ thống.'
+            }}
+          </p>
+          <button
+            v-if="filters.search || filters.status || filters.startDate || filters.endDate"
+            @click="clearFilters"
+            class="btn-add-first"
+          >
+            🔄 Xóa bộ lọc
+          </button>
+        </div>
+        <div v-else class="orders-table">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 120px">🆔 Mã đơn</th>
+                <th style="width: 220px">👤 Khách hàng</th>
+                <th style="width: 220px">📦 Sản phẩm</th>
+                <th style="width: 120px">💰 Tổng tiền</th>
+                <th style="width: 120px">🎯 Trạng thái</th>
+                <th style="width: 120px">📅 Ngày đặt</th>
+                <th style="width: 140px">⚡ Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in paginatedOrders" :key="order.id" class="order-row">
+                <td class="order-id">#{{ order.id.slice(-8) }}</td>
+                <td class="customer-info">
+                  <div class="customer-main">
+                    {{ order.customerName || order.userEmail || 'Không rõ' }}
+                  </div>
+                  <div class="customer-sub" v-if="order.customerEmail">
+                    📧 {{ order.customerEmail }}
+                  </div>
+                  <div class="customer-sub" v-if="order.customerPhone">
+                    📞 {{ order.customerPhone }}
+                  </div>
+                </td>
+                <td class="product-list">
+                  <span v-for="(item, idx) in order.items.slice(0, 2)" :key="item.productId">
+                    {{ item.productName
+                    }}<span v-if="idx < order.items.length - 1 && idx < 1">, </span>
+                  </span>
+                  <span v-if="order.items.length > 2">... ({{ order.items.length }})</span>
+                </td>
+                <td>
+                  <span class="order-total">{{ formatPrice(order.totalAmount) }}</span>
+                </td>
+                <td>
+                  <span v-if="order.status === 'CANCELLED'" class="status-badge cancelled">
+                    {{ getStatusLabel(order.status) }}
+                  </span>
+                  <select
+                    v-else
+                    v-model="order.status"
+                    @change="updateOrderStatus(order)"
+                    class="status-select"
+                  >
+                    <option value="PENDING">Chờ xử lý</option>
+                    <option value="PROCESSING">Đang xử lý</option>
+                    <option value="SHIPPED">Đang giao</option>
+                    <option value="DELIVERED">Đã giao</option>
+                    <option value="CANCELLED">Đã hủy</option>
+                  </select>
+                </td>
+                <td>
+                  <span class="order-date">{{ formatDate(order.createdAt) }}</span>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <button
+                      @click="goToOrderDetail(order)"
+                      class="btn btn-view"
+                      title="Xem chi tiết"
+                    >
+                      <span class="action-icon">👁️</span>
+                    </button>
+                    <!-- <button @click="printOrder(order)" class="btn btn-print" title="In đơn hàng">
+                      <span class="action-icon">🖨️</span>
+                    </button> -->
+                    <button
+                      v-if="order.status === 'PENDING'"
+                      @click="cancelOrder(order)"
+                      class="btn btn-cancel"
+                      title="Hủy đơn hàng"
+                    >
+                      <span class="action-icon">❌</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="pagination">
-        <button 
-          @click="changePage(currentPage - 1)"
-          :disabled="currentPage === 1"
-          class="pagination-btn"
-        >
-          ⬅️ Trước
+        <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1" class="page-btn">
+          « Trước
         </button>
-        
-        <div class="pagination-info">
-          Trang {{ currentPage }} / {{ totalPages }} 
-          ({{ filteredOrders.length }} đơn hàng)
-        </div>
-        
-        <div class="pagination-numbers">
-          <button
-            v-for="page in visiblePages"
-            :key="page"
-            @click="changePage(page)"
-            class="pagination-btn"
-            :class="{ active: page === currentPage }"
-          >
-            {{ page }}
-          </button>
-        </div>
-        
-        <button 
+        <span class="page-info"> Trang {{ currentPage }} / {{ totalPages }} </span>
+        <button
           @click="changePage(currentPage + 1)"
           :disabled="currentPage === totalPages"
-          class="pagination-btn"
+          class="page-btn"
         >
-          Sau ➡️
+          Sau »
         </button>
-      </div>
-    </div>
-
-    <!-- Order Details Modal -->
-    <div v-if="showOrderModal" class="modal-overlay" @click="closeOrderModal">
-      <div class="modal-content order-modal" @click.stop>
-        <div class="modal-header">
-          <h2>Chi tiết đơn hàng #{{ selectedOrder?.id }}</h2>
-          <button @click="closeOrderModal" class="close-btn">✕</button>
-        </div>
-        
-        <div class="modal-body" v-if="selectedOrder">
-          <div class="order-details-grid">
-            <!-- Customer Information -->
-            <div class="detail-section">
-              <h3>👤 Thông tin khách hàng</h3>
-              <div class="detail-content">
-                <p><strong>Tên:</strong> {{ selectedOrder.customerName }}</p>
-                <p><strong>Email:</strong> {{ selectedOrder.customerEmail }}</p>
-                <p><strong>Điện thoại:</strong> {{ selectedOrder.customerPhone }}</p>
-              </div>
-            </div>
-            
-            <!-- Shipping Information -->
-            <div class="detail-section">
-              <h3>🚚 Địa chỉ giao hàng</h3>
-              <div class="detail-content">
-                <p>{{ selectedOrder.shippingAddress }}</p>
-              </div>
-            </div>
-            
-            <!-- Order Items -->
-            <div class="detail-section full-width">
-              <h3>📦 Sản phẩm đã đặt</h3>
-              <div class="order-items">
-                <div v-for="item in selectedOrder.items" :key="item.id" class="order-item">
-                  <img :src="item.productImage" :alt="item.productName" class="item-image" />
-                  <div class="item-info">
-                    <h4>{{ item.productName }}</h4>
-                    <p>Số lượng: {{ item.quantity }}</p>
-                    <p>Giá: {{ formatPrice(item.price) }}</p>
-                  </div>
-                  <div class="item-total">
-                    {{ formatPrice(item.quantity * item.price) }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Order Summary -->
-            <div class="detail-section">
-              <h3>💰 Tổng kết đơn hàng</h3>
-              <div class="order-summary">
-                <div class="summary-line">
-                  <span>Tạm tính:</span>
-                  <span>{{ formatPrice(selectedOrder.subtotal) }}</span>
-                </div>
-                <div class="summary-line">
-                  <span>Phí vận chuyển:</span>
-                  <span>{{ formatPrice(selectedOrder.shippingFee) }}</span>
-                </div>
-                <div v-if="selectedOrder.discountAmount > 0" class="summary-line discount">
-                  <span>Giảm giá:</span>
-                  <span>-{{ formatPrice(selectedOrder.discountAmount) }}</span>
-                </div>
-                <div class="summary-line total">
-                  <span>Tổng cộng:</span>
-                  <span>{{ formatPrice(selectedOrder.total) }}</span>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Order Timeline -->
-            <div class="detail-section">
-              <h3>📅 Lịch sử đơn hàng</h3>
-              <div class="order-timeline">
-                <div v-for="event in selectedOrder.timeline" :key="event.id" class="timeline-item">
-                  <div class="timeline-icon">{{ event.icon }}</div>
-                  <div class="timeline-content">
-                    <h4>{{ event.title }}</h4>
-                    <p>{{ event.description }}</p>
-                    <span class="timeline-date">{{ formatDateTime(event.createdAt) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="modal-footer">
-          <button @click="printOrder(selectedOrder)" class="btn-secondary">
-            🖨️ In đơn hàng
-          </button>
-          <button @click="closeOrderModal" class="btn-primary">
-            Đóng
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -401,19 +249,18 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { adminAPI } from '@/services/api'
+import { getStatusLabel as getStatusLabelConst, getStatusColor } from '@/utils/constants'
 
 export default {
   name: 'AdminOrders',
   setup() {
     const router = useRouter()
-    
+
     // Reactive data
     const orders = ref([])
     const loading = ref(false)
     const error = ref(null)
-    const selectedOrder = ref(null)
-    const showOrderModal = ref(false)
-    
+
     // Stats
     const orderStats = ref({
       total: 0,
@@ -421,95 +268,99 @@ export default {
       processing: 0,
       shipped: 0,
       delivered: 0,
-      cancelled: 0
+      cancelled: 0,
     })
-    
+
     // Filters
     const filters = ref({
       status: '',
       startDate: '',
       endDate: '',
-      search: ''
+      search: '',
     })
-    
+
     const sortBy = ref('newest')
-    
+
     // Pagination
     const currentPage = ref(1)
     const itemsPerPage = 10
-    
+
     // Debounce timer for search
     let searchTimeout = null
-    
+
+    // Popup filter modal state
+    const showFilterModal = ref(false)
+    const tempFilters = ref({ ...filters.value })
+    const tempSortBy = ref(sortBy.value)
+
     // Computed properties
     const filteredOrders = computed(() => {
       let filtered = [...orders.value]
-      
+
       // Status filter
       if (filters.value.status) {
-        filtered = filtered.filter(order => order.status === filters.value.status)
+        filtered = filtered.filter((order) => order.status === filters.value.status)
       }
-      
+
       // Date filter
       if (filters.value.startDate) {
-        filtered = filtered.filter(order => 
-          new Date(order.createdAt) >= new Date(filters.value.startDate)
+        filtered = filtered.filter(
+          (order) => new Date(order.createdAt) >= new Date(filters.value.startDate)
         )
       }
-      
+
       if (filters.value.endDate) {
-        filtered = filtered.filter(order => 
-          new Date(order.createdAt) <= new Date(filters.value.endDate)
+        filtered = filtered.filter(
+          (order) => new Date(order.createdAt) <= new Date(filters.value.endDate)
         )
       }
-      
+
       // Search filter
       if (filters.value.search) {
         const searchTerm = filters.value.search.toLowerCase()
-        filtered = filtered.filter(order => 
-          order.id.toString().includes(searchTerm) ||
-          order.customerName.toLowerCase().includes(searchTerm) ||
-          order.customerEmail.toLowerCase().includes(searchTerm) ||
-          order.customerPhone.includes(searchTerm)
+        filtered = filtered.filter(
+          (order) =>
+            order.id.toString().toLowerCase().includes(searchTerm) ||
+            (order.customerName && order.customerName.toLowerCase().includes(searchTerm)) ||
+            (order.userEmail && order.userEmail.toLowerCase().includes(searchTerm)) ||
+            (order.customerPhone && order.customerPhone.toLowerCase().includes(searchTerm))
         )
       }
-      
+
       return filtered
     })
-    
+
     const sortedOrders = computed(() => {
       const sorted = [...filteredOrders.value]
-      
+
       switch (sortBy.value) {
         case 'oldest':
           return sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
         case 'totalAsc':
-          return sorted.sort((a, b) => a.total - b.total)
+          return sorted.sort((a, b) => (a.totalAmount || 0) - (b.totalAmount || 0))
         case 'totalDesc':
-          return sorted.sort((a, b) => b.total - a.total)
+          return sorted.sort((a, b) => (b.totalAmount || 0) - (a.totalAmount || 0))
         case 'newest':
         default:
           return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       }
     })
-    
+
     const paginatedOrders = computed(() => {
       const start = (currentPage.value - 1) * itemsPerPage
       return sortedOrders.value.slice(start, start + itemsPerPage)
     })
-    
-    const totalPages = computed(() => 
-      Math.ceil(sortedOrders.value.length / itemsPerPage)
-    )
-    
+
+    const totalPages = computed(() => Math.ceil(sortedOrders.value.length / itemsPerPage))
+
     const visiblePages = computed(() => {
       const total = totalPages.value
       const current = currentPage.value
       const delta = 2
-      
+
       let start = Math.max(1, current - delta)
       let end = Math.min(total, current + delta)
-      
+
       if (end - start < delta * 2) {
         if (start === 1) {
           end = Math.min(total, start + delta * 2)
@@ -517,15 +368,15 @@ export default {
           start = Math.max(1, end - delta * 2)
         }
       }
-      
+
       return Array.from({ length: end - start + 1 }, (_, i) => start + i)
     })
-    
+
     // Methods
     const loadOrders = async () => {
       loading.value = true
       error.value = null
-      
+
       try {
         const response = await adminAPI.getOrders()
         orders.value = response.data.orders || response.data
@@ -537,7 +388,7 @@ export default {
         loading.value = false
       }
     }
-    
+
     const calculateStats = () => {
       const stats = {
         total: orders.value.length,
@@ -545,19 +396,19 @@ export default {
         processing: 0,
         shipped: 0,
         delivered: 0,
-        cancelled: 0
+        cancelled: 0,
       }
-      
-      orders.value.forEach(order => {
+
+      orders.value.forEach((order) => {
         const status = order.status.toLowerCase()
         if (stats.hasOwnProperty(status)) {
           stats[status]++
         }
       })
-      
+
       orderStats.value = stats
     }
-    
+
     const updateOrderStatus = async (order) => {
       try {
         await adminAPI.updateOrderStatus(order.id, order.status)
@@ -569,154 +420,127 @@ export default {
         await loadOrders()
       }
     }
-    
-    const viewOrderDetails = (order) => {
-      selectedOrder.value = {
-        ...order,
-        timeline: [
-          {
-            id: 1,
-            icon: '📝',
-            title: 'Đơn hàng được tạo',
-            description: 'Khách hàng đã đặt hàng thành công',
-            createdAt: order.createdAt
-          },
-          {
-            id: 2,
-            icon: '💳',
-            title: 'Thanh toán thành công',
-            description: 'Đã nhận được thanh toán từ khách hàng',
-            createdAt: order.createdAt
-          }
-        ]
-      }
-      showOrderModal.value = true
-    }
-    
-    const closeOrderModal = () => {
-      showOrderModal.value = false
-      selectedOrder.value = null
-    }
-    
+
     const cancelOrder = async (order) => {
       if (confirm(`Bạn có chắc chắn muốn hủy đơn hàng #${order.id}?`)) {
         order.status = 'CANCELLED'
         await updateOrderStatus(order)
       }
     }
-    
+
     const printOrder = (order) => {
       // Print order logic
       window.print()
     }
-    
+
     const exportOrders = () => {
       // Export orders to Excel logic
       console.log('Exporting orders...')
     }
-    
+
     const refreshOrders = () => {
       loadOrders()
     }
-    
+
     const applyFilters = () => {
       currentPage.value = 1
     }
-    
+
     const applySort = () => {
       currentPage.value = 1
     }
-    
+
     const clearFilters = () => {
       filters.value = {
         status: '',
         startDate: '',
         endDate: '',
-        search: ''
+        search: '',
       }
       sortBy.value = 'newest'
       currentPage.value = 1
     }
-    
+
     const debounceSearch = () => {
       clearTimeout(searchTimeout)
       searchTimeout = setTimeout(() => {
         applyFilters()
       }, 500)
     }
-    
+
     const changePage = (page) => {
       currentPage.value = page
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
-    
+
     const formatPrice = (price) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
       }).format(price)
     }
-    
+
     const formatDate = (date) => {
       return new Date(date).toLocaleDateString('vi-VN')
     }
-    
+
     const formatTime = (date) => {
-      return new Date(date).toLocaleTimeString('vi-VN', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      return new Date(date).toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
       })
     }
-    
+
     const formatDateTime = (date) => {
       return new Date(date).toLocaleString('vi-VN')
     }
-    
+
     const truncateText = (text, limit) => {
       if (!text) return ''
       return text.length > limit ? text.substring(0, limit) + '...' : text
     }
-    
-    // Mock data for development
-    const loadMockData = () => {
-      orders.value = [
-        {
-          id: 12345,
-          customerName: 'Nguyễn Văn A',
-          customerEmail: 'customer@example.com',
-          customerPhone: '0123456789',
-          itemCount: 3,
-          productNames: ['iPhone 15 Pro', 'AirPods Pro', 'MacBook Air'],
-          total: 75000000,
-          discountAmount: 2000000,
-          status: 'PENDING',
-          createdAt: '2024-12-22T10:30:00',
-          isUrgent: true,
-          shippingAddress: '123 Đường ABC, Quận 1, TP.HCM',
-          subtotal: 72000000,
-          shippingFee: 50000,
-          items: [
-            {
-              id: 1,
-              productName: 'iPhone 15 Pro',
-              productImage: '/placeholder-product.jpg',
-              quantity: 1,
-              price: 30000000
-            }
-          ]
-        }
-        // Add more mock orders...
-      ]
-      calculateStats()
+
+    const getStatusLabel = (status) => {
+      return getStatusLabelConst(status, 'ADMIN')
     }
-    
+
+    const goToOrderDetail = (order) => {
+      router.push(`/orders/${order.id}`)
+    }
+
+    // When opening modal, copy current filters
+    const openFilterModal = () => {
+      tempFilters.value = { ...filters.value }
+      tempSortBy.value = sortBy.value
+      showFilterModal.value = true
+    }
+    const closeFilterModal = () => {
+      showFilterModal.value = false
+    }
+    // Clear temp filters in modal
+    const clearTempFilters = () => {
+      tempFilters.value = {
+        status: '',
+        startDate: '',
+        endDate: '',
+        search: '',
+      }
+      tempSortBy.value = 'newest'
+    }
+    // Apply temp filters to real filters
+    const applyTempFilters = () => {
+      filters.value = { ...tempFilters.value }
+      sortBy.value = tempSortBy.value
+      currentPage.value = 1
+      showFilterModal.value = false
+    }
+
     // Lifecycle
     onMounted(() => {
-      // Load real data or mock data for development
-      loadMockData() // Remove this and uncomment loadOrders() for production
-      // loadOrders()
+      // Load real data
+      loadOrders()
     })
-    
+
     return {
       orders,
       loading,
@@ -729,12 +553,8 @@ export default {
       paginatedOrders,
       totalPages,
       visiblePages,
-      selectedOrder,
-      showOrderModal,
       loadOrders,
       updateOrderStatus,
-      viewOrderDetails,
-      closeOrderModal,
       cancelOrder,
       printOrder,
       exportOrders,
@@ -748,19 +568,28 @@ export default {
       formatDate,
       formatTime,
       formatDateTime,
-      truncateText
+      truncateText,
+      getStatusLabel,
+      goToOrderDetail,
+      showFilterModal,
+      tempFilters,
+      tempSortBy,
+      openFilterModal,
+      closeFilterModal,
+      clearTempFilters,
+      applyTempFilters,
     }
-  }
+  },
 }
 </script>
 
 <style scoped>
-.admin-orders-page {
-  padding: 24px;
-  background: var(--bg-primary);
-  min-height: 100vh;
+/* Tận dụng lại style từ admin product, chỉ đổi tên class cho phù hợp nếu cần */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 0;
 }
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -768,590 +597,404 @@ export default {
   margin-bottom: 32px;
   gap: 24px;
 }
-
-.page-title {
+.header-info h1 {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #2563eb;
   margin-bottom: 8px;
 }
-
-.page-subtitle {
-  color: var(--text-secondary);
+.header-info p {
+  color: #666;
   font-size: 1.1rem;
 }
-
-.header-actions {
+.filter-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.search-box {
+  flex: 1;
+}
+.search-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e0e7ef;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #f6f8fa;
+  color: #222;
+}
+.filters {
   display: flex;
   gap: 12px;
 }
-
-.refresh-btn,
-.export-btn {
-  padding: 10px 20px;
-  border: none;
+.filter-select {
+  padding: 10px 16px;
+  border: 1px solid #e0e7ef;
   border-radius: 8px;
+  background: #fff;
+  color: #222;
+  font-size: 1rem;
+}
+.btn-clear {
+  padding: 10px 18px;
+  background: #f3f4f6;
+  border: 1px solid #e0e7ef;
+  border-radius: 8px;
+  color: #2563eb;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
+  transition: background 0.2s;
 }
-
-.refresh-btn {
-  background: var(--accent-blue);
-  color: white;
+.btn-clear:hover {
+  background: #e0e7ef;
 }
-
-.export-btn {
-  background: var(--accent-green);
-  color: white;
-}
-
-.refresh-btn:hover,
-.export-btn:hover {
-  transform: translateY(-2px);
-}
-
-.stats-section {
-  margin-bottom: 32px;
-}
-
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 20px;
+  margin-bottom: 32px;
 }
-
 .stat-card {
-  background: var(--bg-secondary);
-  padding: 24px;
+  background: #fff;
   border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 20px 18px;
   display: flex;
   align-items: center;
   gap: 16px;
-  transition: all 0.3s ease;
 }
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.1);
-}
-
 .stat-icon {
   font-size: 2rem;
+  color: #2563eb;
 }
-
-.stat-number {
-  font-size: 1.8rem;
+.stat-info h3 {
+  font-size: 1.3rem;
   font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.stat-card.total .stat-number { color: var(--accent-blue); }
-.stat-card.pending .stat-number { color: var(--accent-orange); }
-.stat-card.processing .stat-number { color: var(--accent-blue); }
-.stat-card.shipped .stat-number { color: var(--accent-purple); }
-.stat-card.delivered .stat-number { color: var(--accent-green); }
-.stat-card.cancelled .stat-number { color: var(--accent-red); }
-
-.filters-section {
-  background: var(--bg-secondary);
-  padding: 24px;
-  border-radius: 12px;
-  margin-bottom: 24px;
-}
-
-.filters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  align-items: end;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.filter-group label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.filter-group input,
-.filter-group select {
-  padding: 10px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 0.9rem;
-}
-
-.search-group {
-  grid-column: span 2;
-}
-
-.clear-btn {
-  padding: 10px 16px;
-  background: var(--accent-red);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  height: fit-content;
-}
-
-.orders-section {
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.table-container {
-  overflow-x: auto;
-}
-
-.orders-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.orders-table th {
-  background: var(--bg-primary);
-  padding: 16px;
-  text-align: left;
-  font-weight: 600;
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.order-row {
-  border-bottom: 1px solid var(--border-color);
-  transition: background-color 0.2s ease;
-}
-
-.order-row:hover {
-  background: var(--bg-primary);
-}
-
-.orders-table td {
-  padding: 16px;
-  vertical-align: top;
-}
-
-.order-id {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.order-code {
-  font-weight: 600;
-  color: var(--accent-blue);
-}
-
-.urgent-badge {
-  font-size: 0.8rem;
-  color: var(--accent-red);
-}
-
-.customer-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.customer-name {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.customer-email,
-.customer-phone {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-}
-
-.products-summary {
-  max-width: 200px;
-}
-
-.product-count {
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-
-.product-preview {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-}
-
-.order-total {
-  text-align: right;
-}
-
-.total-amount {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.discount-info {
-  display: block;
-  font-size: 0.8rem;
-  color: var(--accent-green);
-  margin-top: 4px;
-}
-
-.status-select {
-  padding: 6px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.status-select.pending { border-color: var(--accent-orange); }
-.status-select.processing { border-color: var(--accent-blue); }
-.status-select.shipped { border-color: var(--accent-purple); }
-.status-select.delivered { border-color: var(--accent-green); }
-.status-select.cancelled { border-color: var(--accent-red); }
-
-.order-date {
-  text-align: center;
-}
-
-.date {
-  font-weight: 500;
+  color: #222;
   margin-bottom: 2px;
 }
-
-.time {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
+.stat-info p {
+  color: #666;
+  font-size: 0.95rem;
 }
-
+.orders-table-container {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
+  padding: 24px;
+  margin-bottom: 32px;
+  overflow-x: auto;
+}
+.orders-table table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 1rem;
+}
+.orders-table th {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  padding: 14px 12px;
+  text-align: left;
+}
+.orders-table td {
+  padding: 12px 10px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+.order-id {
+  font-weight: 600;
+  color: #2563eb;
+}
+.customer-info {
+  min-width: 160px;
+}
+.customer-main {
+  font-weight: 500;
+  color: #222;
+}
+.customer-sub {
+  font-size: 0.92em;
+  color: #666;
+}
+.product-list {
+  min-width: 120px;
+  color: #333;
+}
+.order-total {
+  font-weight: 700;
+  color: #059669;
+  font-size: 1.05em;
+}
+.status-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 16px;
+  font-size: 0.98em;
+  font-weight: 600;
+  color: #fff;
+  background: #64748b;
+  min-width: 90px;
+  text-align: center;
+}
+.status-badge.pending {
+  background: #f59e42;
+}
+.status-badge.processing {
+  background: #2563eb;
+}
+.status-badge.shipped {
+  background: #0ea5e9;
+}
+.status-badge.delivered {
+  background: #059669;
+}
+.status-badge.cancelled {
+  background: #ef4444;
+}
+.order-date {
+  color: #222;
+  font-size: 0.98em;
+}
 .action-buttons {
   display: flex;
   gap: 8px;
+  justify-content: center;
 }
-
-.action-btn {
-  padding: 6px 10px;
+.btn {
+  background: #f3f4f6;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
+  padding: 7px 10px;
   cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
+  transition: background 0.2s;
+  font-size: 1.1em;
+  position: relative;
 }
-
-.view-btn {
-  background: var(--accent-blue);
-  color: white;
+.btn:hover {
+  background: #dbeafe;
 }
-
-.print-btn {
-  background: var(--accent-green);
-  color: white;
+.btn-cancel:hover {
+  background: #fee2e2;
 }
-
-.cancel-btn {
-  background: var(--accent-red);
-  color: white;
+.action-icon {
+  vertical-align: middle;
 }
-
-.action-btn:hover {
-  transform: scale(1.05);
-}
-
-.loading-state,
-.error-state,
-.no-orders {
-  padding: 60px 0;
+.loading {
   text-align: center;
+  padding: 40px 0;
 }
-
-.error-content h3,
-.no-orders-content h3 {
+.spinner {
+  border: 4px solid #e0e7ef;
+  border-top: 4px solid #2563eb;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 12px auto;
+}
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+.empty-state {
+  text-align: center;
+  color: #888;
+  padding: 32px 0 16px 0;
+  font-size: 1.1em;
+}
+.empty-icon {
+  font-size: 2.5rem;
   margin-bottom: 8px;
-  color: var(--text-primary);
 }
-
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  padding: 24px;
-  background: var(--bg-primary);
+  gap: 16px;
+  padding: 24px 0;
 }
-
-.pagination-btn {
-  padding: 8px 12px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border-radius: 6px;
+.page-btn {
+  padding: 10px 16px;
+  border: 1px solid #e0e7ef;
+  background: #f6f8fa;
+  color: #2563eb;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s;
+  font-weight: 600;
 }
-
-.pagination-btn:hover:not(:disabled) {
-  background: var(--accent-blue);
-  color: white;
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
-
-.pagination-btn.active {
-  background: var(--accent-blue);
-  color: white;
+.page-info {
+  color: #666;
+  font-size: 1rem;
+  margin: 0 16px;
 }
-
+.date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.date-label {
+  font-size: 0.85em;
+  color: #2563eb;
+  margin-bottom: 2px;
+  font-weight: 500;
+}
+.status-select {
+  padding: 6px 10px;
+  border: 1px solid #e0e7ef;
+  border-radius: 8px;
+  background: #fff;
+  color: #2563eb;
+  font-size: 1em;
+  font-weight: 600;
+  min-width: 120px;
+  outline: none;
+  transition: border 0.2s;
+}
+.status-select:focus {
+  border: 1.5px solid #2563eb;
+}
+.btn-advanced-filter {
+  padding: 12px 20px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s;
+}
+.btn-advanced-filter:hover {
+  background: #1d4ed8;
+}
+.filter-icon {
+  font-size: 1.2em;
+}
+/* Modal filter */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  padding: 20px;
 }
-
-.modal-content {
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  max-width: 900px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
+.modal-content.filter-modal {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.18);
+  padding: 32px 28px 20px 28px;
+  min-width: 340px;
+  max-width: 95vw;
+  width: 420px;
+  position: relative;
 }
-
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px;
-  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 18px;
 }
-
 .modal-header h2 {
-  color: var(--text-primary);
-  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #2563eb;
 }
-
 .close-btn {
   background: none;
   border: none;
-  font-size: 1.5rem;
-  color: var(--text-secondary);
+  font-size: 1.3rem;
   cursor: pointer;
-  padding: 4px;
+  color: #888;
 }
-
-.modal-body {
-  padding: 24px;
-}
-
-.order-details-grid {
+.filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 16px;
 }
-
-.detail-section {
-  background: var(--bg-primary);
-  padding: 20px;
-  border-radius: 8px;
-}
-
-.detail-section.full-width {
-  grid-column: 1 / -1;
-}
-
-.detail-section h3 {
-  margin-bottom: 16px;
-  color: var(--text-primary);
-  font-size: 1.1rem;
-}
-
-.order-items {
+.form-group {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 6px;
 }
-
-.order-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: var(--bg-secondary);
-  border-radius: 8px;
+.form-group label {
+  font-size: 0.98em;
+  color: #222;
+  font-weight: 500;
 }
-
-.item-image {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.item-info {
-  flex: 1;
-}
-
-.item-info h4 {
-  margin-bottom: 4px;
-  color: var(--text-primary);
-}
-
-.item-info p {
-  margin: 2px 0;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.item-total {
-  font-weight: 600;
-  color: var(--accent-blue);
-}
-
-.order-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.summary-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.summary-line.discount {
-  color: var(--accent-green);
-}
-
-.summary-line.total {
-  font-weight: 600;
-  font-size: 1.1rem;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-color);
-  color: var(--accent-blue);
-}
-
-.order-timeline {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.timeline-item {
-  display: flex;
-  gap: 12px;
-}
-
-.timeline-icon {
-  font-size: 1.2rem;
-  width: 24px;
-  text-align: center;
-}
-
-.timeline-content h4 {
-  margin-bottom: 4px;
-  color: var(--text-primary);
-}
-
-.timeline-content p {
-  margin-bottom: 4px;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.timeline-date {
-  font-size: 0.8rem;
-  color: var(--text-tertiary);
-}
-
 .modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 24px;
-  border-top: 1px solid var(--border-color);
+  margin-top: 24px;
 }
-
-.btn-primary,
-.btn-secondary {
-  padding: 10px 20px;
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
   border: none;
   border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
+  font-size: 1rem;
 }
-
-.btn-primary {
-  background: var(--accent-blue);
-  color: white;
+.btn-primary:hover {
+  background: #1d4ed8;
 }
-
 .btn-secondary {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  background: #f3f4f6;
+  color: #222;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 1rem;
 }
-
-@media (max-width: 768px) {
-  .admin-orders-page {
-    padding: 16px;
+.btn-clear {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.btn-clear:hover {
+  background: #dc2626;
+}
+@media (max-width: 600px) {
+  .modal-content.filter-modal {
+    width: 98vw;
+    min-width: 0;
+    padding: 18px 6vw 12px 6vw;
   }
-  
-  .page-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  .filter-grid {
+    grid-template-columns: 1fr;
     gap: 12px;
-  }
-  
-  .filters-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  
-  .search-group {
-    grid-column: span 1;
-  }
-  
-  .orders-table {
-    font-size: 0.8rem;
-  }
-  
-  .modal-content {
-    margin: 10px;
-  }
-  
-  .order-details-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .detail-section.full-width {
-    grid-column: 1;
   }
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <header class="app-header">
     <nav class="navbar">
-      <div class="container">
+      <div class="container header-flex2">
         <!-- Logo & Brand -->
         <div class="navbar-brand">
           <router-link to="/" class="brand-link">
@@ -15,83 +15,41 @@
           </router-link>
         </div>
 
-        <!-- Search Bar - New SearchBox Component -->
-        <div class="search-section">
-          <SearchBox
-            placeholder="Tìm kiếm sản phẩm, thương hiệu..."
-            :show-voice-search="true"
-            :max-suggestions="6"
-            @search="handleSearch"
-            @select-product="handleSelectProduct"
-            @select-category="handleSelectCategory"
-            ref="searchBoxRef"
-          />
-        </div>
-
-        <!-- Navigation Links -->
-        <div class="navbar-nav">
-          <router-link to="/categories" class="nav-link">
-            <span class="nav-icon">🏪</span>
-            <span class="nav-text">Danh mục</span>
-          </router-link>
-
-          <router-link to="/products" class="nav-link">
-            <span class="nav-icon">📦</span>
-            <span class="nav-text">Sản phẩm</span>
-          </router-link>
-
-          <div class="nav-divider"></div>
-
-          <!-- User Authentication -->
-          <div v-if="authStore.isAuthenticated" class="user-section">
-            <!-- Cart -->
+        <!-- Navigation + User -->
+        <div class="header-right2">
+          <div class="navbar-nav">
+            <router-link to="/categories" class="nav-link">
+              <span class="nav-icon">🏪</span>
+              <span class="nav-text">Danh mục</span>
+            </router-link>
+            <router-link to="/products" class="nav-link">
+              <span class="nav-icon">📦</span>
+              <span class="nav-text">Sản phẩm</span>
+            </router-link>
+          </div>
+          <div v-if="authStore.isAuthenticated" class="user-bar">
             <router-link to="/cart" class="nav-link cart-link">
               <span class="nav-icon cart-icon">🛒</span>
               <span v-if="cartStore.totalItems" class="cart-badge">{{ cartStore.totalItems }}</span>
             </router-link>
-
-            <!-- Points Display - NEW INTEGRATION -->
-            <PointsDisplay />
-
-            <!-- Notifications -->
-            <div class="notification-dropdown">
-              <button @click="toggleNotifications" class="nav-link notification-btn">
-                <span class="nav-icon">🔔</span>
-                <span v-if="unreadNotifications" class="notification-badge">{{
-                  unreadNotifications
-                }}</span>
-              </button>
-
-              <!-- Notification Dropdown -->
-              <div v-if="showNotifications" class="dropdown-menu notification-menu">
-                <div class="dropdown-header">
-                  <h4>Thông báo</h4>
-                  <button @click="markAllAsRead" class="mark-read-btn">Đánh dấu đã đọc</button>
-                </div>
-                <div class="notification-list">
-                  <div
-                    v-for="notification in notifications"
-                    :key="notification.id"
-                    class="notification-item"
-                    :class="{ unread: !notification.read }"
-                  >
-                    <div class="notification-icon">{{ notification.icon }}</div>
-                    <div class="notification-content">
-                      <p class="notification-message">{{ notification.message }}</p>
-                      <span class="notification-time">{{
-                        formatTime(notification.createdAt)
-                      }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="dropdown-footer">
-                  <router-link to="/notifications" class="view-all-btn">Xem tất cả</router-link>
-                </div>
-              </div>
+            <div class="notify-group">
+              <router-link to="/notifications" class="nav-link notification-link" title="Thông báo">
+                <span class="icon-badge-wrapper">
+                  <span class="nav-icon">🔔</span>
+                  <span v-if="unreadNotifications" class="notification-badge">{{
+                    unreadNotifications
+                  }}</span>
+                </span>
+              </router-link>
             </div>
-
-            <!-- User Profile Dropdown -->
-            <div class="user-dropdown">
+            <div class="reward-group">
+              <span class="star-icon">★</span>
+              <span class="reward-points">{{ loyaltyStore.userPoints.current }}</span>
+              <span class="tier-badge2" :style="{ background: loyaltyStore.tierColor }">
+                {{ loyaltyStore.userPoints.tier }}
+              </span>
+            </div>
+            <div class="user-dropdown user-info-group">
               <button @click="toggleUserMenu" class="user-btn">
                 <img
                   :src="authStore.user?.avatar || '/default-avatar.jpg'"
@@ -104,8 +62,6 @@
                 >
                 <span class="dropdown-arrow">▼</span>
               </button>
-
-              <!-- User Dropdown Menu -->
               <div v-if="showUserMenu" class="dropdown-menu user-menu">
                 <div class="dropdown-header">
                   <div class="user-info">
@@ -147,9 +103,9 @@
                   </router-link>
 
                   <div v-if="!isAdmin" class="dropdown-divider"></div>
-                  <router-link 
-                    v-if="!isAdmin" 
-                    to="/seller/dashboard" 
+                  <router-link
+                    v-if="!isAdmin"
+                    to="/seller/dashboard"
                     class="dropdown-link seller-link"
                   >
                     <span class="link-icon">🏪</span>
@@ -178,21 +134,14 @@
               </div>
             </div>
           </div>
-
-          <!-- Guest User (Not Authenticated) -->
           <div v-else class="auth-section">
             <router-link to="/login" class="nav-link auth-link">
               <span class="nav-icon">🔑</span>
               <span class="nav-text">Đăng nhập</span>
             </router-link>
-
-            <router-link to="/register" class="btn btn-primary signup-btn">
-              🚀 Đăng ký
-            </router-link>
+            <router-link to="/register" class="btn btn-primary signup-btn">🚀 Đăng ký</router-link>
           </div>
         </div>
-
-        <!-- Mobile Menu Toggle -->
         <button @click="toggleMobileMenu" class="mobile-menu-btn">
           <span class="hamburger-line"></span>
           <span class="hamburger-line"></span>
@@ -288,6 +237,7 @@ import { useLoyaltyStore } from '@/stores/loyalty' // NEW IMPORT
 import { useSellerStore } from '@/stores/seller' // 🆕 NEW IMPORT
 import SearchBox from '@/components/SearchBox.vue'
 import PointsDisplay from '@/components/PointsDisplay.vue' // NEW IMPORT
+import { notificationAPI } from '@/services/api'
 
 export default {
   name: 'Header',
@@ -318,8 +268,7 @@ export default {
     const showNotifications = ref(false)
     const showUserMenu = ref(false)
     const showMobileMenu = ref(false)
-    const unreadNotifications = ref(3)
-
+    const unreadNotifications = computed(() => notifications.value.filter((n) => !n.read).length)
     // Sample notifications - Updated with loyalty notifications
     const notifications = ref([
       {
@@ -496,15 +445,21 @@ export default {
     })
 
     // Lifecycle
-    onMounted(() => {
+    onMounted(async () => {
       document.addEventListener('click', handleClickOutside)
       document.addEventListener('keydown', handleKeyboardShortcut)
 
-      // Initialize data if user is already authenticated
       if (authStore.isAuthenticated) {
         initializeLoyaltyData()
-        initializeSellerData() // 🆕 NEW
+        initializeSellerData()
         cartStore.loadCart()
+        // Lấy thông báo thực tế từ backend
+        try {
+          const res = await notificationAPI.getUserNotifications()
+          notifications.value = res.data || []
+        } catch (e) {
+          console.error('Không thể tải thông báo:', e)
+        }
       }
     })
 
@@ -517,12 +472,12 @@ export default {
       // Stores
       authStore,
       cartStore,
-      loyaltyStore, 
-      sellerStore, 
+      loyaltyStore,
+      sellerStore,
 
       isAdmin,
       currentUser,
-      isSeller, 
+      isSeller,
 
       // Refs
       searchBoxRef,
@@ -557,6 +512,84 @@ export default {
 </script>
 
 <style scoped>
+.header-flex2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+}
+.header-right2 {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+.user-bar {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+.notify-group {
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-right: 10px;
+}
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -16px;
+  background: #ff4757;
+  color: #fff;
+  border-radius: 50%;
+  padding: 2px 10px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  min-width: 28px;
+  text-align: center;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.reward-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 2px 10px 2px 8px;
+  margin-left: 0.2rem;
+}
+.star-icon {
+  color: #ffd700;
+  font-size: 1.2rem;
+  margin-right: 2px;
+}
+.reward-points {
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-right: 4px;
+}
+.tier-badge2 {
+  background: #cd7f32;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: bold;
+  border-radius: 8px;
+  padding: 2px 8px;
+  margin-left: 2px;
+  min-width: 40px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+.user-info-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+/* Giữ lại các style cũ phía dưới */
 /* Header Styles */
 .app-header {
   position: sticky;
@@ -689,7 +722,12 @@ export default {
 }
 
 .nav-icon {
-  font-size: 1.1rem;
+  font-size: 1.4rem;
+  min-width: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav-divider {
@@ -1330,5 +1368,44 @@ export default {
   .search-section::after {
     display: none;
   }
+}
+
+/* New styles for .header-notification-link */
+.header-notification-link {
+  margin: 0 1rem;
+  font-size: 1.5rem;
+  color: #222;
+  text-decoration: none;
+  position: relative;
+}
+
+.header-notification-link:hover {
+  color: #667eea;
+}
+
+.icon-badge-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+  background: #ff4757;
+  color: #fff;
+  border-radius: 50%;
+  padding: 2px 7px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

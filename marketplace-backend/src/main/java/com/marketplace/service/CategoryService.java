@@ -21,7 +21,12 @@ public class CategoryService {
     private ProductRepository productRepository;
 
     public List<Category> getAllActiveCategories() {
-        return categoryRepository.findByActiveTrue();
+        List<Category> categories = categoryRepository.findByActiveTrue();
+        for (Category cat : categories) {
+            long count = productRepository.countByCategoryAndActiveTrue(cat.getName());
+            cat.setProductCount((int) count);
+        }
+        return categories;
     }
 
     public List<Category> getAllCategories() {

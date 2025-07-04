@@ -1,11 +1,11 @@
 <template>
-  <div 
+  <div
     class="product-card space-card"
-    :class="{ 
-      'featured': product.featured,
-      'sale': product.onSale,
-      'new': product.isNew,
-      'out-of-stock': product.stock === 0
+    :class="{
+      featured: product.featured,
+      sale: product.onSale,
+      new: product.isNew,
+      'out-of-stock': product.stock === 0,
     }"
     @click="viewProduct"
   >
@@ -18,7 +18,7 @@
         :loading="lazy ? 'lazy' : 'eager'"
         @error="handleImageError"
       />
-      
+
       <!-- Image Overlay -->
       <div class="image-overlay">
         <!-- Quick Actions -->
@@ -31,15 +31,11 @@
           >
             {{ isInWishlist ? '❤️' : '🤍' }}
           </button>
-          
-          <button
-            @click.stop="quickView"
-            class="action-btn quick-view-btn"
-            title="Xem nhanh"
-          >
+
+          <button @click.stop="quickView" class="action-btn quick-view-btn" title="Xem nhanh">
             👁️
           </button>
-          
+
           <button
             @click.stop="compareProduct"
             class="action-btn compare-btn"
@@ -49,7 +45,7 @@
             ⚖️
           </button>
         </div>
-        
+
         <!-- Add to Cart Button -->
         <button
           v-if="product.stock > 0"
@@ -59,12 +55,10 @@
         >
           {{ addingToCart ? '🔄 Đang thêm...' : '🛒 Thêm vào giỏ' }}
         </button>
-        
-        <div v-else class="out-of-stock-btn">
-          ❌ Hết hàng
-        </div>
+
+        <div v-else class="out-of-stock-btn">❌ Hết hàng</div>
       </div>
-      
+
       <!-- Product Badges -->
       <div class="product-badges">
         <span v-if="product.isNew" class="badge new-badge">🆕 Mới</span>
@@ -73,63 +67,56 @@
         <span v-if="product.freeShipping" class="badge shipping-badge">🚚 Miễn phí vận chuyển</span>
         <span v-if="product.fastDelivery" class="badge fast-badge">⚡ Giao nhanh</span>
       </div>
-      
+
       <!-- Discount Percentage -->
       <div v-if="discountPercentage > 0" class="discount-percentage">
         -{{ discountPercentage }}%
       </div>
-      
+
       <!-- Stock Level Indicator -->
       <div v-if="product.stock <= 5 && product.stock > 0" class="stock-warning">
         ⚠️ Chỉ còn {{ product.stock }} sản phẩm
       </div>
     </div>
-    
+
     <!-- Product Info -->
     <div class="product-info">
       <!-- Category -->
       <div class="product-category">
-        <router-link 
-          :to="`/categories/${product.category?.id}`"
-          @click.stop
-          class="category-link"
-        >
+        <router-link :to="`/categories/${product.category?.id}`" @click.stop class="category-link">
           {{ product.category?.name }}
         </router-link>
       </div>
-      
+
       <!-- Product Name -->
       <h3 class="product-name">
         {{ product.name }}
       </h3>
-      
+
       <!-- Product Description (if compact mode is off) -->
       <p v-if="!compact && product.description" class="product-description">
         {{ truncateText(product.description, 80) }}
       </p>
-      
+
       <!-- Rating & Reviews -->
-      <div class="product-rating">
-        <div class="rating-stars">
+      <div class="product-rating" v-if="product.averageRating || product.reviewCount">
+        <div class="stars">
           <span
             v-for="star in 5"
             :key="star"
-            class="star"
-            :class="{ filled: star <= Math.round(product.rating || 0) }"
+            :class="['star', star <= Number(product.averageRating || 0) ? 'filled' : 'empty']"
           >
-            ⭐
+            ★
           </span>
         </div>
-        <span class="rating-text">
-          {{ product.rating?.toFixed(1) || '0.0' }} 
-          ({{ product.reviewCount || 0 }} đánh giá)
-        </span>
+        <span class="rating-value">{{ (product.averageRating || 0).toFixed(1) }}/5</span>
+        <span class="rating-count">({{ product.reviewCount }})</span>
       </div>
-      
+
       <!-- Price Section -->
       <div class="price-section">
         <div class="price-container">
-          <span 
+          <span
             v-if="product.originalPrice && product.originalPrice > product.price"
             class="original-price"
           >
@@ -139,50 +126,50 @@
             {{ formatCurrency(product.price) }}
           </span>
         </div>
-        
+
         <!-- Installment Info -->
         <div v-if="installmentPrice > 0" class="installment-info">
           Hoặc {{ formatCurrency(installmentPrice) }}/tháng x 12 kỳ
         </div>
       </div>
-      
+
       <!-- Seller Info (for marketplace) -->
       <div v-if="product.seller && showSeller" class="seller-info">
         <span class="seller-icon">🏪</span>
         <span class="seller-name">{{ product.seller.name }}</span>
-        <span v-if="product.seller.verified" class="verified-badge" title="Người bán đã xác thực">✅</span>
+        <span v-if="product.seller.verified" class="verified-badge" title="Người bán đã xác thực"
+          >✅</span
+        >
       </div>
-      
+
       <!-- Shipping Info -->
       <div class="shipping-info">
         <div class="shipping-item">
           <span class="shipping-icon">🚚</span>
           <span class="shipping-text">
-            {{ product.freeShipping ? 'Miễn phí vận chuyển' : 'Phí vận chuyển: ' + formatCurrency(product.shippingFee || 25000) }}
+            {{
+              product.freeShipping
+                ? 'Miễn phí vận chuyển'
+                : 'Phí vận chuyển: ' + formatCurrency(product.shippingFee || 25000)
+            }}
           </span>
         </div>
-        
+
         <div v-if="product.estimatedDelivery" class="shipping-item">
           <span class="shipping-icon">📅</span>
-          <span class="shipping-text">
-            Giao hàng: {{ product.estimatedDelivery }}
-          </span>
+          <span class="shipping-text"> Giao hàng: {{ product.estimatedDelivery }} </span>
         </div>
       </div>
-      
+
       <!-- Special Offers -->
       <div v-if="product.offers?.length" class="special-offers">
-        <div
-          v-for="offer in product.offers.slice(0, 2)"
-          :key="offer.id"
-          class="offer-item"
-        >
+        <div v-for="offer in product.offers.slice(0, 2)" :key="offer.id" class="offer-item">
           <span class="offer-icon">🎁</span>
           <span class="offer-text">{{ offer.title }}</span>
         </div>
       </div>
     </div>
-    
+
     <!-- Loading Overlay -->
     <div v-if="loading" class="loading-overlay">
       <div class="loading-spinner">🔄</div>
@@ -200,75 +187,78 @@ export default {
   props: {
     product: {
       type: Object,
-      required: true
+      required: true,
     },
     compact: {
       type: Boolean,
-      default: false
+      default: false,
     },
     lazy: {
       type: Boolean,
-      default: true
+      default: true,
     },
     showSeller: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   emits: ['wishlist-toggle', 'quick-view', 'compare-toggle'],
   setup(props, { emit }) {
     const router = useRouter()
     const cartStore = useCartStore()
-    
+
     // Reactive data
     const addingToCart = ref(false)
     const loading = ref(false)
     const isInWishlist = ref(false) // This would come from wishlist store
     const isInCompare = ref(false) // This would come from compare store
-    
+
     // Computed properties
     const discountPercentage = computed(() => {
       if (props.product.originalPrice && props.product.originalPrice > props.product.price) {
-        return Math.round(((props.product.originalPrice - props.product.price) / props.product.originalPrice) * 100)
+        return Math.round(
+          ((props.product.originalPrice - props.product.price) / props.product.originalPrice) * 100
+        )
       }
       return 0
     })
-    
+
     const installmentPrice = computed(() => {
-      if (props.product.price >= 3000000) { // Show installment for products >= 3M VND
+      if (props.product.price >= 3000000) {
+        // Show installment for products >= 3M VND
         return Math.round(props.product.price / 12)
       }
       return 0
     })
-    
+
     // Methods
     const formatCurrency = (amount) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
       }).format(amount)
     }
-    
+
     const truncateText = (text, length) => {
       if (!text) return ''
       return text.length > length ? text.substring(0, length) + '...' : text
     }
-    
+
     const handleImageError = (event) => {
       event.target.src = '/placeholder-product.jpg'
     }
-    
+
     const viewProduct = () => {
       router.push(`/products/${props.product.id}`)
     }
-    
+
     const addToCart = async () => {
       if (props.product.stock === 0) return
-      
+
       try {
         addingToCart.value = true
         await cartStore.addToCart(props.product.id, 1)
-        
+
         // Show success feedback
         showToast('Đã thêm sản phẩm vào giỏ hàng!', 'success')
       } catch (error) {
@@ -278,37 +268,35 @@ export default {
         addingToCart.value = false
       }
     }
-    
+
     const toggleWishlist = () => {
       isInWishlist.value = !isInWishlist.value
       emit('wishlist-toggle', {
         product: props.product,
-        isInWishlist: isInWishlist.value
+        isInWishlist: isInWishlist.value,
       })
-      
-      const message = isInWishlist.value 
-        ? 'Đã thêm vào danh sách yêu thích!' 
+
+      const message = isInWishlist.value
+        ? 'Đã thêm vào danh sách yêu thích!'
         : 'Đã bỏ khỏi danh sách yêu thích!'
       showToast(message, 'info')
     }
-    
+
     const quickView = () => {
       emit('quick-view', props.product)
     }
-    
+
     const compareProduct = () => {
       isInCompare.value = !isInCompare.value
       emit('compare-toggle', {
         product: props.product,
-        isInCompare: isInCompare.value
+        isInCompare: isInCompare.value,
       })
-      
-      const message = isInCompare.value 
-        ? 'Đã thêm vào so sánh!' 
-        : 'Đã bỏ khỏi so sánh!'
+
+      const message = isInCompare.value ? 'Đã thêm vào so sánh!' : 'Đã bỏ khỏi so sánh!'
       showToast(message, 'info')
     }
-    
+
     // Simple toast notification (you can replace with a toast library)
     const showToast = (message, type = 'info') => {
       // This is a simple implementation - in real app, use a toast library
@@ -328,15 +316,15 @@ export default {
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         animation: slideInRight 0.3s ease;
       `
-      
+
       document.body.appendChild(toast)
-      
+
       setTimeout(() => {
         toast.style.animation = 'slideOutRight 0.3s ease forwards'
         setTimeout(() => document.body.removeChild(toast), 300)
       }, 3000)
     }
-    
+
     return {
       addingToCart,
       loading,
@@ -351,9 +339,9 @@ export default {
       addToCart,
       toggleWishlist,
       quickView,
-      compareProduct
+      compareProduct,
     }
-  }
+  },
 }
 </script>
 
@@ -634,23 +622,27 @@ export default {
   flex-wrap: wrap;
 }
 
-.rating-stars {
+.stars {
   display: flex;
   gap: 0.1rem;
 }
 
 .star {
-  font-size: 0.9rem;
-  opacity: 0.3;
-  transition: all 0.3s ease;
+  color: #ccc !important;
+  font-size: 1.1rem;
+  transition: color 0.2s;
 }
 
 .star.filled {
-  opacity: 1;
-  filter: drop-shadow(0 0 3px currentColor);
+  color: #ffd700 !important;
 }
 
-.rating-text {
+.rating-value {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.rating-count {
   color: var(--text-secondary);
   font-size: 0.8rem;
 }
@@ -775,8 +767,12 @@ export default {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Compact Mode */
@@ -803,44 +799,44 @@ export default {
   .product-card {
     max-width: 100%;
   }
-  
+
   .product-image-container {
     height: 200px;
   }
-  
+
   .product-info {
     padding: 1rem;
     gap: 0.5rem;
   }
-  
+
   .product-name {
     font-size: 1rem;
   }
-  
+
   .current-price {
     font-size: 1.1rem;
   }
-  
+
   .quick-actions {
     justify-content: center;
   }
-  
+
   .action-btn {
     width: 2rem;
     height: 2rem;
     font-size: 0.9rem;
   }
-  
+
   .add-to-cart-btn {
     padding: 0.5rem 1rem;
     font-size: 0.8rem;
   }
-  
+
   .product-badges {
     top: 0.5rem;
     left: 0.5rem;
   }
-  
+
   .discount-percentage {
     top: 0.5rem;
     right: 0.5rem;
@@ -854,24 +850,24 @@ export default {
   .product-card {
     border-radius: 8px;
   }
-  
+
   .product-image-container {
     height: 180px;
     border-radius: 8px 8px 0 0;
   }
-  
+
   .product-info {
     padding: 0.75rem;
   }
-  
+
   .product-name {
     font-size: 0.95rem;
   }
-  
+
   .current-price {
     font-size: 1rem;
   }
-  
+
   .badge {
     font-size: 0.7rem;
     padding: 0.2rem 0.5rem;
@@ -940,7 +936,8 @@ export default {
 }
 
 @keyframes badgePulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -977,11 +974,11 @@ export default {
   .product-card {
     border: 2px solid var(--text-primary);
   }
-  
+
   .action-btn {
     border: 1px solid var(--text-primary);
   }
-  
+
   .badge {
     border: 1px solid white;
   }
@@ -995,19 +992,19 @@ export default {
   .add-to-cart-btn {
     transition: none;
   }
-  
+
   .product-card:hover {
     transform: none;
   }
-  
+
   .product-card:hover .product-image {
     transform: none;
   }
-  
+
   .loading-spinner {
     animation: none;
   }
-  
+
   .badge {
     animation: none;
   }
@@ -1021,20 +1018,21 @@ export default {
     background: white !important;
     color: black !important;
   }
-  
+
   .image-overlay,
   .quick-actions,
   .add-to-cart-btn {
     display: none !important;
   }
-  
+
   .product-badges {
     position: static !important;
   }
-  
+
   .badge {
     background: none !important;
     color: black !important;
     border: 1px solid black !important;
   }
 }
+</style>

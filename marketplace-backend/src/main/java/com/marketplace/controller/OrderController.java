@@ -2,6 +2,7 @@ package com.marketplace.controller;
 
 import com.marketplace.model.Order;
 import com.marketplace.service.OrderService;
+import com.marketplace.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,14 +22,25 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+
     @PostMapping("/create")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<Order> createOrder(@RequestBody Map<String, String> request) {
+    public ResponseEntity<Order> createOrder(@RequestBody Map<String, Object> request) {
         String userId = getCurrentUserId();
-        String shippingAddress = request.get("shippingAddress");
-        String billingAddress = request.get("billingAddress");
-
-        Order order = orderService.createOrderFromCart(userId, shippingAddress, billingAddress);
+        String shippingAddress = (String) request.get("shippingAddress");
+        String billingAddress = (String) request.get("billingAddress");
+        String paymentMethod = (String) request.getOrDefault("paymentMethod", "cod");
+        Double shippingFee = 0.0;
+        if (request.containsKey("shippingFee")) {
+            try {
+                shippingFee = Double.valueOf(request.get("shippingFee").toString());
+            } catch (Exception e) {
+                shippingFee = 0.0;
+            }
+        }
+        Order order = orderService.createOrderFromCart(userId, shippingAddress, billingAddress, paymentMethod, shippingFee);
         return ResponseEntity.ok(order);
     }
 
@@ -80,6 +92,24 @@ public class OrderController {
         return ResponseEntity.ok(order);
     }
 
+    @PutMapping("/{orderId}/seller-status")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<Order> updateSellerOrderStatus(
+            @PathVariable String orderId,
+            @RequestBody Map<String, String> request) {
+        String sellerId = getCurrentUserId();
+        String status = request.get("status");
+        
+        // Verify the order belongs to this seller
+        Order order = orderService.getOrderById(orderId);
+        if (!orderService.isOrderFromSeller(orderId, sellerId)) {
+            return ResponseEntity.status(403).body(null);
+        }
+        
+        Order updatedOrder = orderService.updateOrderStatus(orderId, status);
+        return ResponseEntity.ok(updatedOrder);
+    }
+
     @PostMapping("/validate-promo")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> validatePromoCode(@RequestBody Map<String, String> request) {
@@ -102,31 +132,27 @@ public class OrderController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Order>> getAllOrders() {
+        List<Order> orders = orderService.getAllOrders();
+        return ResponseEntity.ok(orders);
+    }
+
     private String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated() &&
                 !authentication.getPrincipal().equals("anonymousUser")) {
-
-            // Extract user ID from JWT token
             String token = getJwtFromCurrentRequest();
             if (token != null) {
                 try {
-                    org.springframework.context.ApplicationContext context =
-                            org.springframework.web.context.support.WebApplicationContextUtils
-                                    .getWebApplicationContext(((org.springframework.web.context.request.ServletRequestAttributes)
-                                            org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes())
-                                            .getRequest().getServletContext());
-
-                    if (context != null) {
-                        com.marketplace.security.JwtTokenProvider jwtProvider = context.getBean(com.marketplace.security.JwtTokenProvider.class);
-                        return jwtProvider.getUserIdFromToken(token);
-                    }
+                    return jwtTokenProvider.getUserIdFromToken(token);
                 } catch (Exception e) {
-                    // Fall back to mock for now
+                    // Log error if needed
                 }
             }
         }
-        return "mockUserId123";
+        throw new RuntimeException("Cannot extract userId from JWT");
     }
 
     private String getJwtFromCurrentRequest() {

@@ -7,9 +7,9 @@
         <span class="breadcrumb-separator">→</span>
         <router-link to="/products" class="breadcrumb-item">📦 Sản phẩm</router-link>
         <span class="breadcrumb-separator">→</span>
-        <router-link 
-          v-if="product?.category" 
-          :to="`/categories/${product.categoryId}`" 
+        <router-link
+          v-if="product?.category"
+          :to="`/categories/${product.categoryId}`"
           class="breadcrumb-item"
         >
           {{ product.category }}
@@ -35,15 +35,18 @@
           <div class="product-gallery">
             <!-- Main Image -->
             <div class="main-image">
-              <img 
-                :src="selectedImage || product.images?.[0] || '/placeholder-product.jpg'" 
+              <img
+                :src="selectedImage || product.images?.[0] || '/placeholder-product.jpg'"
                 :alt="product.name"
                 class="main-product-image"
                 @click="openImageModal"
               />
               <div class="image-controls">
-                <button @click="openImageModal" class="control-btn">🔍</button>
-                <button @click="favoriteProduct" class="control-btn" :class="{ active: isFavorited }">
+                <button
+                  @click="favoriteProduct"
+                  class="control-btn"
+                  :class="{ active: isFavorited }"
+                >
                   {{ isFavorited ? '❤️' : '🤍' }}
                 </button>
                 <button @click="shareProduct" class="control-btn">🔗</button>
@@ -79,25 +82,35 @@
               <!-- Rating Section -->
               <div class="rating-section">
                 <div class="rating-stars">
-                  <span v-for="star in 5" :key="star" 
-                        class="star"
-                        :class="{ 'filled': star <= (product.rating || 0) }">
+                  <span
+                    v-for="star in 5"
+                    :key="star"
+                    class="star"
+                    :class="{ filled: star <= (product.averageRating || 0) }"
+                  >
                     ⭐
                   </span>
                 </div>
                 <span class="rating-text">
-                  {{ (product.rating || 0).toFixed(1) }}/5 
-                  ({{ product.reviewCount || 0 }} đánh giá)
+                  {{ (product.averageRating || 0).toFixed(1) }}/5 ({{
+                    product.reviewCount || 0
+                  }}
+                  đánh giá)
                 </span>
-                <button @click="scrollToReviews" class="view-reviews-btn">
-                  Xem đánh giá
-                </button>
+                <div class="rating-actions" style="margin-top: 8px; display: flex; gap: 10px">
+                  <button @click="openReviewListModal" class="btn btn-outline view-reviews-btn">
+                    Xem đánh giá
+                  </button>
+                  <button @click="openReviewModal" class="btn btn-primary">✍️ Viết đánh giá</button>
+                </div>
               </div>
 
               <!-- Price Section -->
               <div class="price-section">
-                <span v-if="product.originalPrice && product.originalPrice > product.price" 
-                      class="original-price">
+                <span
+                  v-if="product.originalPrice && product.originalPrice > product.price"
+                  class="original-price"
+                >
                   {{ formatPrice(product.originalPrice) }}
                 </span>
                 <span class="current-price">{{ formatPrice(product.price) }}</span>
@@ -137,24 +150,29 @@
                 <label>Số lượng:</label>
                 <div class="quantity-controls">
                   <button @click="decreaseQuantity" :disabled="quantity <= 1">-</button>
-                  <input v-model.number="quantity" type="number" min="1" :max="product.stock" />
-                  <button @click="increaseQuantity" :disabled="quantity >= product.stock">+</button>
+                  <input
+                    v-model.number="quantity"
+                    type="number"
+                    min="1"
+                    :max="product.stockQuantity"
+                  />
+                  <button @click="increaseQuantity" :disabled="quantity >= product.stockQuantity">
+                    +
+                  </button>
                 </div>
               </div>
 
               <div class="action-buttons">
-                <button 
-                  @click="addToCart" 
-                  :disabled="!product.inStock || addingToCart"
+                <button
+                  @click="addToCart"
+                  :disabled="product.stockQuantity <= 0 || addingToCart"
                   class="btn btn-primary btn-lg add-to-cart-btn"
                 >
                   <span v-if="addingToCart">⏳ Đang thêm...</span>
                   <span v-else>🛒 Thêm vào giỏ hàng</span>
                 </button>
-                
-                <button @click="buyNow" class="btn btn-accent btn-lg">
-                  ⚡ Mua ngay
-                </button>
+
+                <button @click="buyNow" class="btn btn-accent btn-lg">⚡ Mua ngay</button>
               </div>
             </div>
 
@@ -163,14 +181,14 @@
               <h4>👨‍💼 Thông tin người bán</h4>
               <div class="seller-details">
                 <div class="seller-avatar">
-                  <img :src="product.seller?.avatar || '/placeholder-avatar.jpg'" :alt="product.seller?.name" />
+                  <img :src="seller?.avatar || '/placeholder-avatar.jpg'" :alt="seller?.name" />
                 </div>
                 <div class="seller-data">
-                  <h5>{{ product.seller?.name || 'Người bán' }}</h5>
+                  <h5>{{ seller?.name || 'Người bán' }}</h5>
                   <div class="seller-stats">
-                    <span>⭐ {{ product.seller?.rating || 0 }}/5</span>
-                    <span>📦 {{ product.seller?.totalProducts || 0 }} sản phẩm</span>
-                    <span>✅ {{ product.seller?.completedOrders || 0 }} đơn hoàn thành</span>
+                    <span>⭐ {{ seller?.rating || 0 }}/5</span>
+                    <span>📦 {{ seller?.totalProducts || 0 }} sản phẩm</span>
+                    <span>✅ {{ seller?.completedOrders || 0 }} đơn hoàn thành</span>
                   </div>
                 </div>
                 <div class="seller-actions">
@@ -190,11 +208,7 @@
         <div class="product-specifications" v-if="product.specifications?.length">
           <h3>📋 Thông số kỹ thuật</h3>
           <div class="specs-grid">
-            <div
-              v-for="spec in product.specifications"
-              :key="spec.name"
-              class="spec-row"
-            >
+            <div v-for="spec in product.specifications" :key="spec.name" class="spec-row">
               <span class="spec-name">{{ spec.name }}</span>
               <span class="spec-value">{{ spec.value }}</span>
             </div>
@@ -204,8 +218,10 @@
         <!-- Similar Products Section -->
         <SimilarProducts
           :product-id="product.id"
-          :limit="12"
-          :display-limit="6"
+          :product-price="product.price"
+          :product-category="product.category"
+          :limit="3"
+          :display-limit="3"
           :show-similarity-scores="false"
           container-class="product-detail-similar"
           @product-click="handleSimilarProductClick"
@@ -225,7 +241,7 @@
               Các sản phẩm khách hàng thường mua kèm với {{ product.name }}
             </p>
           </div>
-          
+
           <div class="cross-sell-grid">
             <div
               v-for="crossProduct in crossSellProducts"
@@ -233,108 +249,19 @@
               class="cross-sell-card"
               @click="navigateToProduct(crossProduct.id)"
             >
-              <img :src="crossProduct.imageUrl" :alt="crossProduct.name" class="cross-sell-image" />
+              <img
+                :src="crossProduct.images?.[0] || '/api/placeholder/product'"
+                :alt="crossProduct.name"
+                class="cross-sell-image"
+              />
               <div class="cross-sell-info">
                 <h4>{{ truncate(crossProduct.name, 30) }}</h4>
                 <span class="cross-sell-price">{{ formatPrice(crossProduct.price) }}</span>
-                <button 
-                  @click.stop="addCrossSellToCart(crossProduct)"
-                  class="cross-sell-btn"
-                >
+                <button @click.stop="addCrossSellToCart(crossProduct)" class="cross-sell-btn">
                   Thêm vào giỏ
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Product Reviews -->
-        <div class="product-reviews" ref="reviewsRef">
-          <div class="reviews-header">
-            <h3>📝 Đánh giá sản phẩm</h3>
-            <div class="reviews-summary">
-              <div class="rating-overview">
-                <span class="overall-rating">{{ (product.rating || 0).toFixed(1) }}</span>
-                <div class="rating-stars-large">
-                  <span v-for="star in 5" :key="star" 
-                        class="star-large"
-                        :class="{ 'filled': star <= (product.rating || 0) }">
-                    ⭐
-                  </span>
-                </div>
-                <span class="total-reviews">{{ product.reviewCount || 0 }} đánh giá</span>
-              </div>
-              
-              <div class="rating-breakdown">
-                <div v-for="rating in [5,4,3,2,1]" :key="rating" class="rating-bar">
-                  <span class="rating-label">{{ rating }} ⭐</span>
-                  <div class="rating-progress">
-                    <div class="rating-fill" :style="{ width: getRatingPercentage(rating) + '%' }"></div>
-                  </div>
-                  <span class="rating-count">{{ getRatingCount(rating) }}</span>
-                </div>
-              </div>
-
-              <button @click="openReviewModal" class="btn btn-primary">
-                ✍️ Viết đánh giá
-              </button>
-            </div>
-          </div>
-
-          <!-- Reviews List -->
-          <div class="reviews-list" v-if="reviews.length > 0">
-            <div
-              v-for="review in displayedReviews"
-              :key="review.id"
-              class="review-item"
-            >
-              <div class="reviewer-info">
-                <img :src="review.user?.avatar || '/placeholder-avatar.jpg'" :alt="review.user?.name" />
-                <div class="reviewer-details">
-                  <h5>{{ review.user?.name || 'Người dùng ẩn danh' }}</h5>
-                  <div class="review-meta">
-                    <div class="review-rating">
-                      <span v-for="star in 5" :key="star" 
-                            class="star-sm"
-                            :class="{ 'filled': star <= review.rating }">
-                        ⭐
-                      </span>
-                    </div>
-                    <span class="review-date">{{ formatDate(review.createdAt) }}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="review-content">
-                <p>{{ review.comment }}</p>
-                <div v-if="review.images?.length" class="review-images">
-                  <img
-                    v-for="(image, index) in review.images"
-                    :key="index"
-                    :src="image"
-                    :alt="`Review image ${index + 1}`"
-                    @click="openImageModal(image)"
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <!-- Load More Reviews -->
-            <div v-if="reviews.length > displayedReviews.length" class="load-more-reviews">
-              <button @click="loadMoreReviews" class="btn btn-outline">
-                Xem thêm đánh giá
-              </button>
-            </div>
-          </div>
-
-          <!-- No Reviews -->
-          <div v-else class="no-reviews">
-            <span class="no-reviews-icon">📝</span>
-            <h4>Chưa có đánh giá nào</h4>
-            <p>Hãy là người đầu tiên đánh giá sản phẩm này!</p>
-            <button @click="openReviewModal" class="btn btn-primary">
-              Viết đánh giá đầu tiên
-            </button>
           </div>
         </div>
       </div>
@@ -353,7 +280,7 @@
     </div>
 
     <!-- Modals -->
-    
+
     <!-- Image Modal -->
     <div v-if="showImageModal" class="modal-overlay" @click="closeImageModal">
       <div class="modal-content image-modal">
@@ -369,7 +296,7 @@
           <h3>✍️ Viết đánh giá cho {{ product?.name }}</h3>
           <button @click="closeReviewModal" class="modal-close">❌</button>
         </div>
-        
+        <div v-if="reviewError" class="review-error">{{ reviewError }}</div>
         <form @submit.prevent="submitReview" class="review-form">
           <div class="form-group">
             <label>Đánh giá của bạn:</label>
@@ -379,14 +306,14 @@
                 :key="star"
                 type="button"
                 class="rating-star"
-                :class="{ 'selected': star <= newReview.rating }"
+                :class="{ selected: star <= newReview.rating }"
                 @click="newReview.rating = star"
               >
                 ⭐
               </button>
             </div>
           </div>
-          
+
           <div class="form-group">
             <label>Nhận xét:</label>
             <textarea
@@ -396,21 +323,9 @@
               required
             ></textarea>
           </div>
-          
-          <div class="form-group">
-            <label>Hình ảnh (tùy chọn):</label>
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              @change="handleReviewImages"
-            />
-          </div>
-          
+
           <div class="form-actions">
-            <button type="button" @click="closeReviewModal" class="btn btn-secondary">
-              Hủy
-            </button>
+            <button type="button" @click="closeReviewModal" class="btn btn-secondary">Hủy</button>
             <button type="submit" :disabled="submitingReview" class="btn btn-primary">
               {{ submitingReview ? 'Đang gửi...' : 'Gửi đánh giá' }}
             </button>
@@ -426,29 +341,17 @@
           <h3>🔗 Chia sẻ sản phẩm</h3>
           <button @click="closeShareModal" class="modal-close">❌</button>
         </div>
-        
+
         <div class="share-content">
           <div class="share-options">
-            <button @click="shareToFacebook" class="share-btn facebook">
-              📘 Facebook
-            </button>
-            <button @click="shareToTwitter" class="share-btn twitter">
-              🐦 Twitter
-            </button>
-            <button @click="shareToWhatsApp" class="share-btn whatsapp">
-              💬 WhatsApp
-            </button>
-            <button @click="shareToEmail" class="share-btn email">
-              📧 Email
-            </button>
+            <button @click="shareToFacebook" class="share-btn facebook">📘 Facebook</button>
+            <button @click="shareToTwitter" class="share-btn twitter">🐦 Twitter</button>
+            <button @click="shareToWhatsApp" class="share-btn whatsapp">💬 WhatsApp</button>
+            <button @click="shareToEmail" class="share-btn email">📧 Email</button>
           </div>
-          
+
           <div class="share-link">
-            <input
-              :value="productUrl"
-              readonly
-              class="link-input"
-            />
+            <input :value="productUrl" readonly class="link-input" />
             <button @click="copyProductLink" class="copy-btn">
               {{ linkCopied ? 'Đã sao chép!' : 'Sao chép' }}
             </button>
@@ -465,6 +368,68 @@
       :product-name="product.name"
       @chat-opened="handleChatOpened"
     />
+
+    <!-- Modal danh sách đánh giá -->
+    <div
+      v-if="showReviewListModal"
+      class="modal-overlay review-list-modal"
+      @click.self="showReviewListModal = false"
+    >
+      <div class="modal-content review-list-content">
+        <div class="modal-header">
+          <h3>📝 Tất cả đánh giá sản phẩm</h3>
+          <button @click="showReviewListModal = false" class="modal-close">❌</button>
+        </div>
+        <div class="review-stats-bar">
+          <div v-for="star in [5, 4, 3, 2, 1]" :key="star" class="review-stats-row">
+            <span class="review-star-label">{{ star }}★</span>
+            <span class="review-star-count">({{ getRatingCount(star) }})</span>
+          </div>
+        </div>
+        <div class="reviews-list-modal">
+          <div v-if="reviews.length > 0">
+            <div v-for="review in reviews" :key="review.id" class="review-item-modal">
+              <img
+                :src="review.userAvatar || '/placeholder-avatar.jpg'"
+                :alt="review.userName || 'Người dùng ẩn danh'"
+                class="review-avatar"
+              />
+              <div class="review-main">
+                <div class="review-header">
+                  <span class="reviewer-name">{{ review.userName || 'Người dùng ẩn danh' }}</span>
+                  <span class="review-stars">
+                    <span
+                      v-for="star in 5"
+                      :key="star"
+                      class="star-sm"
+                      :class="{ filled: star <= review.rating }"
+                      >⭐</span
+                    >
+                  </span>
+                  <span class="review-date">{{ formatDate(review.createdAt) }}</span>
+                </div>
+                <div class="review-comment-shopee">{{ review.comment }}</div>
+                <div v-if="review.images?.length" class="review-images-shopee">
+                  <img
+                    v-for="(image, index) in review.images"
+                    :key="index"
+                    :src="image"
+                    :alt="`Review image ${index + 1}`"
+                    @click="openImageModal(image)"
+                    class="review-image-thumb-shopee"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="no-reviews-modal">
+            <span class="no-reviews-icon">📝</span>
+            <h4>Chưa có đánh giá nào</h4>
+            <p>Hãy là người đầu tiên đánh giá sản phẩm này!</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -473,6 +438,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from '@/stores/user'
+import { useCartStore } from '@/stores/cart'
 import { productAPI, reviewAPI } from '@/services/api'
 import SimilarProducts from '@/components/SimilarProducts.vue'
 import ChatButton from '@/components/ChatButton.vue'
@@ -482,17 +448,19 @@ export default {
   name: 'ProductDetail',
   components: {
     SimilarProducts,
-    ChatButton
+    ChatButton,
   },
-  
+
   setup() {
     const route = useRoute()
     const router = useRouter()
     const authStore = useAuthStore()
     const userStore = useUserStore()
-    
+    const cartStore = useCartStore()
+
     // Reactive state
     const product = ref(null)
+    const seller = ref(null)
     const loading = ref(false)
     const error = ref(null)
     const selectedImage = ref('')
@@ -500,79 +468,74 @@ export default {
     const quantity = ref(1)
     const addingToCart = ref(false)
     const isFavorited = ref(false)
-    
+
     // Cross-sell products
     const crossSellProducts = ref([])
     const loadingCrossSell = ref(false)
-    
+
     // Reviews
     const reviews = ref([])
     const displayedReviews = ref([])
     const reviewsPerPage = 5
     const loadingReviews = ref(false)
-    
+
     // Modals
     const showImageModal = ref(false)
     const showReviewModal = ref(false)
     const showShareModal = ref(false)
     const modalImage = ref('')
     const linkCopied = ref(false)
-    
+    const showReviewListModal = ref(false)
+
     // Review form
     const newReview = ref({
       rating: 5,
       comment: '',
-      images: []
     })
     const submitingReview = ref(false)
-    
+
     // Refs
     const reviewsRef = ref(null)
-    
+
     // Computed properties
     const stockStatusClass = computed(() => {
       if (!product.value) return ''
-      
-      if (product.value.stock > 10) return 'in-stock'
-      if (product.value.stock > 0) return 'low-stock'
+      if (product.value.stockQuantity > 10) return 'in-stock'
+      if (product.value.stockQuantity > 0) return 'low-stock'
       return 'out-of-stock'
     })
-    
+
     const stockStatusText = computed(() => {
       if (!product.value) return ''
-      
-      if (product.value.stock > 10) return `Còn hàng (${product.value.stock})`
-      if (product.value.stock > 0) return `Sắp hết hàng (${product.value.stock})`
+      if (product.value.stockQuantity > 10) return `Còn hàng (${product.value.stockQuantity})`
+      if (product.value.stockQuantity > 0) return `Sắp hết hàng (${product.value.stockQuantity})`
       return 'Hết hàng'
     })
-    
+
     const productUrl = computed(() => {
       return window.location.href
     })
-    
+
     // Load product data
     const loadProduct = async (productId) => {
       loading.value = true
       error.value = null
-      
+
       try {
         const response = await productAPI.getById(productId)
-        product.value = response.data
-        
+        product.value = response.data.product
+        seller.value = response.data.seller
+
         // Set initial state
         selectedImage.value = product.value.images?.[0] || ''
         selectedVariant.value = product.value.variants?.[0] || null
-        isFavorited.value = userStore.wishlist?.some(item => item.id === productId) || false
-        
+        isFavorited.value = userStore.wishlist?.some((item) => item.id === productId) || false
+
         // Track product view
         await recommendationService.trackView(productId, 'product_detail')
-        
+
         // Load related data
-        await Promise.all([
-          loadReviews(productId),
-          loadCrossSellProducts(productId)
-        ])
-        
+        await Promise.all([loadReviews(productId), loadCrossSellProducts(productId)])
       } catch (err) {
         console.error('Error loading product:', err)
         error.value = err.response?.data?.message || 'Không thể tải thông tin sản phẩm'
@@ -580,15 +543,14 @@ export default {
         loading.value = false
       }
     }
-    
+
     // Load cross-sell products
     const loadCrossSellProducts = async (productId) => {
       loadingCrossSell.value = true
-      
+
       try {
         const response = await recommendationService.getCrossSellRecommendations(productId, 6)
         crossSellProducts.value = response.crossSellProducts || []
-        
       } catch (error) {
         console.error('Error loading cross-sell products:', error)
         crossSellProducts.value = []
@@ -596,16 +558,15 @@ export default {
         loadingCrossSell.value = false
       }
     }
-    
+
     // Load reviews
     const loadReviews = async (productId) => {
       loadingReviews.value = true
-      
+
       try {
         const response = await reviewAPI.getByProduct(productId)
         reviews.value = response.data || []
         displayedReviews.value = reviews.value.slice(0, reviewsPerPage)
-        
       } catch (error) {
         console.error('Error loading reviews:', error)
         reviews.value = []
@@ -614,49 +575,40 @@ export default {
         loadingReviews.value = false
       }
     }
-    
+
     // Product actions
     const selectVariant = (variant) => {
       selectedVariant.value = variant
-      
+
       // Track variant selection
       recommendationService.trackInteraction(product.value.id, 'VARIANT_SELECTED', {
         variantId: variant.id,
-        variantName: variant.name
+        variantName: variant.name,
       })
     }
-    
+
     const increaseQuantity = () => {
-      if (quantity.value < product.value.stock) {
+      if (quantity.value < product.value.stockQuantity) {
         quantity.value++
       }
     }
-    
+
     const decreaseQuantity = () => {
       if (quantity.value > 1) {
         quantity.value--
       }
     }
-    
+
     const addToCart = async () => {
       if (addingToCart.value) return
-      
       addingToCart.value = true
-      
       try {
         // Track add to cart action
         await recommendationService.trackAddToCart(product.value.id, quantity.value)
-        
-        // TODO: Add actual cart logic here
-        console.log('Added to cart:', {
-          product: product.value.name,
-          variant: selectedVariant.value?.name,
-          quantity: quantity.value
-        })
-        
+        // Thêm thực sự vào giỏ hàng
+        await cartStore.addItem(product.value.id, quantity.value)
         // Show success notification
         alert(`Đã thêm ${quantity.value} ${product.value.name} vào giỏ hàng!`)
-        
       } catch (error) {
         console.error('Error adding to cart:', error)
         alert('Có lỗi khi thêm vào giỏ hàng')
@@ -664,141 +616,141 @@ export default {
         addingToCart.value = false
       }
     }
-    
+
     const buyNow = async () => {
       await addToCart()
       if (!addingToCart.value) {
         router.push('/checkout')
       }
     }
-    
+
     const favoriteProduct = async () => {
       try {
         isFavorited.value = !isFavorited.value
-        
+
         const action = isFavorited.value ? 'ADD_TO_WISHLIST' : 'REMOVE_FROM_WISHLIST'
         await recommendationService.trackInteraction(product.value.id, action)
-        
+
         // TODO: Add actual wishlist logic here
         console.log(isFavorited.value ? 'Added to wishlist' : 'Removed from wishlist')
-        
       } catch (error) {
         console.error('Error toggling wishlist:', error)
         isFavorited.value = !isFavorited.value // Revert on error
       }
     }
-    
+
     // Similar products handlers
     const handleSimilarProductClick = (data) => {
       const { product: similarProduct, index } = data
-      
+
       // Track similar product click
       recommendationService.trackInteraction(similarProduct.id, 'SIMILAR_PRODUCT_CLICK', {
         originalProductId: product.value.id,
         position: index,
-        source: 'product_detail'
+        source: 'product_detail',
       })
     }
-    
+
     const handleSimilarAddToCart = (similarProduct) => {
       // Track cross-category purchase intent
       recommendationService.trackInteraction(similarProduct.id, 'CROSS_PRODUCT_ADD_TO_CART', {
         originalProductId: product.value.id,
-        source: 'similar_products'
+        source: 'similar_products',
       })
     }
-    
+
     const handleSimilarAddToWishlist = (similarProduct) => {
       // Track wishlist action from similar products
       recommendationService.trackInteraction(similarProduct.id, 'CROSS_PRODUCT_WISHLIST', {
         originalProductId: product.value.id,
-        source: 'similar_products'
+        source: 'similar_products',
       })
     }
-    
+
     const handleCompareProducts = (products) => {
       // Track product comparison
       recommendationService.trackInteraction(product.value.id, 'PRODUCT_COMPARISON', {
-        comparedProducts: products.map(p => p.id),
-        count: products.length
+        comparedProducts: products.map((p) => p.id),
+        count: products.length,
       })
     }
-    
+
     // Cross-sell actions
     const addCrossSellToCart = async (crossProduct) => {
       try {
         await recommendationService.trackAddToCart(crossProduct.id, 1)
-        
+        // Thêm thực sự vào giỏ hàng
+        await cartStore.addItem(crossProduct.id, 1)
         // Track cross-sell conversion
         await recommendationService.trackInteraction(crossProduct.id, 'CROSS_SELL_CONVERSION', {
           originalProductId: product.value.id,
-          source: 'cross_sell_section'
+          source: 'cross_sell_section',
         })
-        
         console.log('Added cross-sell to cart:', crossProduct.name)
         alert(`Đã thêm ${crossProduct.name} vào giỏ hàng!`)
-        
       } catch (error) {
         console.error('Error adding cross-sell to cart:', error)
+        alert('Có lỗi khi thêm vào giỏ hàng')
       }
     }
-    
+
     const navigateToProduct = (productId) => {
       router.push(`/products/${productId}`)
     }
-    
+
     // Modal handlers
     const openImageModal = (image = null) => {
       modalImage.value = image || selectedImage.value
       showImageModal.value = true
     }
-    
+
     const closeImageModal = () => {
       showImageModal.value = false
       modalImage.value = ''
     }
-    
+
     const openReviewModal = () => {
       if (!authStore.isAuthenticated) {
         router.push('/login')
         return
       }
       showReviewModal.value = true
+      showReviewListModal.value = false
+      reviewError.value = ''
     }
-    
+
     const closeReviewModal = () => {
       showReviewModal.value = false
-      newReview.value = { rating: 5, comment: '', images: [] }
+      newReview.value = { rating: 5, comment: '' }
     }
-    
+
     // Review actions
     const submitReview = async () => {
       if (!newReview.value.comment.trim()) return
-      
+
       submitingReview.value = true
-      
+
       try {
         const reviewData = {
           productId: product.value.id,
           rating: newReview.value.rating,
           comment: newReview.value.comment.trim(),
-          images: newReview.value.images
         }
-        
+
         await reviewAPI.create(reviewData)
-        
+
         // Track review submission
         await recommendationService.trackInteraction(product.value.id, 'PRODUCT_REVIEW', {
           rating: newReview.value.rating,
-          hasImages: newReview.value.images.length > 0
         })
-        
+
         // Reload reviews
         await loadReviews(product.value.id)
-        
+        // Reload product info to update average rating and review count
+        await loadProduct(product.value.id)
+
         closeReviewModal()
         alert('Cảm ơn bạn đã đánh giá sản phẩm!')
-        
       } catch (error) {
         console.error('Error submitting review:', error)
         alert('Có lỗi khi gửi đánh giá')
@@ -806,13 +758,7 @@ export default {
         submitingReview.value = false
       }
     }
-    
-    const handleReviewImages = (event) => {
-      const files = Array.from(event.target.files)
-      // TODO: Handle image upload
-      newReview.value.images = files
-    }
-    
+
     const loadMoreReviews = () => {
       const nextBatch = reviews.value.slice(
         displayedReviews.value.length,
@@ -820,124 +766,138 @@ export default {
       )
       displayedReviews.value.push(...nextBatch)
     }
-    
+
     // Share functionality
     const shareProduct = () => {
       showShareModal.value = true
     }
-    
+
     const closeShareModal = () => {
       showShareModal.value = false
       linkCopied.value = false
     }
-    
+
     const shareToFacebook = () => {
-      const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl.value)}`
+      const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+        productUrl.value
+      )}`
       window.open(url, '_blank')
     }
-    
+
     const shareToTwitter = () => {
       const text = `Check out this amazing product: ${product.value.name}`
-      const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(productUrl.value)}`
+      const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+        text
+      )}&url=${encodeURIComponent(productUrl.value)}`
       window.open(url, '_blank')
     }
-    
+
     const shareToWhatsApp = () => {
       const text = `Xem sản phẩm này: ${product.value.name} - ${productUrl.value}`
       const url = `https://wa.me/?text=${encodeURIComponent(text)}`
       window.open(url, '_blank')
     }
-    
+
     const shareToEmail = () => {
       const subject = `Sản phẩm hay: ${product.value.name}`
       const body = `Tôi muốn chia sẻ với bạn sản phẩm này:\n\n${product.value.name}\n${productUrl.value}`
       const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
       window.open(url)
     }
-    
+
     const copyProductLink = async () => {
       try {
         await navigator.clipboard.writeText(productUrl.value)
         linkCopied.value = true
-        setTimeout(() => linkCopied.value = false, 2000)
+        setTimeout(() => (linkCopied.value = false), 2000)
       } catch (error) {
         console.error('Error copying link:', error)
       }
     }
-    
+
     // Seller actions
     const contactSeller = () => {
       // This will open the chat with the seller
       // ChatButton component will handle the actual chat functionality
     }
-    
+
     const viewSellerStore = () => {
       router.push(`/sellers/${product.value.sellerId}`)
     }
-    
+
     const handleChatOpened = (data) => {
       // Track seller contact
       recommendationService.trackInteraction(product.value.id, 'SELLER_CONTACT', {
         sellerId: data.sellerId,
-        method: 'chat'
+        method: 'chat',
       })
     }
-    
+
     // Utility functions
     const formatPrice = (price) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
       }).format(price)
     }
-    
+
     const formatDate = (date) => {
       return new Date(date).toLocaleDateString('vi-VN')
     }
-    
+
     const truncate = (text, length) => {
       if (!text) return ''
       return text.length > length ? text.slice(0, length) + '...' : text
     }
-    
+
     const scrollToReviews = () => {
       if (reviewsRef.value) {
         reviewsRef.value.scrollIntoView({ behavior: 'smooth' })
       }
     }
-    
+
     // Review statistics
     const getRatingPercentage = (rating) => {
       if (!reviews.value.length) return 0
-      const count = reviews.value.filter(r => r.rating === rating).length
+      const count = reviews.value.filter((r) => r.rating === rating).length
       return (count / reviews.value.length) * 100
     }
-    
+
     const getRatingCount = (rating) => {
-      return reviews.value.filter(r => r.rating === rating).length
+      return reviews.value.filter((r) => r.rating === rating).length
     }
-    
+
     // Watch for route changes
-    watch(() => route.params.id, (newId) => {
-      if (newId) {
-        loadProduct(newId)
+    watch(
+      () => route.params.id,
+      (newId) => {
+        if (newId) {
+          loadProduct(newId)
+        }
       }
-    })
-    
+    )
+
     // Lifecycle
     onMounted(() => {
       if (route.params.id) {
         loadProduct(route.params.id)
       }
     })
-    
+
+    const openReviewListModal = () => {
+      showReviewListModal.value = true
+      showReviewModal.value = false
+    }
+
     return {
       // Stores
       authStore,
       userStore,
-      
+      cartStore,
+
       // State
       product,
+      seller,
       loading,
       error,
       selectedImage,
@@ -950,26 +910,27 @@ export default {
       reviews,
       displayedReviews,
       loadingReviews,
-      
+
       // Modals
       showImageModal,
       showReviewModal,
       showShareModal,
       modalImage,
       linkCopied,
-      
+      showReviewListModal,
+
       // Forms
       newReview,
       submitingReview,
-      
+
       // Refs
       reviewsRef,
-      
+
       // Computed
       stockStatusClass,
       stockStatusText,
       productUrl,
-      
+
       // Methods
       selectVariant,
       increaseQuantity,
@@ -988,7 +949,6 @@ export default {
       openReviewModal,
       closeReviewModal,
       submitReview,
-      handleReviewImages,
       loadMoreReviews,
       shareProduct,
       closeShareModal,
@@ -1000,16 +960,17 @@ export default {
       contactSeller,
       viewSellerStore,
       handleChatOpened,
-      
+
       // Utilities
       formatPrice,
       formatDate,
       truncate,
       scrollToReviews,
       getRatingPercentage,
-      getRatingCount
+      getRatingCount,
+      openReviewListModal,
     }
-  }
+  },
 }
 </script>
 
@@ -1118,7 +1079,7 @@ export default {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
   }
-  
+
   .cross-sell-section {
     margin: 2rem 0;
     padding: 1.5rem;
@@ -1129,11 +1090,11 @@ export default {
   .cross-sell-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .cross-sell-info {
     padding: 0.75rem;
   }
-  
+
   .cross-sell-info h4 {
     font-size: 0.8rem;
   }
@@ -1220,13 +1181,22 @@ export default {
 }
 
 @keyframes pulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); }
-  50% { transform: translate(-50%, -50%) scale(1.1); }
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .product-content {
@@ -2467,13 +2437,13 @@ export default {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
-  
+
   .reviews-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .reviews-summary {
     flex-direction: column;
     align-items: flex-start;
@@ -2490,20 +2460,20 @@ export default {
   .product-detail {
     padding: 1rem 0;
   }
-  
+
   .breadcrumb {
     font-size: 0.8rem;
     flex-wrap: wrap;
   }
-  
+
   .product-title {
     font-size: 1.5rem;
   }
-  
+
   .current-price {
     font-size: 1.5rem;
   }
-  
+
   .action-buttons {
     flex-direction: column;
   }
@@ -2511,20 +2481,20 @@ export default {
   .seller-actions {
     justify-content: flex-start;
   }
-  
+
   .form-actions {
     justify-content: stretch;
   }
-  
+
   .form-actions .btn {
     flex: 1;
   }
-  
+
   .reviewer-info {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
+
   .review-meta {
     flex-direction: column;
     align-items: flex-start;
@@ -2550,17 +2520,17 @@ export default {
   .main-product-image {
     height: 250px;
   }
-  
+
   .price-section {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   .products-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .seller-details {
     flex-direction: column;
     gap: 0.5rem;
@@ -2580,5 +2550,521 @@ export default {
     align-items: flex-start;
     gap: 0.5rem;
   }
+}
+
+/* Modal share (chia sẻ sản phẩm) căn giữa */
+.share-modal {
+  position: fixed !important;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10000;
+  background: #23243a;
+  border-radius: 16px;
+  padding: 1.5rem 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 260px;
+  max-width: 420px;
+  max-height: 90vh;
+}
+
+.share-modal .modal-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.share-modal .modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: #fff;
+  cursor: pointer;
+}
+
+.share-modal .share-link {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.share-modal .share-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.share-modal input[type='text'] {
+  background: #18192b;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  width: 220px;
+}
+
+.share-modal .copy-btn {
+  background: var(--accent-gradient);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content.review-modal {
+  background: #181c2a;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  padding: 32px 24px 24px 24px;
+  min-width: 340px;
+  max-width: 95vw;
+  width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  position: relative;
+  gap: 18px;
+}
+
+.review-modal .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.review-modal .modal-header h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ffd700;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.review-modal .modal-close {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: #fff;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.review-modal .modal-close:hover {
+  color: #ff4d4f;
+}
+
+.review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.review-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.review-form label {
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.rating-input {
+  display: flex;
+  gap: 4px;
+}
+.rating-star {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #ffd700;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.rating-star.selected,
+.rating-star:hover {
+  transform: scale(1.2);
+  color: #ffb300;
+}
+
+.review-form textarea {
+  border-radius: 8px;
+  border: 1px solid #2d334d;
+  background: #23263a;
+  color: #fff;
+  padding: 10px;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 70px;
+  transition: border 0.2s;
+}
+.review-form textarea:focus {
+  border: 1.5px solid #ffd700;
+  outline: none;
+}
+
+.review-form input[type='file'] {
+  background: #23263a;
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 0;
+  font-size: 0.95rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.btn {
+  border: none;
+  border-radius: 24px;
+  padding: 10px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.btn.btn-primary {
+  background: linear-gradient(90deg, #ff6a00 0%, #ffd700 100%);
+  color: #181c2a;
+  box-shadow: 0 2px 8px rgba(255, 186, 0, 0.15);
+}
+.btn.btn-primary:hover {
+  background: linear-gradient(90deg, #ffd700 0%, #ff6a00 100%);
+  color: #181c2a;
+}
+.btn.btn-secondary {
+  background: #23263a;
+  color: #ffd700;
+  border: 1.5px solid #ffd700;
+}
+.btn.btn-secondary:hover {
+  background: #ffd700;
+  color: #23263a;
+}
+
+@media (max-width: 600px) {
+  .modal-content.review-modal {
+    width: 95vw;
+    min-width: unset;
+    padding: 16px 8px;
+  }
+  .btn {
+    padding: 10px 10px;
+    font-size: 0.95rem;
+  }
+}
+
+.review-error {
+  color: #ff4d4f;
+  background: #fff0f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-weight: 500;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.review-list-modal {
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+}
+.review-list-content {
+  background: #181c2a;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  padding: 32px 32px 24px 32px;
+  min-width: 340px;
+  max-width: 500px;
+  width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  position: relative;
+}
+.review-list-content .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.review-list-content .modal-header h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #ffd700;
+  margin: 0 auto;
+  text-align: center;
+  flex: 1;
+}
+.review-list-content .modal-close {
+  position: absolute;
+  top: 18px;
+  right: 24px;
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: #fff;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.review-list-content .modal-close:hover {
+  color: #ff4d4f;
+}
+.review-list-content .btn.btn-primary {
+  display: block;
+  margin: 0 auto 18px auto;
+  min-width: 180px;
+  font-size: 1.05rem;
+}
+.reviews-list-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+.review-item-modal {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  background: #23263a;
+  border: 1.5px solid #23263a;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  margin-bottom: 18px;
+  gap: 0;
+}
+.review-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;
+  border: 1.5px solid #2d334d;
+}
+.review-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.reviewer-name {
+  font-weight: 600;
+  font-size: 1.08rem;
+  color: #ffd700;
+  margin-right: 8px;
+}
+.review-stars {
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+}
+.review-stars .star-sm {
+  font-size: 1.1rem;
+  color: #ffd700;
+  margin-right: 1px;
+}
+.review-date {
+  font-size: 0.93rem;
+  color: #888;
+  margin-left: 8px;
+}
+.review-comment-shopee {
+  font-size: 1.05rem;
+  color: #f3f3f3;
+  line-height: 1.5;
+  margin-top: 6px;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+.review-images-shopee {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.review-image-thumb-shopee {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1.5px solid #2d334d;
+  margin: 4px 4px 0 0;
+  cursor: pointer;
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.review-image-thumb-shopee:hover {
+  transform: scale(1.12);
+  box-shadow: 0 2px 8px #ffd70044;
+}
+@media (max-width: 600px) {
+  .review-item-modal {
+    padding: 10px 4px;
+    margin-bottom: 12px;
+  }
+  .review-avatar {
+    width: 32px;
+    height: 32px;
+    margin-right: 7px;
+  }
+  .review-header {
+    gap: 4px;
+  }
+  .review-comment-shopee {
+    font-size: 0.97rem;
+    margin-top: 4px;
+  }
+  .review-image-thumb-shopee {
+    width: 44px;
+    height: 44px;
+  }
+}
+.no-reviews-modal {
+  text-align: center;
+  color: #fff;
+  margin-top: 32px;
+}
+@media (max-width: 600px) {
+  .review-list-content {
+    width: 100vw;
+    min-width: unset;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    padding: 12px 2px 12px 2px;
+  }
+  .review-list-content .btn.btn-primary {
+    min-width: 120px;
+    font-size: 0.98rem;
+  }
+  .review-item-modal {
+    padding: 10px 6px;
+    gap: 8px;
+  }
+  .review-item-modal .reviewer-info img {
+    width: 36px;
+    height: 36px;
+    margin-right: 6px;
+  }
+}
+
+.review-comment-box {
+  background: #23263a;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-top: 4px;
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: #f3f3f3;
+  position: relative;
+  word-break: break-word;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+}
+.review-quote {
+  font-size: 1.5rem;
+  color: #ffd700;
+  margin-right: 6px;
+  vertical-align: top;
+}
+.review-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.review-image-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1.5px solid #2d334d;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+.review-image-thumb:hover {
+  box-shadow: 0 2px 8px #ffd70044;
+}
+@media (max-width: 600px) {
+  .review-comment-box {
+    font-size: 0.98rem;
+    padding: 8px 6px;
+  }
+  .review-image-thumb {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+.review-stats-bar {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.review-stats-row {
+  display: flex;
+  align-items: center;
+  font-size: 1.08rem;
+  color: #ffd700;
+  background: #23263a;
+  border-radius: 8px;
+  padding: 4px 10px;
+  min-width: 60px;
+  justify-content: center;
+}
+.review-star-label {
+  font-weight: 600;
+  margin-right: 4px;
+}
+.review-star-count {
+  color: #fff;
+  font-weight: 500;
 }
 </style>

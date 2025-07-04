@@ -13,7 +13,12 @@
             <span v-else>🔄 Làm mới</span>
           </button>
           <div class="time-range-selector">
-            <select v-model="selectedTimeRange" @change="loadDashboardData" class="form-select">
+            <select
+              v-model="selectedTimeRange"
+              @change="loadDashboardData"
+              class="form-select"
+              :disabled="loading"
+            >
               <option value="7">7 ngày qua</option>
               <option value="30">30 ngày qua</option>
               <option value="90">3 tháng qua</option>
@@ -23,8 +28,16 @@
         </div>
       </div>
 
+      <!-- Error State -->
+      <div v-if="error" class="error-container">
+        <div class="error-icon">⚠️</div>
+        <h3>Lỗi tải dữ liệu</h3>
+        <p>{{ error }}</p>
+        <button @click="loadDashboardData" class="btn btn-primary">🔄 Thử lại</button>
+      </div>
+
       <!-- Loading State -->
-      <div v-if="loading" class="loading-container">
+      <div v-else-if="loading" class="loading-container">
         <div class="cosmic-loader">
           <div class="planet">🌍</div>
           <div class="orbit"></div>
@@ -42,8 +55,14 @@
             <div class="stat-content">
               <h3>{{ formatNumber(stats.users.total) }}</h3>
               <p>Tổng người dùng</p>
-              <div class="stat-change" :class="{ positive: stats.users.change > 0, negative: stats.users.change < 0 }">
-                <span>{{ stats.users.change > 0 ? '↗' : '↘' }} {{ Math.abs(stats.users.change) }}%</span>
+              <div
+                class="stat-change"
+                :class="{ positive: stats.users.change > 0, negative: stats.users.change < 0 }"
+              >
+                <span
+                  >{{ stats.users.change > 0 ? '↗' : '↘' }}
+                  {{ Math.abs(stats.users.change || 0).toFixed(1) }}%</span
+                >
                 <small>so với kỳ trước</small>
               </div>
             </div>
@@ -54,8 +73,17 @@
             <div class="stat-content">
               <h3>{{ formatNumber(stats.products.total) }}</h3>
               <p>Tổng sản phẩm</p>
-              <div class="stat-change" :class="{ positive: stats.products.change > 0, negative: stats.products.change < 0 }">
-                <span>{{ stats.products.change > 0 ? '↗' : '↘' }} {{ Math.abs(stats.products.change) }}%</span>
+              <div
+                class="stat-change"
+                :class="{
+                  positive: stats.products.change > 0,
+                  negative: stats.products.change < 0,
+                }"
+              >
+                <span
+                  >{{ stats.products.change > 0 ? '↗' : '↘' }}
+                  {{ Math.abs(stats.products.change || 0).toFixed(1) }}%</span
+                >
                 <small>so với kỳ trước</small>
               </div>
             </div>
@@ -66,8 +94,14 @@
             <div class="stat-content">
               <h3>{{ formatNumber(stats.orders.total) }}</h3>
               <p>Tổng đơn hàng</p>
-              <div class="stat-change" :class="{ positive: stats.orders.change > 0, negative: stats.orders.change < 0 }">
-                <span>{{ stats.orders.change > 0 ? '↗' : '↘' }} {{ Math.abs(stats.orders.change) }}%</span>
+              <div
+                class="stat-change"
+                :class="{ positive: stats.orders.change > 0, negative: stats.orders.change < 0 }"
+              >
+                <span
+                  >{{ stats.orders.change > 0 ? '↗' : '↘' }}
+                  {{ Math.abs(stats.orders.change || 0).toFixed(1) }}%</span
+                >
                 <small>so với kỳ trước</small>
               </div>
             </div>
@@ -78,8 +112,14 @@
             <div class="stat-content">
               <h3>{{ formatCurrency(stats.revenue.total) }}</h3>
               <p>Tổng doanh thu</p>
-              <div class="stat-change" :class="{ positive: stats.revenue.change > 0, negative: stats.revenue.change < 0 }">
-                <span>{{ stats.revenue.change > 0 ? '↗' : '↘' }} {{ Math.abs(stats.revenue.change) }}%</span>
+              <div
+                class="stat-change"
+                :class="{ positive: stats.revenue.change > 0, negative: stats.revenue.change < 0 }"
+              >
+                <span
+                  >{{ stats.revenue.change > 0 ? '↗' : '↘' }}
+                  {{ Math.abs(stats.revenue.change || 0).toFixed(1) }}%</span
+                >
                 <small>so với kỳ trước</small>
               </div>
             </div>
@@ -90,41 +130,54 @@
         <div class="quick-actions-section">
           <h2>⚡ Hành động nhanh</h2>
           <div class="quick-actions-grid">
-            <router-link to="/admin/users" class="quick-action-card space-card">
+            <router-link
+              to="/admin/users"
+              class="quick-action-card space-card"
+              :class="{ loading: loading }"
+            >
               <div class="action-icon">👥</div>
               <div class="action-content">
                 <h3>Quản lý người dùng</h3>
-                <p>{{ stats.users.pending || 0 }} tài khoản chờ duyệt</p>
+                <p>
+                  {{
+                    loading ? 'Đang tải...' : (stats.users.pending || 0) + ' tài khoản chờ duyệt'
+                  }}
+                </p>
               </div>
               <div class="action-arrow">→</div>
             </router-link>
 
-            <router-link to="/admin/orders" class="quick-action-card space-card">
+            <router-link
+              to="/admin/orders"
+              class="quick-action-card space-card"
+              :class="{ loading: loading }"
+            >
               <div class="action-icon">📋</div>
               <div class="action-content">
                 <h3>Đơn hàng mới</h3>
-                <p>{{ stats.orders.pending || 0 }} đơn hàng chờ xử lý</p>
+                <p>
+                  {{
+                    loading ? 'Đang tải...' : (stats.orders.pending || 0) + ' đơn hàng chờ xử lý'
+                  }}
+                </p>
               </div>
               <div class="action-arrow">→</div>
             </router-link>
 
-            <router-link to="/admin/products" class="quick-action-card space-card">
+            <router-link
+              to="/admin/products"
+              class="quick-action-card space-card"
+              :class="{ loading: loading }"
+            >
               <div class="action-icon">📦</div>
               <div class="action-content">
                 <h3>Sản phẩm cần duyệt</h3>
-                <p>{{ stats.products.pending || 0 }} sản phẩm mới</p>
+                <p>
+                  {{ loading ? 'Đang tải...' : (stats.products.pending || 0) + ' sản phẩm mới' }}
+                </p>
               </div>
               <div class="action-arrow">→</div>
             </router-link>
-
-            <div @click="showSupportModal = true" class="quick-action-card space-card clickable">
-              <div class="action-icon">💬</div>
-              <div class="action-content">
-                <h3>Hỗ trợ khách hàng</h3>
-                <p>{{ stats.support?.pending || 0 }} yêu cầu mới</p>
-              </div>
-              <div class="action-arrow">→</div>
-            </div>
           </div>
         </div>
 
@@ -138,85 +191,43 @@
                 <router-link to="/admin/orders" class="view-all-link">Xem tất cả →</router-link>
               </div>
               <div class="activity-list">
-                <div 
-                  v-for="order in recentOrders" 
-                  :key="order.id"
+                <div v-if="recentOrders.length === 0" class="empty-state">
+                  <div class="empty-icon">📦</div>
+                  <p>Chưa có đơn hàng nào</p>
+                </div>
+                <div
+                  v-else
+                  v-for="order in recentOrders"
+                  :key="order.id || Math.random()"
                   class="activity-item"
                 >
                   <div class="activity-icon">
-                    <span class="status-icon" :class="getOrderStatusClass(order.status)">
-                      {{ getOrderStatusIcon(order.status) }}
+                    <span
+                      class="status-icon"
+                      :class="getOrderStatusClass(order.status || 'UNKNOWN')"
+                    >
+                      {{ getOrderStatusIcon(order.status || 'UNKNOWN') }}
                     </span>
                   </div>
                   <div class="activity-content">
-                    <div class="activity-title">Đơn hàng #{{ order.id }}</div>
+                    <div class="activity-title">Đơn hàng #{{ order.id || 'N/A' }}</div>
                     <div class="activity-subtitle">
-                      {{ order.customerName }} • {{ formatCurrency(order.total) }}
+                      {{ order.customerName || 'Khách hàng' }} •
+                      {{ formatCurrency(order.total || 0) }}
                     </div>
-                    <div class="activity-time">{{ getTimeAgo(order.createdAt) }}</div>
+                    <div class="activity-time">{{ getTimeAgo(order.createdAt || new Date()) }}</div>
                   </div>
                   <div class="activity-status">
-                    <span class="status-badge" :class="getOrderStatusClass(order.status)">
-                      {{ getOrderStatusText(order.status) }}
+                    <span
+                      class="status-badge"
+                      :class="getOrderStatusClass(order.status || 'UNKNOWN')"
+                    >
+                      {{ getOrderStatusText(order.status || 'UNKNOWN') }}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
-
-            <!-- System Status -->
-            <div class="activity-card space-card">
-              <div class="activity-header">
-                <h3>🖥️ Trạng thái hệ thống</h3>
-              </div>
-              <div class="system-status">
-                <div class="status-item">
-                  <div class="status-indicator active"></div>
-                  <span>Database</span>
-                  <span class="status-value">Online</span>
-                </div>
-                <div class="status-item">
-                  <div class="status-indicator active"></div>
-                  <span>Payment Gateway</span>
-                  <span class="status-value">Online</span>
-                </div>
-                <div class="status-item">
-                  <div class="status-indicator active"></div>
-                  <span>File Storage</span>
-                  <span class="status-value">Online</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Support Modal -->
-    <div v-if="showSupportModal" class="modal-overlay" @click="showSupportModal = false">
-      <div class="modal-content support-modal" @click.stop>
-        <div class="modal-header">
-          <h3>💬 Hỗ trợ khách hàng</h3>
-          <button @click="showSupportModal = false" class="modal-close">✕</button>
-        </div>
-        <div class="modal-body">
-          <div class="support-stats">
-            <div class="support-stat">
-              <h4>{{ stats.support?.pending || 0 }}</h4>
-              <p>Yêu cầu chờ xử lý</p>
-            </div>
-            <div class="support-stat">
-              <h4>{{ stats.support?.avgResponseTime || '2h' }}</h4>
-              <p>Thời gian phản hồi TB</p>
-            </div>
-            <div class="support-stat">
-              <h4>{{ stats.support?.satisfaction || '4.8' }}/5</h4>
-              <p>Đánh giá hài lòng</p>
-            </div>
-          </div>
-          <div class="support-actions">
-            <button class="btn btn-primary">📧 Xem tin nhắn mới</button>
-            <button class="btn btn-secondary">📊 Báo cáo hỗ trợ</button>
           </div>
         </div>
       </div>
@@ -226,130 +237,187 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue'
+import { adminAPI } from '@/services/api.js'
 
 export default {
   name: 'AdminDashboard',
   setup() {
     // Reactive data
     const selectedTimeRange = ref(30)
-    const showSupportModal = ref(false)
     const loading = ref(false)
-    
-    // Mock data for demo
-    const mockStats = ref({
-      users: { total: 12847, change: 12.5, pending: 23 },
-      products: { total: 1563, change: 8.2, pending: 12 },
-      orders: { total: 8934, change: 15.7, pending: 45 },
-      revenue: { total: 2540000000, change: 18.3 },
-      support: { pending: 8, avgResponseTime: '1.5h', satisfaction: 4.7 }
+    const error = ref(null)
+
+    // Real data from API
+    const dashboardData = ref({
+      totalUsers: 0,
+      activeUsers: 0,
+      totalProducts: 0,
+      activeProducts: 0,
+      totalOrders: 0,
+      pendingOrders: 0,
+      processingOrders: 0,
+      completedOrders: 0,
+      totalRevenue: 0,
+      recentOrders: [],
+      userChange: 0,
+      productChange: 0,
+      orderChange: 0,
+      revenueChange: 0,
     })
-    
-    const recentOrders = ref([
-      {
-        id: 'ORD-2024-001',
-        customerName: 'Nguyễn Văn A',
-        total: 25000000,
-        status: 'PENDING',
-        createdAt: new Date(Date.now() - 1000 * 60 * 15)
-      },
-      {
-        id: 'ORD-2024-002',
-        customerName: 'Trần Thị B',
-        total: 15000000,
-        status: 'PROCESSING',
-        createdAt: new Date(Date.now() - 1000 * 60 * 45)
-      },
-      {
-        id: 'ORD-2024-003',
-        customerName: 'Lê Minh C',
-        total: 8500000,
-        status: 'SHIPPED',
-        createdAt: new Date(Date.now() - 1000 * 60 * 120)
-      }
-    ])
-    
+
     // Computed properties
-    const stats = computed(() => mockStats.value)
-    
+    const stats = computed(() => ({
+      users: {
+        total: dashboardData.value.totalUsers,
+        change: dashboardData.value.userChange || 0,
+        pending: Math.max(0, dashboardData.value.totalUsers - dashboardData.value.activeUsers),
+      },
+      products: {
+        total: dashboardData.value.totalProducts,
+        change: dashboardData.value.productChange || 0,
+        pending: Math.max(
+          0,
+          dashboardData.value.totalProducts - dashboardData.value.activeProducts
+        ),
+      },
+      orders: {
+        total: dashboardData.value.totalOrders,
+        change: dashboardData.value.orderChange || 0,
+        pending: dashboardData.value.pendingOrders,
+      },
+      revenue: {
+        total: dashboardData.value.totalRevenue,
+        change: dashboardData.value.revenueChange || 0,
+      },
+    }))
+
+    const recentOrders = computed(() =>
+      dashboardData.value.recentOrders.map((order) => ({
+        id: order.id || 'N/A',
+        customerName: order.customerName || 'Khách hàng',
+        total: order.totalAmount || 0,
+        status: order.status || 'UNKNOWN',
+        createdAt: order.createdAt ? new Date(order.createdAt) : new Date(),
+      }))
+    )
+
     // Methods
     const formatNumber = (num) => {
+      if (!num && num !== 0) return '0'
       return new Intl.NumberFormat('vi-VN').format(num)
     }
-    
+
     const formatCurrency = (amount) => {
+      if (!amount && amount !== 0) return '₫0'
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
       }).format(amount)
     }
-    
+
     const getTimeAgo = (date) => {
-      const now = new Date()
-      const diffMs = now - date
-      const diffMins = Math.floor(diffMs / (1000 * 60))
-      const diffHours = Math.floor(diffMins / 60)
-      
-      if (diffMins < 1) return 'Vừa xong'
-      if (diffMins < 60) return `${diffMins} phút trước`
-      if (diffHours < 24) return `${diffHours} giờ trước`
-      return 'Hôm qua'
+      try {
+        const now = new Date()
+        const diffMs = now - date
+        const diffMins = Math.floor(diffMs / (1000 * 60))
+        const diffHours = Math.floor(diffMins / 60)
+
+        if (diffMins < 1) return 'Vừa xong'
+        if (diffMins < 60) return `${diffMins} phút trước`
+        if (diffHours < 24) return `${diffHours} giờ trước`
+        return 'Hôm qua'
+      } catch (error) {
+        return 'Không xác định'
+      }
     }
-    
+
     const getOrderStatusClass = (status) => {
       const classes = {
-        'PENDING': 'warning',
-        'PROCESSING': 'info',
-        'SHIPPED': 'primary',
-        'DELIVERED': 'success',
-        'CANCELLED': 'danger'
+        PENDING: 'warning',
+        PROCESSING: 'info',
+        SHIPPED: 'primary',
+        DELIVERED: 'success',
+        CANCELLED: 'danger',
       }
       return classes[status] || 'secondary'
     }
-    
+
     const getOrderStatusIcon = (status) => {
       const icons = {
-        'PENDING': '⏳',
-        'PROCESSING': '⚙️',
-        'SHIPPED': '🚚',
-        'DELIVERED': '✅',
-        'CANCELLED': '❌'
+        PENDING: '⏳',
+        PROCESSING: '⚙️',
+        SHIPPED: '🚚',
+        DELIVERED: '✅',
+        CANCELLED: '❌',
       }
       return icons[status] || '📋'
     }
-    
+
     const getOrderStatusText = (status) => {
       const texts = {
-        'PENDING': 'Chờ xử lý',
-        'PROCESSING': 'Đang xử lý',
-        'SHIPPED': 'Đã gửi',
-        'DELIVERED': 'Đã giao',
-        'CANCELLED': 'Đã hủy'
+        PENDING: 'Chờ xử lý',
+        PROCESSING: 'Đang xử lý',
+        SHIPPED: 'Đã gửi',
+        DELIVERED: 'Đã giao',
+        CANCELLED: 'Đã hủy',
       }
       return texts[status] || status
     }
-    
-    const refreshData = async () => {
-      loading.value = true
-      setTimeout(() => {
+
+    const loadDashboardData = async () => {
+      try {
+        loading.value = true
+        error.value = null
+
+        console.log('🔄 Loading dashboard data...')
+        const response = await adminAPI.getDashboard(selectedTimeRange.value)
+
+        if (response.data) {
+          dashboardData.value = response.data
+          console.log('✅ Dashboard data loaded:', response.data)
+          console.log('📊 Stats computed:', stats.value)
+          console.log('🛒 Recent orders:', recentOrders.value)
+        }
+      } catch (err) {
+        console.error('❌ Error loading dashboard data:', err)
+        error.value = 'Không thể tải dữ liệu dashboard. Vui lòng thử lại.'
+
+        // Set default values to prevent UI errors
+        dashboardData.value = {
+          totalUsers: 0,
+          activeUsers: 0,
+          totalProducts: 0,
+          activeProducts: 0,
+          totalOrders: 0,
+          pendingOrders: 0,
+          processingOrders: 0,
+          completedOrders: 0,
+          totalRevenue: 0,
+          recentOrders: [],
+          userChange: 0,
+          productChange: 0,
+          orderChange: 0,
+          revenueChange: 0,
+        }
+      } finally {
         loading.value = false
-        console.log('✅ Dashboard refreshed')
-      }, 1000)
+      }
     }
-    
-    const loadDashboardData = () => {
-      refreshData()
+
+    const refreshData = async () => {
+      await loadDashboardData()
     }
-    
+
     // Lifecycle
     onMounted(() => {
       console.log('🚀 Admin Dashboard mounted')
-      refreshData()
+      loadDashboardData()
     })
-    
+
     return {
       selectedTimeRange,
-      showSupportModal,
       loading,
+      error,
       stats,
       recentOrders,
       formatNumber,
@@ -359,9 +427,9 @@ export default {
       getOrderStatusIcon,
       getOrderStatusText,
       refreshData,
-      loadDashboardData
+      loadDashboardData,
     }
-  }
+  },
 }
 </script>
 
@@ -406,6 +474,26 @@ export default {
   transition: all 0.3s ease;
 }
 
+.error-container {
+  text-align: center;
+  padding: 4rem 0;
+}
+
+.error-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.error-container h3 {
+  color: var(--text-accent);
+  margin-bottom: 1rem;
+}
+
+.error-container p {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
 .loading-container {
   text-align: center;
   padding: 4rem 0;
@@ -446,13 +534,22 @@ export default {
 }
 
 @keyframes float {
-  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
-  50% { transform: translate(-50%, -50%) translateY(-10px); }
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-10px);
+  }
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .stats-grid {
@@ -483,11 +580,17 @@ export default {
   opacity: 0.8;
 }
 
+.stat-card .stat-icon + .stat-content h3 {
+  font-size: 1.3rem;
+}
+
 .stat-content h3 {
   font-size: 2rem;
   color: var(--text-accent);
   margin-bottom: 0.25rem;
   font-weight: 700;
+  word-break: break-all;
+  white-space: normal;
 }
 
 .stat-content p {
@@ -543,6 +646,16 @@ export default {
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
   cursor: pointer;
+}
+
+.quick-action-card.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.quick-action-card.loading .action-content p {
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 .action-icon {
@@ -618,6 +731,23 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-secondary);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 1rem;
 }
 
 .activity-item {
@@ -736,190 +866,26 @@ export default {
   color: #ef4444;
 }
 
-.system-status {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.status-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
-}
-
-.status-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.status-indicator.active {
-  background: #10b981;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-}
-
-.status-indicator.warning {
-  background: #ffc107;
-  box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
-}
-
-.status-value {
-  margin-left: auto;
-  color: var(--text-accent);
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  backdrop-filter: blur(5px);
-}
-
-.modal-content {
-  background: rgba(26, 26, 46, 0.95);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 12px;
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.modal-header h3 {
-  color: var(--text-accent);
-  margin: 0;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.25rem;
-  transition: color 0.3s ease;
-}
-
-.modal-close:hover {
-  color: var(--text-accent);
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.support-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.support-stat {
-  text-align: center;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-}
-
-.support-stat h4 {
-  color: var(--text-accent);
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.support-stat p {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.support-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  border: 1px solid;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-primary {
-  background: var(--text-accent);
-  border-color: var(--text-accent);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: rgba(0, 212, 255, 0.8);
-  transform: translateY(-2px);
-}
-
-.btn-secondary {
-  background: rgba(0, 212, 255, 0.1);
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.btn-secondary:hover {
-  background: var(--text-accent);
-  color: white;
-  transform: translateY(-2px);
-}
-
 @media (max-width: 768px) {
   .dashboard-header {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .header-actions {
     justify-content: space-between;
   }
-  
+
   .stats-grid {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
-  
+
   .quick-actions-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .activity-grid {
     grid-template-columns: 1fr;
-  }
-  
-  .support-actions {
-    flex-direction: column;
   }
 }
 </style>

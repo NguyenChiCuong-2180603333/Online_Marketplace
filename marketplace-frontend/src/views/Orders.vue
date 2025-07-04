@@ -19,10 +19,12 @@
           >
             <span class="tab-icon">{{ status.icon }}</span>
             <span class="tab-label">{{ status.label }}</span>
-            <span v-if="getOrderCount(status.key) > 0" class="tab-count">{{ getOrderCount(status.key) }}</span>
+            <span v-if="getOrderCount(status.key) > 0" class="tab-count">{{
+              getOrderCount(status.key)
+            }}</span>
           </button>
         </div>
-        
+
         <div class="filter-actions">
           <div class="search-box">
             <input
@@ -83,11 +85,16 @@
                     +{{ order.items.length - 3 }}
                   </div>
                 </div>
-                
+
                 <div class="items-info">
                   <div class="item-count">{{ order.items.length }} sản phẩm</div>
                   <div class="item-names">
-                    {{ order.items.slice(0, 2).map(item => item.productName).join(', ') }}
+                    {{
+                      order.items
+                        .slice(0, 2)
+                        .map((item) => item.productName)
+                        .join(', ')
+                    }}
                     <span v-if="order.items.length > 2">...</span>
                   </div>
                 </div>
@@ -96,15 +103,13 @@
               <div class="order-summary">
                 <div class="summary-row">
                   <span class="summary-label">Tổng tiền:</span>
-                  <span class="summary-value total-amount">{{ formatCurrency(order.totalAmount) }}</span>
+                  <span class="summary-value total-amount">{{
+                    formatCurrency(order.totalAmount)
+                  }}</span>
                 </div>
                 <div class="summary-row">
                   <span class="summary-label">Phương thức:</span>
                   <span class="summary-value">{{ order.paymentMethod }}</span>
-                </div>
-                <div v-if="order.shippingAddress" class="summary-row">
-                  <span class="summary-label">Địa chỉ:</span>
-                  <span class="summary-value">{{ truncateAddress(order.shippingAddress) }}</span>
                 </div>
               </div>
             </div>
@@ -116,9 +121,9 @@
                     v-for="step in orderSteps"
                     :key="step.key"
                     class="progress-step"
-                    :class="{ 
+                    :class="{
                       completed: getStepStatus(order.status, step.key) === 'completed',
-                      active: getStepStatus(order.status, step.key) === 'active'
+                      active: getStepStatus(order.status, step.key) === 'active',
                     }"
                   >
                     <div class="step-icon">{{ step.icon }}</div>
@@ -135,25 +140,8 @@
                 >
                   ❌ Hủy đơn
                 </button>
-                <button
-                  v-if="order.status === 'DELIVERED'"
-                  @click.stop="reorderItems(order)"
-                  class="btn btn-secondary btn-sm"
-                >
-                  🔄 Đặt lại
-                </button>
-                <button
-                  @click.stop="viewOrderDetail(order.id)"
-                  class="btn btn-primary btn-sm"
-                >
+                <button @click.stop="viewOrderDetail(order.id)" class="btn btn-primary btn-sm">
                   👁️ Chi tiết
-                </button>
-                <button
-                  v-if="order.status === 'DELIVERED' && !order.hasReview"
-                  @click.stop="reviewOrder(order.id)"
-                  class="btn btn-accent btn-sm"
-                >
-                  ⭐ Đánh giá
                 </button>
               </div>
             </div>
@@ -170,12 +158,12 @@
             >
               ← Trước
             </button>
-            
+
             <div class="pagination-info">
               <span>Trang {{ currentPage }} / {{ totalPages }}</span>
               <span class="results-count">({{ filteredOrders.length }} đơn hàng)</span>
             </div>
-            
+
             <button
               @click="currentPage = Math.min(totalPages, currentPage + 1)"
               :disabled="currentPage === totalPages"
@@ -198,15 +186,17 @@
               <span class="particle">💫</span>
             </div>
           </div>
-          
+
           <h3>{{ getEmptyMessage() }}</h3>
           <p>{{ getEmptyDescription() }}</p>
-          
+
           <div class="empty-actions">
-            <router-link to="/products" class="btn btn-primary">
-              🛍️ Mua sắm ngay
-            </router-link>
-            <button v-if="activeFilter !== 'all'" @click="activeFilter = 'all'" class="btn btn-secondary">
+            <router-link to="/products" class="btn btn-primary"> 🛍️ Mua sắm ngay </router-link>
+            <button
+              v-if="activeFilter !== 'all'"
+              @click="activeFilter = 'all'"
+              class="btn btn-secondary"
+            >
               🔍 Xem tất cả
             </button>
           </div>
@@ -251,22 +241,22 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { orderAPI } from '@/services/api'
+import { useUserStore } from '@/stores/user'
+import { getStatusLabel, getStatusColor } from '@/utils/constants'
 
 export default {
   name: 'Orders',
   setup() {
     const router = useRouter()
-    
+    const userStore = useUserStore()
+
     // Reactive data
-    const orders = ref([])
     const activeFilter = ref('all')
     const searchQuery = ref('')
     const sortBy = ref('newest')
     const currentPage = ref(1)
     const itemsPerPage = 10
-    const loading = ref(true)
-    
+
     // Order statuses for filtering
     const orderStatuses = ref([
       { key: 'all', label: 'Tất cả', icon: '📋' },
@@ -274,37 +264,40 @@ export default {
       { key: 'PROCESSING', label: 'Đang xử lý', icon: '⚙️' },
       { key: 'SHIPPED', label: 'Đang giao', icon: '🚚' },
       { key: 'DELIVERED', label: 'Đã giao', icon: '✅' },
-      { key: 'CANCELLED', label: 'Đã hủy', icon: '❌' }
+      { key: 'CANCELLED', label: 'Đã hủy', icon: '❌' },
     ])
-    
+
     // Order progress steps
     const orderSteps = ref([
       { key: 'PENDING', label: 'Chờ xử lý', icon: '⏳' },
       { key: 'PROCESSING', label: 'Xử lý', icon: '⚙️' },
       { key: 'SHIPPED', label: 'Giao hàng', icon: '🚚' },
-      { key: 'DELIVERED', label: 'Hoàn thành', icon: '✅' }
+      { key: 'DELIVERED', label: 'Hoàn thành', icon: '✅' },
     ])
-    
+
     // Computed properties
+    const orders = computed(() => userStore.orders)
+    const loading = computed(() => userStore.loading.orders)
+    const error = computed(() => userStore.errors.orders)
+
     const filteredOrders = computed(() => {
       let filtered = orders.value
-      
+
       // Filter by status
       if (activeFilter.value !== 'all') {
-        filtered = filtered.filter(order => order.status === activeFilter.value)
+        filtered = filtered.filter((order) => order.status === activeFilter.value)
       }
-      
+
       // Filter by search query
       if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase()
-        filtered = filtered.filter(order =>
-          order.id.toLowerCase().includes(query) ||
-          order.items.some(item => 
-            item.productName.toLowerCase().includes(query)
-          )
+        filtered = filtered.filter(
+          (order) =>
+            order.id.toLowerCase().includes(query) ||
+            order.items.some((item) => item.productName.toLowerCase().includes(query))
         )
       }
-      
+
       // Sort orders
       filtered.sort((a, b) => {
         switch (sortBy.value) {
@@ -319,45 +312,45 @@ export default {
             return new Date(b.createdAt) - new Date(a.createdAt)
         }
       })
-      
+
       return filtered
     })
-    
+
     const paginatedOrders = computed(() => {
       const start = (currentPage.value - 1) * itemsPerPage
       const end = start + itemsPerPage
       return filteredOrders.value.slice(start, end)
     })
-    
+
     const totalPages = computed(() => {
       return Math.ceil(filteredOrders.value.length / itemsPerPage)
     })
-    
+
     const totalSpent = computed(() => {
       return orders.value
-        .filter(order => order.status === 'DELIVERED')
+        .filter((order) => order.status === 'DELIVERED')
         .reduce((sum, order) => sum + order.totalAmount, 0)
     })
-    
+
     const completedOrders = computed(() => {
-      return orders.value.filter(order => order.status === 'DELIVERED').length
+      return orders.value.filter((order) => order.status === 'DELIVERED').length
     })
-    
+
     const averageOrderValue = computed(() => {
       const completedOrdersCount = completedOrders.value
-      return completedOrdersCount > 0 
+      return completedOrdersCount > 0
         ? formatCurrency(totalSpent.value / completedOrdersCount)
         : formatCurrency(0)
     })
-    
+
     // Methods
     const formatCurrency = (amount) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
       }).format(amount)
     }
-    
+
     const formatDate = (dateString) => {
       const date = new Date(dateString)
       return date.toLocaleDateString('vi-VN', {
@@ -365,104 +358,90 @@ export default {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       })
     }
-    
+
     const getOrderCount = (status) => {
       if (status === 'all') return orders.value.length
-      return orders.value.filter(order => order.status === status).length
+      return orders.value.filter((order) => order.status === status).length
     }
-    
+
     const getStatusClass = (status) => {
       const statusClasses = {
-        'PENDING': 'status-pending',
-        'PROCESSING': 'status-processing',
-        'SHIPPED': 'status-shipped',
-        'DELIVERED': 'status-delivered',
-        'CANCELLED': 'status-cancelled'
+        PENDING: 'status-pending',
+        PROCESSING: 'status-processing',
+        SHIPPED: 'status-shipped',
+        DELIVERED: 'status-delivered',
+        CANCELLED: 'status-cancelled',
       }
       return statusClasses[status] || 'status-default'
     }
-    
+
     const getStatusText = (status) => {
-      const statusTexts = {
-        'PENDING': 'Chờ xử lý',
-        'PROCESSING': 'Đang xử lý',
-        'SHIPPED': 'Đang giao',
-        'DELIVERED': 'Đã giao',
-        'CANCELLED': 'Đã hủy'
-      }
-      return statusTexts[status] || status
+      return getStatusLabel(status, 'CUSTOMER')
     }
-    
+
     const truncateAddress = (address) => {
       return address.length > 30 ? address.substring(0, 30) + '...' : address
     }
-    
+
     const getStepStatus = (orderStatus, stepKey) => {
       const stepOrder = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED']
       const orderIndex = stepOrder.indexOf(orderStatus)
       const stepIndex = stepOrder.indexOf(stepKey)
-      
+
       if (orderStatus === 'CANCELLED') {
         return stepIndex === 0 ? 'completed' : 'inactive'
       }
-      
+
       if (stepIndex < orderIndex) return 'completed'
       if (stepIndex === orderIndex) return 'active'
       return 'inactive'
     }
-    
+
     const getEmptyMessage = () => {
       const messages = {
-        'all': 'Chưa có đơn hàng nào',
-        'PENDING': 'Không có đơn hàng chờ xử lý',
-        'PROCESSING': 'Không có đơn hàng đang xử lý',
-        'SHIPPED': 'Không có đơn hàng đang giao',
-        'DELIVERED': 'Không có đơn hàng đã giao',
-        'CANCELLED': 'Không có đơn hàng đã hủy'
+        all: 'Chưa có đơn hàng nào',
+        PENDING: 'Không có đơn hàng chờ xử lý',
+        PROCESSING: 'Không có đơn hàng đang xử lý',
+        SHIPPED: 'Không có đơn hàng đang giao',
+        DELIVERED: 'Không có đơn hàng đã giao',
+        CANCELLED: 'Không có đơn hàng đã hủy',
       }
       return messages[activeFilter.value] || 'Không tìm thấy đơn hàng'
     }
-    
+
     const getEmptyDescription = () => {
       if (searchQuery.value) {
         return `Không tìm thấy đơn hàng với từ khóa "${searchQuery.value}"`
       }
-      
+
       const descriptions = {
-        'all': 'Hãy bắt đầu mua sắm để tạo đơn hàng đầu tiên',
-        'PENDING': 'Tất cả đơn hàng đều đã được xử lý',
-        'PROCESSING': 'Không có đơn hàng nào đang được xử lý',
-        'SHIPPED': 'Không có đơn hàng nào đang được giao',
-        'DELIVERED': 'Chưa có đơn hàng nào hoàn thành',
-        'CANCELLED': 'Chưa có đơn hàng nào bị hủy'
+        all: 'Hãy bắt đầu mua sắm để tạo đơn hàng đầu tiên',
+        PENDING: 'Tất cả đơn hàng đều đã được xử lý',
+        PROCESSING: 'Không có đơn hàng nào đang được xử lý',
+        SHIPPED: 'Không có đơn hàng nào đang được giao',
+        DELIVERED: 'Chưa có đơn hàng nào hoàn thành',
+        CANCELLED: 'Chưa có đơn hàng nào bị hủy',
       }
       return descriptions[activeFilter.value] || ''
     }
-    
+
     const viewOrderDetail = (orderId) => {
       router.push(`/orders/${orderId}`)
     }
-    
+
     const cancelOrder = async (orderId) => {
       if (!confirm('Bạn có chắc muốn hủy đơn hàng này?')) return
-      
       try {
-        await orderAPI.cancel(orderId)
-        // Update local state
-        const order = orders.value.find(o => o.id === orderId)
-        if (order) {
-          order.status = 'CANCELLED'
-        }
+        await userStore.cancelOrder(orderId)
         alert('Đã hủy đơn hàng thành công')
       } catch (error) {
-        console.error('Error canceling order:', error)
-        alert('Có lỗi xảy ra khi hủy đơn hàng')
+        alert(error.message || 'Có lỗi xảy ra khi hủy đơn hàng')
       }
     }
-    
+
     const reorderItems = async (order) => {
       try {
         // Add all items from the order to cart
@@ -476,109 +455,16 @@ export default {
         alert('Có lỗi xảy ra khi đặt lại đơn hàng')
       }
     }
-    
+
     const reviewOrder = (orderId) => {
       router.push(`/orders/${orderId}/review`)
     }
-    
-    const loadOrders = async () => {
-      try {
-        // Mock data - replace with real API call
-        orders.value = [
-          {
-            id: 'ORD-2024-001',
-            status: 'DELIVERED',
-            createdAt: '2024-12-01T10:30:00Z',
-            totalAmount: 2590000,
-            paymentMethod: 'Thẻ tín dụng',
-            shippingAddress: '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM',
-            hasReview: false,
-            items: [
-              {
-                id: 1,
-                productName: 'Smartphone Galaxy Cosmic',
-                productImage: '/placeholder-product.jpg',
-                quantity: 1,
-                price: 1990000
-              },
-              {
-                id: 2,
-                productName: 'Tai nghe Wireless',
-                productImage: '/placeholder-product.jpg',
-                quantity: 1,
-                price: 600000
-              }
-            ]
-          },
-          {
-            id: 'ORD-2024-002',
-            status: 'SHIPPED',
-            createdAt: '2024-12-15T14:20:00Z',
-            totalAmount: 1290000,
-            paymentMethod: 'COD',
-            shippingAddress: '456 Đường DEF, Phường UVW, Quận 2, TP.HCM',
-            hasReview: false,
-            items: [
-              {
-                id: 3,
-                productName: 'Laptop Gaming Pro',
-                productImage: '/placeholder-product.jpg',
-                quantity: 1,
-                price: 1290000
-              }
-            ]
-          },
-          {
-            id: 'ORD-2024-003',
-            status: 'PROCESSING',
-            createdAt: '2024-12-20T09:15:00Z',
-            totalAmount: 890000,
-            paymentMethod: 'Ví MoMo',
-            shippingAddress: '789 Đường GHI, Phường RST, Quận 3, TP.HCM',
-            hasReview: false,
-            items: [
-              {
-                id: 4,
-                productName: 'Đồng hồ thông minh',
-                productImage: '/placeholder-product.jpg',
-                quantity: 1,
-                price: 890000
-              }
-            ]
-          },
-          {
-            id: 'ORD-2024-004',
-            status: 'PENDING',
-            createdAt: '2024-12-22T16:45:00Z',
-            totalAmount: 1790000,
-            paymentMethod: 'Chuyển khoản',
-            shippingAddress: '321 Đường JKL, Phường MNO, Quận 4, TP.HCM',
-            hasReview: false,
-            items: [
-              {
-                id: 5,
-                productName: 'Máy ảnh DSLR',
-                productImage: '/placeholder-product.jpg',
-                quantity: 1,
-                price: 1790000
-              }
-            ]
-          }
-        ]
-      } catch (error) {
-        console.error('Error loading orders:', error)
-      }
-    }
-    
+
     // Lifecycle
     onMounted(async () => {
-      try {
-        await loadOrders()
-      } finally {
-        loading.value = false
-      }
+      await userStore.loadOrders()
     })
-    
+
     return {
       orders,
       activeFilter,
@@ -606,9 +492,9 @@ export default {
       viewOrderDetail,
       cancelOrder,
       reorderItems,
-      reviewOrder
+      reviewOrder,
     }
-  }
+  },
 }
 </script>
 
@@ -980,8 +866,13 @@ export default {
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 .order-actions {
@@ -1110,13 +1001,25 @@ export default {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-15px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
 }
 
 @keyframes twinkle {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.2); }
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 
 .empty-content h3 {
@@ -1151,8 +1054,12 @@ export default {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Stats Section */
@@ -1204,11 +1111,11 @@ export default {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .order-summary {
     text-align: left;
   }
-  
+
   .summary-row {
     min-width: auto;
   }
@@ -1218,47 +1125,47 @@ export default {
   .orders-page {
     padding: 1rem 0;
   }
-  
+
   .page-title {
     font-size: 2rem;
   }
-  
+
   .filter-actions {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .search-box {
     max-width: none;
   }
-  
+
   .order-card {
     padding: 1rem;
   }
-  
+
   .order-header {
     flex-direction: column;
     gap: 0.75rem;
   }
-  
+
   .order-items {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
   }
-  
+
   .items-preview {
     align-self: flex-start;
   }
-  
+
   .order-actions {
     justify-content: flex-start;
   }
-  
+
   .progress-steps {
     justify-content: flex-start;
   }
-  
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1269,28 +1176,28 @@ export default {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
+
   .filter-tab {
     justify-content: center;
   }
-  
+
   .order-actions {
     flex-direction: column;
   }
-  
+
   .btn-sm {
     text-align: center;
   }
-  
+
   .empty-actions {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .pagination {
     flex-direction: column;
     gap: 0.5rem;

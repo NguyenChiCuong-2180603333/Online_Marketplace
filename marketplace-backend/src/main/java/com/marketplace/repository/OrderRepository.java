@@ -29,6 +29,10 @@ public interface OrderRepository extends MongoRepository<Order, String> {
     long countByPaymentStatus(String paymentStatus);
 
     // Tổng doanh thu
-    @Query(value = "{'paymentStatus': 'COMPLETED'}", fields = "{'totalAmount': 1}")
+    @Query(value = "{'status': 'DELIVERED'}", fields = "{'totalAmount': 1}")
     List<Order> findAllCompletedOrders();
+
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+    @Query("{'createdAt': {'$gte': ?0, '$lt': ?1}, 'status': 'DELIVERED'}")
+    List<Order> findDeliveredOrdersBetweenDates(LocalDateTime start, LocalDateTime end);
 }

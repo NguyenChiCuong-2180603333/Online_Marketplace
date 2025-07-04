@@ -1,6 +1,7 @@
 package com.marketplace.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import jakarta.validation.constraints.*;
 
@@ -13,6 +14,7 @@ public class UserPreference {
     @Id
     private String id;
 
+    @Indexed(unique = true)
     @NotBlank(message = "User ID is required")
     private String userId;
 

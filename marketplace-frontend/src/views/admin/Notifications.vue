@@ -15,24 +15,10 @@
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">👥</div>
-        <div class="stat-content">
-          <h3>{{ totalRecipients }}</h3>
-          <p>Người nhận</p>
-        </div>
-      </div>
-      <div class="stat-card">
         <div class="stat-icon">📤</div>
         <div class="stat-content">
           <h3>{{ sentNotifications }}</h3>
           <p>Đã gửi</p>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">⏰</div>
-        <div class="stat-content">
-          <h3>{{ scheduledNotifications }}</h3>
-          <p>Lên lịch</p>
         </div>
       </div>
     </div>
@@ -51,17 +37,10 @@
         <div class="table-actions">
           <select v-model="typeFilter" class="form-select">
             <option value="">Tất cả loại</option>
-            <option value="system">Hệ thống</option>
-            <option value="promotion">Khuyến mãi</option>
-            <option value="announcement">Thông báo</option>
-            <option value="maintenance">Bảo trì</option>
-          </select>
-          <select v-model="statusFilter" class="form-select">
-            <option value="">Tất cả trạng thái</option>
-            <option value="draft">Nháp</option>
-            <option value="scheduled">Lên lịch</option>
-            <option value="sent">Đã gửi</option>
-            <option value="failed">Lỗi</option>
+            <option value="NEW_PRODUCT">Sản phẩm mới</option>
+            <option value="PROMOTION">Khuyến mãi</option>
+            <option value="ORDER_UPDATE">Cập nhật đơn hàng</option>
+            <option value="SYSTEM_UPDATE">Hệ thống</option>
           </select>
         </div>
       </div>
@@ -76,19 +55,15 @@
               <th>Người nhận</th>
               <th>Trạng thái</th>
               <th>Ngày tạo</th>
-              <th>Ngày gửi</th>
               <th>Thao tác</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="notification in filteredNotifications" :key="notification.id">
-              <td>{{ notification.id }}</td>
+              <td>{{ truncateId(notification.id) }}</td>
               <td>
                 <div class="notification-title">
-                  <strong>{{ notification.title }}</strong>
-                  <div class="notification-preview">
-                    {{ truncateText(notification.content, 60) }}
-                  </div>
+                  <strong>{{ truncateTitleEllipsis(notification.title) }}</strong>
                 </div>
               </td>
               <td>
@@ -97,12 +72,9 @@
                 </span>
               </td>
               <td>
-                <div class="recipients-info">
-                  <span class="recipient-count">{{ notification.recipientCount }}</span>
-                  <span class="recipient-type">{{
-                    getRecipientTypeLabel(notification.recipientType)
-                  }}</span>
-                </div>
+                <template v-if="!notification.userId">Tất cả người dùng</template>
+                <template v-else-if="notification.userId">ID: {{ notification.userId }}</template>
+                <template v-else>Không xác định</template>
               </td>
               <td>
                 <span :class="['status-badge', `status-${notification.status}`]">
@@ -110,12 +82,6 @@
                 </span>
               </td>
               <td>{{ formatDate(notification.createdAt) }}</td>
-              <td>
-                <span v-if="notification.scheduledAt">
-                  {{ formatDate(notification.scheduledAt) }}
-                </span>
-                <span v-else class="text-muted">-</span>
-              </td>
               <td>
                 <div class="action-buttons">
                   <button
@@ -131,14 +97,6 @@
                     title="Chỉnh sửa"
                   >
                     ✏️
-                  </button>
-                  <button
-                    @click="sendNotification(notification)"
-                    class="btn btn-sm btn-primary"
-                    title="Gửi ngay"
-                    :disabled="notification.status === 'sent'"
-                  >
-                    📤
                   </button>
                   <button
                     @click="deleteNotification(notification)"
@@ -208,7 +166,7 @@
           <div class="form-group">
             <label>Nội dung *</label>
             <textarea
-              v-model="notificationForm.content"
+              v-model="notificationForm.message"
               rows="4"
               required
               class="form-textarea"
@@ -216,70 +174,34 @@
             ></textarea>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>Loại thông báo *</label>
-              <select v-model="notificationForm.type" required class="form-select">
-                <option value="system">Hệ thống</option>
-                <option value="promotion">Khuyến mãi</option>
-                <option value="announcement">Thông báo</option>
-                <option value="maintenance">Bảo trì</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Người nhận *</label>
-              <select v-model="notificationForm.recipientType" required class="form-select">
-                <option value="all">Tất cả người dùng</option>
-                <option value="customers">Chỉ khách hàng</option>
-                <option value="sellers">Chỉ người bán</option>
-                <option value="admins">Chỉ admin</option>
-                <option value="specific">Người dùng cụ thể</option>
-              </select>
-            </div>
-          </div>
-
-          <div v-if="notificationForm.recipientType === 'specific'" class="form-group">
-            <label>Danh sách email (phân cách bằng dấu phẩy)</label>
-            <textarea
-              v-model="notificationForm.recipientEmails"
-              rows="2"
-              class="form-textarea"
-              placeholder="email1@example.com, email2@example.com"
-            ></textarea>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Thời gian gửi</label>
-              <select v-model="notificationForm.scheduleType" class="form-select">
-                <option value="now">Gửi ngay</option>
-                <option value="scheduled">Lên lịch</option>
-              </select>
-            </div>
-
-            <div v-if="notificationForm.scheduleType === 'scheduled'" class="form-group">
-              <label>Ngày giờ gửi</label>
-              <input
-                v-model="notificationForm.scheduledAt"
-                type="datetime-local"
-                class="form-input"
-              />
-            </div>
+          <div class="form-group">
+            <label>Loại thông báo *</label>
+            <select v-model="notificationForm.type" required class="form-select">
+              <option value="NEW_PRODUCT">Sản phẩm mới</option>
+              <option value="PROMOTION">Khuyến mãi</option>
+              <option value="ORDER_UPDATE">Cập nhật đơn hàng</option>
+              <option value="SYSTEM_UPDATE">Hệ thống</option>
+            </select>
           </div>
 
           <div class="form-group">
-            <label class="checkbox-label">
-              <input v-model="notificationForm.includeEmail" type="checkbox" />
-              <span>Gửi qua email</span>
-            </label>
+            <label>Gửi cho user cụ thể (userId, để trống nếu gửi toàn hệ thống)</label>
+            <input
+              v-model="notificationForm.userId"
+              type="text"
+              class="form-input"
+              placeholder="Nhập userId nếu muốn gửi cho 1 user"
+            />
           </div>
 
           <div class="form-group">
-            <label class="checkbox-label">
-              <input v-model="notificationForm.includePush" type="checkbox" />
-              <span>Gửi thông báo đẩy</span>
-            </label>
+            <label>relatedId (nếu có)</label>
+            <input
+              v-model="notificationForm.relatedId"
+              type="text"
+              class="form-input"
+              placeholder="ID liên quan (orderId, productId, ... nếu có)"
+            />
           </div>
 
           <div class="form-actions">
@@ -373,7 +295,7 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue'
-import { api } from '@/services/api'
+import api from '@/services/api'
 
 export default {
   name: 'AdminNotifications',
@@ -386,7 +308,6 @@ export default {
     const totalPages = ref(1)
     const searchQuery = ref('')
     const typeFilter = ref('')
-    const statusFilter = ref('')
 
     // Modal states
     const showCreateModal = ref(false)
@@ -399,14 +320,10 @@ export default {
     // Form data
     const notificationForm = ref({
       title: '',
-      content: '',
-      type: 'system',
-      recipientType: 'all',
-      recipientEmails: '',
-      scheduleType: 'now',
-      scheduledAt: '',
-      includeEmail: true,
-      includePush: true,
+      message: '',
+      type: 'NEW_PRODUCT',
+      userId: '',
+      relatedId: '',
     })
 
     // Computed
@@ -425,22 +342,12 @@ export default {
         filtered = filtered.filter((notification) => notification.type === typeFilter.value)
       }
 
-      if (statusFilter.value) {
-        filtered = filtered.filter((notification) => notification.status === statusFilter.value)
-      }
-
       return filtered
     })
 
     const totalNotifications = computed(() => notifications.value.length)
-    const totalRecipients = computed(() =>
-      notifications.value.reduce((sum, notif) => sum + notif.recipientCount, 0)
-    )
     const sentNotifications = computed(
       () => notifications.value.filter((notif) => notif.status === 'sent').length
-    )
-    const scheduledNotifications = computed(
-      () => notifications.value.filter((notif) => notif.status === 'scheduled').length
     )
 
     const visiblePages = computed(() => {
@@ -458,14 +365,18 @@ export default {
     const loadNotifications = async () => {
       loading.value = true
       try {
-        const response = await api.get('/admin/notifications', {
-          params: {
-            page: currentPage.value,
-            limit: 20,
-          },
-        })
-        notifications.value = response.data.notifications
-        totalPages.value = response.data.totalPages
+        const response = await api.get('/notifications/admin/all')
+        notifications.value = response.data.map((n) => ({
+          ...n,
+          content: n.content || n.message || '',
+          createdAt: n.createdAt || n.createdDate || n.timestamp || '',
+          recipientCount: n.recipientCount || 0,
+          recipientType: n.recipientType || 'all',
+          status: n.status || 'sent',
+          scheduledAt: n.scheduledAt || '',
+          sentAt: n.sentAt || '',
+        }))
+        totalPages.value = 1 // Không phân trang do backend trả về toàn bộ
       } catch (error) {
         console.error('Error loading notifications:', error)
       } finally {
@@ -485,19 +396,36 @@ export default {
     }
 
     const editNotification = (notification) => {
-      notificationForm.value = { ...notification }
+      notificationForm.value = {
+        id: notification.id,
+        title: notification.title,
+        message: notification.content || notification.message || '',
+        type: notification.type,
+        userId: notification.userId || '',
+        relatedId: notification.relatedId || '',
+      }
       showEditModal.value = true
     }
 
     const saveNotification = async () => {
       saving.value = true
       try {
-        if (showEditModal.value) {
-          await api.put(`/admin/notifications/${notificationForm.value.id}`, notificationForm.value)
-        } else {
-          await api.post('/admin/notifications', notificationForm.value)
+        const payload = {
+          title: notificationForm.value.title,
+          message: notificationForm.value.message,
+          type: notificationForm.value.type,
         }
+        if (notificationForm.value.userId) payload.userId = notificationForm.value.userId
+        if (notificationForm.value.relatedId) payload.relatedId = notificationForm.value.relatedId
 
+        if (showEditModal.value) {
+          await api.put(`/notifications/admin/${notificationForm.value.id}`, payload)        } else {
+          if (notificationForm.value.userId) {
+            await api.post('/notifications/send', payload)
+          } else {
+            await api.post('/notifications/broadcast', payload)
+          }
+        }
         closeModal()
         loadNotifications()
       } catch (error) {
@@ -525,7 +453,7 @@ export default {
       if (!notificationToDelete.value) return
 
       try {
-        await api.delete(`/admin/notifications/${notificationToDelete.value.id}`)
+        await api.delete(`/notifications/admin/${notificationToDelete.value.id}`)
         showDeleteModal.value = false
         notificationToDelete.value = null
         loadNotifications()
@@ -539,23 +467,19 @@ export default {
       showEditModal.value = false
       notificationForm.value = {
         title: '',
-        content: '',
-        type: 'system',
-        recipientType: 'all',
-        recipientEmails: '',
-        scheduleType: 'now',
-        scheduledAt: '',
-        includeEmail: true,
-        includePush: true,
+        message: '',
+        type: 'NEW_PRODUCT',
+        userId: '',
+        relatedId: '',
       }
     }
 
     const getTypeLabel = (type) => {
       const labels = {
-        system: 'Hệ thống',
-        promotion: 'Khuyến mãi',
-        announcement: 'Thông báo',
-        maintenance: 'Bảo trì',
+        NEW_PRODUCT: 'Sản phẩm mới',
+        PROMOTION: 'Khuyến mãi',
+        ORDER_UPDATE: 'Cập nhật đơn hàng',
+        SYSTEM_UPDATE: 'Hệ thống',
       }
       return labels[type] || type
     }
@@ -591,6 +515,21 @@ export default {
       return new Date(date).toLocaleString('vi-VN')
     }
 
+    const truncateId = (id) => {
+      if (!id) return ''
+      return id.length > 12 ? `${id.slice(0, 6)}...${id.slice(-5)}` : id
+    }
+
+    const truncateTitle = (title) => {
+      if (!title) return ''
+      return title.length > 20 ? title.slice(0, 20) + '...' : title
+    }
+
+    const truncateTitleEllipsis = (title) => {
+      if (!title) return ''
+      return title.length > 12 ? `${title.slice(0, 6)}...${title.slice(-5)}` : title
+    }
+
     // Lifecycle
     onMounted(() => {
       loadNotifications()
@@ -604,7 +543,6 @@ export default {
       totalPages,
       searchQuery,
       typeFilter,
-      statusFilter,
       showCreateModal,
       showEditModal,
       showViewModal,
@@ -614,9 +552,7 @@ export default {
       notificationForm,
       filteredNotifications,
       totalNotifications,
-      totalRecipients,
       sentNotifications,
-      scheduledNotifications,
       visiblePages,
       changePage,
       viewNotification,
@@ -631,6 +567,9 @@ export default {
       getStatusLabel,
       truncateText,
       formatDate,
+      truncateId,
+      truncateTitle,
+      truncateTitleEllipsis,
     }
   },
 }
@@ -639,6 +578,7 @@ export default {
 <style scoped>
 .admin-notifications {
   padding: 2rem;
+  color: #222;
 }
 
 .page-header {
@@ -651,7 +591,7 @@ export default {
 .page-header h1 {
   font-size: 2rem;
   font-weight: 700;
-  color: #333;
+  color: #222;
 }
 
 .stats-grid {
@@ -686,12 +626,12 @@ export default {
 .stat-content h3 {
   font-size: 1.8rem;
   font-weight: 700;
-  color: #333;
+  color: #222;
   margin-bottom: 0.25rem;
 }
 
 .stat-content p {
-  color: #666;
+  color: #444;
   margin: 0;
 }
 
@@ -750,6 +690,7 @@ export default {
   padding: 1rem;
   text-align: left;
   border-bottom: 1px solid #eee;
+  color: #222;
 }
 
 .data-table th {
@@ -758,14 +699,44 @@ export default {
   color: #333;
 }
 
+.data-table th:nth-child(2),
+.data-table td:nth-child(2) {
+  min-width: 180px;
+  max-width: 300px;
+  width: 220px;
+}
+
+.data-table th:nth-child(3),
+.data-table td:nth-child(3) {
+  min-width: 120px;
+  max-width: 180px;
+  width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.data-table th:nth-child(5),
+.data-table td:nth-child(5) {
+  min-width: 80px;
+  max-width: 100px;
+  width: 90px;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .notification-title {
   display: flex;
   flex-direction: column;
+  color: #222;
 }
 
 .notification-preview {
   font-size: 0.8rem;
-  color: #666;
+  color: #444;
   margin-top: 0.25rem;
 }
 
@@ -803,7 +774,7 @@ export default {
 
 .recipient-count {
   font-weight: 600;
-  color: #333;
+  color: #222;
 }
 
 .recipient-type {
@@ -812,10 +783,15 @@ export default {
 }
 
 .status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  display: inline-block;
+  min-width: 60px;
+  max-width: 100%;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.85rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .status-draft {
@@ -1014,7 +990,7 @@ export default {
 
 .detail-row label {
   font-weight: 600;
-  color: #333;
+  color: #222;
   min-width: 120px;
 }
 
@@ -1023,10 +999,11 @@ export default {
   padding: 1rem;
   border-radius: 6px;
   white-space: pre-wrap;
+  color: #222;
 }
 
 .text-muted {
-  color: #666;
+  color: #444;
 }
 
 @media (max-width: 768px) {

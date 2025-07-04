@@ -52,7 +52,9 @@ public class UserService implements UserDetailsService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         
         user.setRole(user.getRole() != null ? user.getRole() : "USER");
-        user.setEnabled(true);
+        user.setEnabled(user.isEnabled());
+        user.setVip(user.isVip());
+        user.setVerified(user.isVerified());
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 
@@ -76,6 +78,12 @@ public class UserService implements UserDetailsService {
         user.setLastName(userDetails.getLastName());
         user.setPhone(userDetails.getPhone());
         user.setAvatar(userDetails.getAvatar());
+        user.setAddress(userDetails.getAddress());
+        user.setBirthday(userDetails.getBirthday());
+        user.setRole(userDetails.getRole());
+        user.setEnabled(userDetails.isEnabled());
+        user.setVip(userDetails.isVip());
+        user.setVerified(userDetails.isVerified());
         user.setUpdatedAt(LocalDateTime.now());
 
         return userRepository.save(user);
@@ -148,29 +156,23 @@ public class UserService implements UserDetailsService {
     }
 
     public List<User> searchUsers(String searchTerm) {
-        return userRepository.findAll().stream()
-                .filter(user ->
-                        user.getFirstName().toLowerCase().contains(searchTerm.toLowerCase()) ||
-                                user.getLastName().toLowerCase().contains(searchTerm.toLowerCase()) ||
-                                user.getEmail().toLowerCase().contains(searchTerm.toLowerCase())
-                )
-                .toList();
+        return userRepository.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrEmailContainingIgnoreCase(searchTerm);
     }
 
     public Map<String, Object> getUserStats() {
-        List<User> allUsers = userRepository.findAll();
         Map<String, Object> stats = new HashMap<>();
 
-        stats.put("totalUsers", allUsers.size());
-        stats.put("activeUsers", allUsers.stream().filter(User::isEnabled).count());
-        stats.put("inactiveUsers", allUsers.stream().filter(u -> !u.isEnabled()).count());
-        stats.put("adminUsers", allUsers.stream().filter(u -> "ADMIN".equals(u.getRole())).count());
-        stats.put("regularUsers", allUsers.stream().filter(u -> "USER".equals(u.getRole())).count());
+        stats.put("totalUsers", userRepository.count());
+        stats.put("activeUsers", userRepository.countByEnabledTrue());
+        stats.put("inactiveUsers", userRepository.countByEnabledFalse());
+        stats.put("adminUsers", userRepository.countByRole("ADMIN"));
+        stats.put("sellerUsers", userRepository.countByRole("SELLER"));
+        stats.put("regularUsers", userRepository.countByRole("USER"));
+        stats.put("vipUsers", userRepository.countByIsVipTrue());
+        stats.put("verifiedUsers", userRepository.countByIsVerifiedTrue());
 
         LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
-        long newUsersThisMonth = allUsers.stream()
-                .filter(u -> u.getCreatedAt().isAfter(startOfMonth))
-                .count();
+        long newUsersThisMonth = userRepository.countByCreatedAtBetween(startOfMonth, LocalDateTime.now());
         stats.put("newUsersThisMonth", newUsersThisMonth);
 
         return stats;
@@ -178,5 +180,55 @@ public class UserService implements UserDetailsService {
 
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    // ===== Saved Items =====
+    public List<String> getSavedItems(String userId) {
+        User user = getUserById(userId);
+        return user.getSavedItems();
+    }
+
+    public void addSavedItem(String userId, String productId) {
+        User user = getUserById(userId);
+        if (!user.getSavedItems().contains(productId)) {
+            user.getSavedItems().add(productId);
+            user.setUpdatedAt(LocalDateTime.now());
+            userRepository.save(user);
+        }
+    }
+
+    public void removeSavedItem(String userId, String productId) {
+        User user = getUserById(userId);
+        if (user.getSavedItems().remove(productId)) {
+            user.setUpdatedAt(LocalDateTime.now());
+            userRepository.save(user);
+        }
+    }
+
+    // Admin methods
+    public void updateUserRole(String userId, String role) {
+        User user = getUserById(userId);
+        if (!role.equals("USER") && !role.equals("ADMIN") && !role.equals("SELLER")) {
+            throw new BadRequestException("Vai trò không hợp lệ");
+        }
+        user.setRole(role);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    public void toggleVipStatus(String userId) {
+        User user = getUserById(userId);
+        user.setVip(!user.isVip());
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    public void deleteUser(String userId) {
+        User user = getUserById(userId);
+        userRepository.delete(user);
+    }
+
+    public UserRepository getUserRepository() {
+        return userRepository;
     }
 }

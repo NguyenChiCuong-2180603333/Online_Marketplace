@@ -4,8 +4,8 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 })
 
 api.interceptors.request.use(
@@ -28,29 +28,26 @@ api.interceptors.response.use(
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
-    
+
     console.error('API Error:', {
       url: error.config?.url,
       method: error.config?.method,
       status: error.response?.status,
-      data: error.response?.data
+      data: error.response?.data,
     })
-    
+
     return Promise.reject(error)
   }
 )
 
 export const sellerAPI = {
-
   getDashboardOverview: () => {
     return api.get('/dashboard/seller/overview')
   },
 
-
   getSellerStats: () => {
     return api.get('/profile/seller/stats')
   },
-
 
   getMyProducts: (params = {}) => {
     return api.get('/profile/my-products', { params })
@@ -75,8 +72,8 @@ export const sellerAPI = {
   uploadProductImages: (productId, formData) => {
     return api.post(`/products/${productId}/images`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+        'Content-Type': 'multipart/form-data',
+      },
     })
   },
 
@@ -91,12 +88,8 @@ export const sellerAPI = {
   getOrderDetails: (orderId) => {
     return api.get(`/orders/${orderId}`)
   },
-  updateOrderStatus: (orderId, status, note = '') => {
-    return api.put(`/orders/${orderId}/status`, { 
-      status,
-      note,
-      updatedBy: 'seller'
-    })
+  updateOrderStatus: (orderId, status) => {
+    return api.put(`/orders/${orderId}/seller-status`, { status })
   },
 
   addOrderTracking: (orderId, trackingInfo) => {
@@ -115,7 +108,7 @@ export const sellerAPI = {
     return api.post(`/orders/${orderId}/messages`, {
       ...messageData,
       sender: 'seller',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
   },
 
@@ -123,17 +116,16 @@ export const sellerAPI = {
     return api.patch(`/orders/${orderId}/messages/read`, { messageIds })
   },
 
-
   uploadOrderFiles: (orderId, formData) => {
     return api.post(`/orders/${orderId}/files`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+        'Content-Type': 'multipart/form-data',
+      },
     })
   },
 
   // ==================== ANALYTICS ====================
-  
+
   getSellerAnalytics: (period = '30d', dateRange = null) => {
     const params = { period }
     if (period === 'custom' && dateRange) {
@@ -148,15 +140,14 @@ export const sellerAPI = {
   },
 
   getProductAnalytics: (period = '30d', metric = 'revenue') => {
-    return api.get('/dashboard/seller/products/analytics', { 
-      params: { period, metric } 
+    return api.get('/dashboard/seller/products/analytics', {
+      params: { period, metric },
     })
   },
 
-
   getCustomerAnalytics: (period = '30d', view = 'acquisition') => {
-    return api.get('/dashboard/seller/customers/analytics', { 
-      params: { period, view } 
+    return api.get('/dashboard/seller/customers/analytics', {
+      params: { period, view },
     })
   },
 
@@ -165,46 +156,46 @@ export const sellerAPI = {
   },
 
   // ==================== REPORTS ====================
-  
+
   exportOrdersReport: (filters = {}, format = 'excel') => {
     return api.post('/reports/orders/export', filters, {
       params: { format },
-      responseType: 'blob'
+      responseType: 'blob',
     })
   },
 
   exportAnalyticsReport: (period = '30d', format = 'pdf') => {
     return api.get('/reports/analytics/export', {
       params: { period, format },
-      responseType: 'blob'
+      responseType: 'blob',
     })
   },
 
   exportProductReport: (filters = {}, format = 'excel') => {
     return api.post('/reports/products/export', filters, {
       params: { format },
-      responseType: 'blob'
+      responseType: 'blob',
     })
   },
 
   exportCustomerReport: (filters = {}, format = 'excel') => {
     return api.post('/reports/customers/export', filters, {
       params: { format },
-      responseType: 'blob'
+      responseType: 'blob',
     })
   },
 
   // ==================== INVENTORY ====================
-  
+
   getInventoryOverview: () => {
     return api.get('/inventory/overview')
   },
 
   updateProductStock: (productId, quantity, reason = '') => {
-    return api.patch(`/products/${productId}/stock`, { 
-      quantity, 
+    return api.patch(`/products/${productId}/stock`, {
+      quantity,
       reason,
-      updatedBy: 'seller'
+      updatedBy: 'seller',
     })
   },
 
@@ -222,12 +213,10 @@ export const sellerAPI = {
     return api.get('/dashboard/seller/alerts')
   },
 
-
   dismissAlert: (alertId) => {
     return api.patch(`/dashboard/seller/alerts/${alertId}/dismiss`)
   },
 
- 
   getOptimizationSuggestions: () => {
     return api.get('/dashboard/seller/optimizations')
   },
@@ -242,9 +231,21 @@ export const sellerAPI = {
     return api.get('/dashboard/seller/financial', { params: { period } })
   },
 
- 
   getPayoutHistory: (params = {}) => {
     return api.get('/seller/payouts', { params })
+  },
+
+  // Bulk operations
+  bulkUpdateProductStatus: (productIds, isActive) => {
+    return api.patch('/products/bulk/status', { productIds, isActive })
+  },
+
+  bulkDeleteProducts: (productIds) => {
+    return api.delete('/products/bulk', { data: { productIds } })
+  },
+
+  duplicateProduct: (productId) => {
+    return api.post(`/products/${productId}/duplicate`)
   },
 
   requestPayout: (payoutData) => {
@@ -256,7 +257,7 @@ export const sellerAPI = {
   },
 
   // ==================== MARKETING ====================
-  
+
   getPromotionCampaigns: () => {
     return api.get('/seller/promotions')
   },
@@ -269,13 +270,12 @@ export const sellerAPI = {
     return api.put(`/seller/promotions/${campaignId}`, campaignData)
   },
 
-  
   getSEOInsights: (productIds = []) => {
     return api.post('/analytics/seo-insights', { productIds })
   },
 
   // ==================== REVIEWS & RATINGS ====================
-  
+
   getProductReviews: (productId, params = {}) => {
     return api.get(`/products/${productId}/reviews`, { params })
   },
@@ -289,7 +289,7 @@ export const sellerAPI = {
   },
 
   // ==================== UTILITIES ====================
-  
+
   getCategories: () => {
     return api.get('/categories')
   },
@@ -319,16 +319,14 @@ export const sellerAPI = {
   },
 
   // ==================== BULK OPERATIONS ====================
-  
+
   bulkUpdateProductStatus: (productIds, isActive) => {
     return api.patch('/products/bulk/status', { productIds, isActive })
   },
 
-
   bulkUpdateOrderStatus: (orderIds, status) => {
     return api.patch('/orders/bulk/status', { orderIds, status })
   },
-
 
   bulkUpdateProductPrices: (updates) => {
     return api.patch('/products/bulk/prices', { updates })
@@ -336,9 +334,9 @@ export const sellerAPI = {
 
   bulkExportData: (exportConfig) => {
     return api.post('/export/bulk', exportConfig, {
-      responseType: 'blob'
+      responseType: 'blob',
     })
-  }
+  },
 }
 
 export const {
@@ -356,7 +354,7 @@ export const {
   getSellerAnalytics,
   getRevenueAnalytics,
   exportOrdersReport,
-  exportAnalyticsReport
+  exportAnalyticsReport,
 } = sellerAPI
 
 export default sellerAPI

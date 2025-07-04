@@ -8,14 +8,13 @@
           <div class="hero-text">
             <h1 class="hero-title">
               🌌 Khám phá
-              <span class="gradient-text">Vũ trụ Mua sắm</span>
-              với AI
+              <span class="gradient-text">Vũ trụ mua sắm</span>
             </h1>
             <p class="hero-subtitle">
-              Trải nghiệm mua sắm thông minh với đề xuất được cá nhân hóa bằng trí tuệ nhân tạo. 
+              Trải nghiệm mua sắm thông minh.
               Khám phá hàng ngàn sản phẩm chất lượng từ khắp nơi trên thế giới.
             </p>
-            
+
             <!-- Hero Search -->
             <div class="hero-search">
               <div class="search-container">
@@ -26,11 +25,9 @@
                   placeholder="Tìm kiếm sản phẩm mơ ước của bạn..."
                   class="hero-search-input"
                 />
-                <button @click="performHeroSearch" class="hero-search-btn">
-                  🔍 Tìm kiếm
-                </button>
+                <button @click="performHeroSearch" class="hero-search-btn">🔍 Tìm kiếm</button>
               </div>
-              
+
               <!-- Quick search suggestions -->
               <div class="quick-suggestions" v-if="quickSuggestions.length > 0">
                 <span class="suggestions-label">Gợi ý:</span>
@@ -44,22 +41,6 @@
                     {{ suggestion }}
                   </button>
                 </div>
-              </div>
-            </div>
-
-            <!-- Hero Stats -->
-            <div class="hero-stats">
-              <div class="stat-item">
-                <span class="stat-number">{{ formatNumber(totalProducts) }}</span>
-                <span class="stat-label">Sản phẩm</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-number">{{ formatNumber(totalUsers) }}</span>
-                <span class="stat-label">Khách hàng</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-number">{{ formatNumber(totalOrders) }}</span>
-                <span class="stat-label">Đơn hàng</span>
               </div>
             </div>
           </div>
@@ -106,11 +87,9 @@
             <span class="trending-icon">🔥</span>
             Sản phẩm Hot nhất
           </h2>
-          <p class="section-subtitle">
-            Những sản phẩm được yêu thích nhất hiện tại
-          </p>
+          <p class="section-subtitle">Những sản phẩm được yêu thích nhất hiện tại</p>
         </div>
-        
+
         <TrendingProducts
           :limit="12"
           @product-click="handleProductClick"
@@ -127,9 +106,7 @@
             <span class="featured-icon">⭐</span>
             Sản phẩm nổi bật
           </h2>
-          <p class="section-subtitle">
-            Được tuyển chọn đặc biệt bởi đội ngũ chuyên gia
-          </p>
+          <p class="section-subtitle">Được tuyển chọn đặc biệt bởi đội ngũ chuyên gia</p>
         </div>
 
         <!-- Loading State -->
@@ -166,24 +143,28 @@
             <!-- Product image -->
             <div class="product-image-container">
               <img
-                :src="product.imageUrl || '/api/placeholder/product'"
+                :src="
+                  product.images && product.images.length > 0
+                    ? product.images[0]
+                    : '/api/placeholder/product'
+                "
                 :alt="product.name"
                 class="product-image"
                 @error="handleImageError"
                 loading="lazy"
               />
-              
+
               <!-- Quick actions overlay -->
               <div class="quick-actions">
                 <button
                   @click.stop="toggleWishlist(product)"
                   class="quick-action-btn"
-                  :class="{ 'active': isInWishlist(product.id) }"
+                  :class="{ active: isInWishlist(product.id) }"
                   title="Yêu thích"
                 >
                   {{ isInWishlist(product.id) ? '❤️' : '🤍' }}
                 </button>
-                
+
                 <button
                   @click.stop="handleAddToCart(product)"
                   class="quick-action-btn"
@@ -198,26 +179,31 @@
             <div class="product-info">
               <div class="product-category">{{ product.category }}</div>
               <h3 class="product-name">{{ truncate(product.name, 50) }}</h3>
-              
+
               <div class="product-price">
                 <span class="current-price">{{ formatPrice(product.price) }}</span>
-                <span v-if="product.originalPrice && product.originalPrice > product.price" 
-                      class="original-price">
+                <span
+                  v-if="product.originalPrice && product.originalPrice > product.price"
+                  class="original-price"
+                >
                   {{ formatPrice(product.originalPrice) }}
                 </span>
               </div>
-              
+
               <div class="product-rating" v-if="product.rating">
                 <div class="stars">
-                  <span v-for="star in 5" :key="star" 
-                        class="star"
-                        :class="{ 'filled': star <= product.rating }">
+                  <span
+                    v-for="star in 5"
+                    :key="star"
+                    class="star"
+                    :class="{ filled: star <= product.rating }"
+                  >
                     ⭐
                   </span>
                 </div>
                 <span class="rating-count">({{ product.reviewCount || 0 }})</span>
               </div>
-              
+
               <button @click.stop="handleAddToCart(product)" class="btn btn-primary btn-sm">
                 🛒 Thêm vào giỏ
               </button>
@@ -242,12 +228,11 @@
             <span class="categories-icon">🏪</span>
             Danh mục phổ biến
           </h2>
-          <p class="section-subtitle">
-            Khám phá các danh mục sản phẩm đa dạng
-          </p>
+          <p class="section-subtitle">Khám phá các danh mục sản phẩm đa dạng</p>
         </div>
-
-        <div class="categories-grid">
+        <div v-if="categoriesLoading" class="loading-container">Đang tải danh mục...</div>
+        <div v-else-if="categoriesError" class="error-message">{{ categoriesError }}</div>
+        <div v-else class="categories-grid">
           <div
             v-for="category in popularCategories"
             :key="category.id"
@@ -264,67 +249,6 @@
         </div>
       </div>
     </section>
-
-    <!-- Features Section -->
-    <section class="features-section">
-      <div class="container">
-        <div class="section-header">
-          <h2 class="section-title">
-            <span class="features-icon">✨</span>
-            Tại sao chọn chúng tôi?
-          </h2>
-        </div>
-
-        <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon">🤖</div>
-            <h3>AI Thông minh</h3>
-            <p>Đề xuất sản phẩm được cá nhân hóa dựa trên sở thích và hành vi mua sắm của bạn</p>
-          </div>
-          
-          <div class="feature-card">
-            <div class="feature-icon">🚚</div>
-            <h3>Giao hàng nhanh</h3>
-            <p>Giao hàng miễn phí toàn quốc cho đơn hàng từ 500.000đ trong vòng 1-3 ngày</p>
-          </div>
-          
-          <div class="feature-card">
-            <div class="feature-icon">🛡️</div>
-            <h3>Bảo hành đáng tin cậy</h3>
-            <p>Chính sách đổi trả linh hoạt và bảo hành chính hãng cho tất cả sản phẩm</p>
-          </div>
-          
-          <div class="feature-card">
-            <div class="feature-icon">💬</div>
-            <h3>Hỗ trợ 24/7</h3>
-            <p>Đội ngũ chăm sóc khách hàng chuyên nghiệp, hỗ trợ bạn mọi lúc mọi nơi</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Newsletter Section -->
-    <section class="newsletter-section">
-      <div class="container">
-        <div class="newsletter-content">
-          <h2>🌟 Đăng ký nhận thông tin ưu đãi</h2>
-          <p>Nhận thông báo về sản phẩm mới và các chương trình khuyến mãi hấp dẫn</p>
-          
-          <form @submit.prevent="subscribeNewsletter" class="newsletter-form">
-            <input
-              v-model="newsletterEmail"
-              type="email"
-              placeholder="Nhập email của bạn"
-              class="newsletter-input"
-              required
-            />
-            <button type="submit" class="newsletter-btn" :disabled="subscribing">
-              {{ subscribing ? 'Đang đăng ký...' : 'Đăng ký' }}
-            </button>
-          </form>
-        </div>
-      </div>
-    </section>
   </div>
 </template>
 
@@ -335,7 +259,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
 import { useWishlistStore } from '@/stores/wishlist'
-import { productAPI } from '@/services/api'
+import { productAPI, orderAPI, categoryAPI } from '@/services/api'
 import RecommendedProducts from '@/components/RecommendedProducts.vue'
 import TrendingProducts from '@/components/TrendingProducts.vue'
 import recommendationService from '@/services/recommendationService'
@@ -344,55 +268,43 @@ export default {
   name: 'Home',
   components: {
     RecommendedProducts,
-    TrendingProducts
+    TrendingProducts,
   },
-  
+
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
     const userStore = useUserStore()
     const cartStore = useCartStore()
     const wishlistStore = useWishlistStore()
-    
+
     // Reactive state
     const heroSearchQuery = ref('')
     const newsletterEmail = ref('')
     const subscribing = ref(false)
     const loadingFeatured = ref(false)
     const featuredProducts = ref([])
-    
-    // Mock data for demo
-    const totalProducts = ref(12547)
-    const totalUsers = ref(45230)
-    const totalOrders = ref(98765)
-    
-    const quickSuggestions = ref([
-      'iPhone 15', 'MacBook Air', 'AirPods Pro', 'iPad', 'Apple Watch'
-    ])
-    
-    const popularCategories = ref([
-      { id: 1, name: 'Điện tử', icon: '📱', productCount: 1234 },
-      { id: 2, name: 'Thời trang', icon: '👗', productCount: 2156 },
-      { id: 3, name: 'Nhà cửa', icon: '🏠', productCount: 987 },
-      { id: 4, name: 'Thể thao', icon: '⚽', productCount: 654 },
-      { id: 5, name: 'Sách', icon: '📚', productCount: 876 },
-      { id: 6, name: 'Làm đẹp', icon: '💄', productCount: 543 }
-    ])
-    
+
+    // Real API state
+    const categoriesLoading = ref(true)
+    const categoriesError = ref('')
+    const popularCategories = ref([])
+
+    const quickSuggestions = ref(['iPhone 15', 'MacBook Air', 'AirPods Pro', 'iPad', 'Apple Watch'])
+
     // Load featured products
     const loadFeaturedProducts = async () => {
       loadingFeatured.value = true
-      
+
       try {
         const response = await productAPI.getFeatured()
         featuredProducts.value = response.data || []
-        
+
         // Track featured products loaded
         recommendationService.trackInteraction(null, 'FEATURED_PRODUCTS_LOADED', {
           count: featuredProducts.value.length,
-          source: 'home_page'
+          source: 'home_page',
         })
-        
       } catch (error) {
         console.error('Error loading featured products:', error)
         featuredProducts.value = []
@@ -400,68 +312,68 @@ export default {
         loadingFeatured.value = false
       }
     }
-    
+
     // Handle hero search
     const performHeroSearch = () => {
       if (heroSearchQuery.value.trim()) {
         // Track search
         recommendationService.trackSearch(heroSearchQuery.value.trim(), 0)
-        
+
         // Navigate to search results
         router.push({
           name: 'Products',
-          query: { search: heroSearchQuery.value.trim() }
+          query: { search: heroSearchQuery.value.trim() },
         })
       }
     }
-    
+
     // Handle search suggestion click
     const searchSuggestion = (suggestion) => {
       heroSearchQuery.value = suggestion
       performHeroSearch()
     }
-    
+
     // Handle recommendation click
     const handleRecommendationClick = (data) => {
       const { product, index } = data
-      
+
       // Additional tracking for recommendations from home page
       recommendationService.trackInteraction(product.id, 'RECOMMENDATION_CLICK', {
         source: 'home_page',
         position: index,
-        section: 'personal_recommendations'
+        section: 'personal_recommendations',
       })
     }
-    
+
     const handleProductClick = (product) => {
       recommendationService.trackView(product.id, 'featured_products')
-      
+
       router.push(`/products/${product.id}`)
     }
-    
+
     const handleAddToCart = async (product) => {
       try {
         if (!authStore.isAuthenticated) {
-          if (confirm('Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng. Chuyển đến trang đăng nhập?')) {
+          if (
+            confirm('Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng. Chuyển đến trang đăng nhập?')
+          ) {
             router.push('/login')
           }
           return
         }
-        
+
         await recommendationService.trackAddToCart(product.id, 1)
-        
+
         await cartStore.addItem(product.id, 1)
-        
-        
+
         console.log('✅ Added to cart:', product.name)
         alert(`Đã thêm "${product.name}" vào giỏ hàng!`)
-        
       } catch (error) {
         console.error('❌ Error adding to cart:', error)
         alert('Có lỗi xảy ra khi thêm vào giỏ hàng. Vui lòng thử lại!')
       }
     }
-    
+
     const handleAddToWishlist = async (product) => {
       try {
         if (!authStore.isAuthenticated) {
@@ -470,57 +382,55 @@ export default {
           }
           return
         }
-        
+
         await recommendationService.trackInteraction(product.id, 'ADD_TO_WISHLIST', {
-          source: 'home_page'
+          source: 'home_page',
         })
-        
+
         console.log('✅ Added to wishlist:', product.name)
         alert(`Đã thêm "${product.name}" vào danh sách yêu thích!`)
-        
       } catch (error) {
         console.error('❌ Error adding to wishlist:', error)
         alert('Có lỗi xảy ra khi thêm vào wishlist.')
       }
     }
-    
+
     // Toggle wishlist
     const toggleWishlist = (product) => {
       wishlistStore.toggleWishlist(product)
     }
-    
+
     // Navigate to category
     const navigateToCategory = (category) => {
       // Track category click
       recommendationService.trackInteraction(null, 'CATEGORY_CLICK', {
         categoryId: category.id,
         categoryName: category.name,
-        source: 'home_page'
+        source: 'home_page',
       })
-      
-      router.push(`/categories/${category.id}`)
+      // Chuyển sang dùng tên danh mục (name) thay vì id
+      router.push(`/categories/${category.name}`)
     }
-    
+
     // Newsletter subscription
     const subscribeNewsletter = async () => {
       subscribing.value = true
-      
+
       try {
         // TODO: Add actual newsletter subscription logic
-        await new Promise(resolve => setTimeout(resolve, 1000)) // Mock delay
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000)) // Mock delay
+
         // Track newsletter subscription
         recommendationService.trackInteraction(null, 'NEWSLETTER_SUBSCRIBE', {
           email: newsletterEmail.value,
-          source: 'home_page'
+          source: 'home_page',
         })
-        
+
         // Reset form
         newsletterEmail.value = ''
-        
+
         // Show success message
         alert('Đăng ký thành công! Cảm ơn bạn đã quan tâm.')
-        
       } catch (error) {
         console.error('Error subscribing to newsletter:', error)
         alert('Có lỗi xảy ra. Vui lòng thử lại sau.')
@@ -528,60 +438,76 @@ export default {
         subscribing.value = false
       }
     }
-    
+
+    // Load categories from real API
+    const loadCategories = async () => {
+      categoriesLoading.value = true
+      categoriesError.value = ''
+      try {
+        const res = await categoryAPI.getAll()
+        // Map categories to match UI
+        popularCategories.value = (res.data || []).map((cat) => ({
+          id: cat.id || cat._id,
+          name: cat.name,
+          icon: cat.icon || '🏪',
+          productCount: cat.productCount || cat.count || 0,
+        }))
+      } catch (err) {
+        categoriesError.value = 'Không thể tải danh mục.'
+      } finally {
+        categoriesLoading.value = false
+      }
+    }
+
     // Helper functions
     const formatPrice = (price) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
       }).format(price)
     }
-    
-    const formatNumber = (number) => {
-      return new Intl.NumberFormat('vi-VN').format(number)
-    }
-    
+
     const truncate = (text, length) => {
       if (!text) return ''
       return text.length > length ? text.slice(0, length) + '...' : text
     }
-    
+
     const handleImageError = (event) => {
       event.target.src = '/api/placeholder/product'
     }
-    
+
     const isInWishlist = (productId) => {
       return wishlistStore.isInWishlist(productId)
     }
-    
+
     // Lifecycle
     onMounted(() => {
       loadFeaturedProducts()
-      
+      loadCategories()
+
       // Track home page view
       recommendationService.trackInteraction(null, 'HOME_PAGE_VIEW', {
         timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent
+        userAgent: navigator.userAgent,
       })
     })
-    
+
     return {
       // Stores
       authStore,
       userStore,
-      
+
       // State
       heroSearchQuery,
       newsletterEmail,
       subscribing,
       loadingFeatured,
       featuredProducts,
-      totalProducts,
-      totalUsers,
-      totalOrders,
-      quickSuggestions,
+      categoriesLoading,
+      categoriesError,
       popularCategories,
-      
+      quickSuggestions,
+
       // Methods
       performHeroSearch,
       searchSuggestion,
@@ -592,15 +518,14 @@ export default {
       toggleWishlist,
       navigateToCategory,
       subscribeNewsletter,
-      
+
       // Helpers
       formatPrice,
-      formatNumber,
       truncate,
       handleImageError,
-      isInWishlist
+      isInWishlist,
     }
-  }
+  },
 }
 </script>
 
@@ -730,30 +655,6 @@ export default {
   transform: translateY(-1px);
 }
 
-.hero-stats {
-  display: flex;
-  gap: 2rem;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-}
-
-.stat-number {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-accent);
-  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
-}
-
-.stat-label {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-top: 0.25rem;
-}
-
 /* Hero Visual */
 .hero-visual {
   display: flex;
@@ -813,8 +714,12 @@ export default {
 }
 
 @keyframes rotate {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 /* Sections */
@@ -870,7 +775,12 @@ export default {
 .loading-image {
   width: 100%;
   height: 200px;
-  background: linear-gradient(90deg, rgba(0,212,255,0.1) 25%, rgba(0,212,255,0.2) 50%, rgba(0,212,255,0.1) 75%);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 212, 255, 0.1) 25%,
+    rgba(0, 212, 255, 0.2) 50%,
+    rgba(0, 212, 255, 0.1) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -883,27 +793,42 @@ export default {
 .loading-price,
 .loading-rating {
   height: 1rem;
-  background: linear-gradient(90deg, rgba(0,212,255,0.1) 25%, rgba(0,212,255,0.2) 50%, rgba(0,212,255,0.1) 75%);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 212, 255, 0.1) 25%,
+    rgba(0, 212, 255, 0.2) 50%,
+    rgba(0, 212, 255, 0.1) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
   margin-bottom: 0.75rem;
 }
 
-.loading-title { width: 80%; }
-.loading-price { width: 60%; }
-.loading-rating { width: 70%; }
+.loading-title {
+  width: 80%;
+}
+.loading-price {
+  width: 60%;
+}
+.loading-rating {
+  width: 70%;
+}
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 /* Products Grid */
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.2rem;
 }
 
 .product-card {
@@ -915,6 +840,7 @@ export default {
   transition: all 0.3s ease;
   cursor: pointer;
   position: relative;
+  padding: 0.5rem 0.5rem 1rem 0.5rem;
 }
 
 .product-card:hover {
@@ -960,12 +886,18 @@ export default {
   position: relative;
   height: 200px;
   overflow: hidden;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .product-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 10px;
   transition: transform 0.3s ease;
 }
 
@@ -1261,11 +1193,11 @@ export default {
     gap: 3rem;
     text-align: center;
   }
-  
+
   .hero-title {
     font-size: 3rem;
   }
-  
+
   .products-grid {
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   }
@@ -1275,29 +1207,24 @@ export default {
   .hero-section {
     padding: 2rem 0 4rem;
   }
-  
+
   .hero-title {
     font-size: 2.5rem;
   }
-  
+
   .hero-subtitle {
     font-size: 1rem;
   }
-  
-  .hero-stats {
-    justify-content: center;
-    gap: 1.5rem;
-  }
-  
+
   .section-title {
     font-size: 2rem;
   }
-  
+
   .products-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
   }
-  
+
   .newsletter-form {
     flex-direction: column;
   }
@@ -1307,27 +1234,27 @@ export default {
   .hero-title {
     font-size: 2rem;
   }
-  
+
   .section-title {
     font-size: 1.5rem;
     flex-direction: column;
     gap: 0.25rem;
   }
-  
+
   .products-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .categories-grid,
   .features-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .cosmic-animation {
     width: 200px;
     height: 200px;
   }
-  
+
   .main-planet {
     font-size: 3rem;
   }

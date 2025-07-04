@@ -7,7 +7,7 @@
         <div class="seller-info">
           <div class="seller-avatar">
             <img :src="sellerInfo?.avatar || '/placeholder-avatar.jpg'" :alt="sellerInfo?.name" />
-            <div class="online-status" :class="{ 'online': sellerInfo?.isOnline }"></div>
+            <div class="online-status" :class="{ online: sellerInfo?.isOnline }"></div>
           </div>
           <div class="seller-details">
             <h3>{{ sellerInfo?.name || 'Người bán' }}</h3>
@@ -26,9 +26,7 @@
           <button @click="toggleProductInfo" class="action-btn" title="Thông tin sản phẩm">
             📦
           </button>
-          <button @click="$emit('close')" class="action-btn close-btn" title="Đóng chat">
-            ❌
-          </button>
+          <button @click="$emit('close')" class="action-btn close-btn" title="Đóng chat">❌</button>
         </div>
       </div>
 
@@ -38,9 +36,7 @@
           <div class="product-summary">
             <span class="product-icon">📦</span>
             <span class="product-name">{{ productName }}</span>
-            <button @click="viewProduct" class="view-product-btn">
-              Xem sản phẩm
-            </button>
+            <button @click="viewProduct" class="view-product-btn">Xem sản phẩm</button>
           </div>
         </div>
       </transition>
@@ -59,10 +55,10 @@
         <div class="welcome-icon">👋</div>
         <h4>Bắt đầu cuộc trò chuyện</h4>
         <p>Gửi tin nhắn đầu tiên để bắt đầu chat với {{ sellerInfo?.name || 'người bán' }}!</p>
-        
+
         <!-- Quick Start Options -->
         <div class="quick-start-options">
-          <button 
+          <button
             v-for="option in quickStartMessages"
             :key="option.id"
             @click="sendQuickMessage(option.text)"
@@ -76,7 +72,10 @@
       <!-- Messages List -->
       <div v-else class="messages-list">
         <!-- Date Separators and Messages -->
-        <template v-for="(item, index) in messagesWithSeparators" :key="item.id || `separator-${index}`">
+        <template
+          v-for="(item, index) in messagesWithSeparators"
+          :key="item.id || `separator-${index}`"
+        >
           <!-- Date Separator -->
           <div v-if="item.type === 'separator'" class="date-separator">
             <span class="date-text">{{ item.date }}</span>
@@ -94,7 +93,11 @@
 
                 <!-- Image Message -->
                 <div v-else-if="item.messageType === 'IMAGE'" class="image-content">
-                  <img :src="item.content" :alt="'Hình ảnh'" @click="openImageModal(item.content)" />
+                  <img
+                    :src="item.content"
+                    :alt="'Hình ảnh'"
+                    @click="openImageModal(item.content)"
+                  />
                 </div>
 
                 <!-- File Message -->
@@ -161,9 +164,7 @@
       <!-- Input Area -->
       <div class="input-area">
         <!-- Attachment Button -->
-        <button @click="openFileSelector" class="attach-btn" title="Đính kèm file">
-          📎
-        </button>
+        <button @click="openFileSelector" class="attach-btn" title="Đính kèm file">📎</button>
 
         <!-- Text Input -->
         <div class="text-input-wrapper">
@@ -178,19 +179,17 @@
             rows="1"
             :disabled="sendingMessage || !connected"
           ></textarea>
-          
+
           <!-- Emoji Button -->
-          <button @click="toggleEmojiPicker" class="emoji-btn" title="Chọn emoji">
-            😊
-          </button>
+          <button @click="toggleEmojiPicker" class="emoji-btn" title="Chọn emoji">😊</button>
         </div>
 
         <!-- Send Button -->
-        <button 
+        <button
           @click="sendMessage"
           :disabled="!canSendMessage"
           class="send-btn"
-          :class="{ 'sending': sendingMessage }"
+          :class="{ sending: sendingMessage }"
           title="Gửi tin nhắn"
         >
           <span v-if="sendingMessage" class="sending-icon">⏳</span>
@@ -225,7 +224,7 @@
               :key="category.name"
               @click="selectedEmojiCategory = category.name"
               class="emoji-category-btn"
-              :class="{ 'active': selectedEmojiCategory === category.name }"
+              :class="{ active: selectedEmojiCategory === category.name }"
             >
               {{ category.icon }}
             </button>
@@ -261,43 +260,43 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { chatAPI } from '@/services/api'
-import websocketService from '@/services/websocketService'
+import websocketService from '@/services/websocket'
 
 export default {
   name: 'ChatWindow',
   props: {
     conversationId: {
       type: String,
-      default: null
+      default: null,
     },
-    
+
     sellerId: {
       type: String,
-      required: true
+      required: true,
     },
-    
+
     productId: {
       type: String,
-      default: null
+      default: null,
     },
-    
+
     productName: {
       type: String,
-      default: null
+      default: null,
     },
-    
+
     sellerInfo: {
       type: Object,
-      default: () => ({})
-    }
+      default: () => ({}),
+    },
   },
-  
+
   emits: ['close', 'message-sent', 'conversation-created', 'unread-count-changed'],
-  
+
   setup(props, { emit }) {
     const router = useRouter()
     const authStore = useAuthStore()
-    
+
     // Reactive state
     const messages = ref([])
     const messageText = ref('')
@@ -310,90 +309,103 @@ export default {
     const showImageModal = ref(false)
     const modalImage = ref('')
     const selectedEmojiCategory = ref('smileys')
-    
+
     // File upload
     const uploadingFile = ref(null)
     const uploadProgress = ref(0)
-    
+
     // Typing timer
     let typingTimer = null
     let isUserTyping = false
-    
+
     // Refs
     const messagesContainer = ref(null)
     const messageInput = ref(null)
     const fileInput = ref(null)
-    
+
     // Quick start messages
     const quickStartMessages = ref([
       { id: 1, icon: '👋', text: 'Xin chào! Tôi quan tâm đến sản phẩm này.' },
       { id: 2, icon: '📦', text: 'Sản phẩm này còn hàng không ạ?' },
       { id: 3, icon: '💰', text: 'Có thể thương lượng giá được không?' },
-      { id: 4, icon: '🚚', text: 'Thời gian giao hàng là bao lâu?' }
+      { id: 4, icon: '🚚', text: 'Thời gian giao hàng là bao lâu?' },
     ])
-    
+
     // Emoji data
     const emojiCategories = ref([
-      { name: 'smileys', icon: '😊', emojis: ['😊', '😂', '🥰', '😍', '🤔', '😢', '😭', '😡', '👍', '👎', '❤️', '💯'] },
-      { name: 'objects', icon: '📦', emojis: ['📦', '💰', '🛒', '🚚', '📱', '💻', '🎁', '⭐', '🔥', '✨', '💎', '🏆'] },
-      { name: 'activity', icon: '🎉', emojis: ['🎉', '🎊', '🎁', '🛍️', '💳', '🎯', '🚀', '⚡', '💫', '🌟', '🔔', '📢'] }
+      {
+        name: 'smileys',
+        icon: '😊',
+        emojis: ['😊', '😂', '🥰', '😍', '🤔', '😢', '😭', '😡', '👍', '👎', '❤️', '💯'],
+      },
+      {
+        name: 'objects',
+        icon: '📦',
+        emojis: ['📦', '💰', '🛒', '🚚', '📱', '💻', '🎁', '⭐', '🔥', '✨', '💎', '🏆'],
+      },
+      {
+        name: 'activity',
+        icon: '🎉',
+        emojis: ['🎉', '🎊', '🎁', '🛍️', '💳', '🎯', '🚀', '⚡', '💫', '🌟', '🔔', '📢'],
+      },
     ])
-    
+
     // Computed properties
     const currentEmojis = computed(() => {
-      const category = emojiCategories.value.find(cat => cat.name === selectedEmojiCategory.value)
+      const category = emojiCategories.value.find((cat) => cat.name === selectedEmojiCategory.value)
       return category ? category.emojis : []
     })
-    
+
     const canSendMessage = computed(() => {
-      return connected.value && 
-             messageText.value.trim().length > 0 && 
-             !sendingMessage.value &&
-             !uploadingFile.value
+      return (
+        connected.value &&
+        messageText.value.trim().length > 0 &&
+        !sendingMessage.value &&
+        !uploadingFile.value
+      )
     })
-    
+
     const messagesWithSeparators = computed(() => {
       const result = []
       let lastDate = null
-      
-      messages.value.forEach(message => {
+
+      messages.value.forEach((message) => {
         const messageDate = new Date(message.createdAt).toDateString()
-        
+
         if (messageDate !== lastDate) {
           result.push({
             type: 'separator',
             date: formatDate(new Date(message.createdAt)),
-            id: `separator-${messageDate}`
+            id: `separator-${messageDate}`,
           })
           lastDate = messageDate
         }
-        
+
         result.push({
           ...message,
-          isOwn: message.senderId === authStore.user?.id
+          isOwn: message.senderId === authStore.user?.id,
         })
       })
-      
+
       return result
     })
-    
+
     // Load conversation messages
     const loadMessages = async () => {
       if (!props.conversationId) return
-      
+
       loadingMessages.value = true
-      
+
       try {
         const response = await chatAPI.getMessages(props.conversationId)
         messages.value = response.data || []
-        
+
         // Mark messages as read
         await markAsRead()
-        
+
         // Scroll to bottom
         await nextTick()
         scrollToBottom()
-        
       } catch (error) {
         console.error('Error loading messages:', error)
         messages.value = []
@@ -401,71 +413,68 @@ export default {
         loadingMessages.value = false
       }
     }
-    
+
     // Send message
     const sendMessage = async () => {
       if (!canSendMessage.value) return
-      
+
       const content = messageText.value.trim()
       if (!content) return
-      
+
       sendingMessage.value = true
-      
+
       try {
         // Send via WebSocket
         if (websocketService.connected && props.conversationId) {
           await websocketService.sendMessage(props.conversationId, content, 'TEXT')
-          
+
           // Clear input
           messageText.value = ''
-          
+
           // Stop typing indicator
           stopTyping()
-          
+
           // Emit event
           emit('message-sent', {
             conversationId: props.conversationId,
             content,
-            messageType: 'TEXT'
+            messageType: 'TEXT',
           })
-          
+
           // Auto-resize textarea
           autoResizeTextarea()
-          
         } else {
           throw new Error('WebSocket not connected')
         }
-        
       } catch (error) {
         console.error('Error sending message:', error)
-        
+
         // TODO: Add to retry queue
-        
       } finally {
         sendingMessage.value = false
       }
     }
-    
+
     // Send quick message
     const sendQuickMessage = async (content) => {
       messageText.value = content
       await sendMessage()
     }
-    
+
     // Handle file selection
     const handleFileSelect = async (event) => {
       const file = event.target.files[0]
       if (!file) return
-      
+
       // Validate file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
         alert('File quá lớn! Vui lòng chọn file nhỏ hơn 10MB.')
         return
       }
-      
+
       uploadingFile.value = file
       uploadProgress.value = 0
-      
+
       try {
         // Mock file upload progress
         const uploadInterval = setInterval(() => {
@@ -475,25 +484,24 @@ export default {
             completeFileUpload(file)
           }
         }, 200)
-        
       } catch (error) {
         console.error('Error uploading file:', error)
         uploadingFile.value = null
         uploadProgress.value = 0
       }
     }
-    
+
     // Complete file upload
     const completeFileUpload = async (file) => {
       try {
         // TODO: Replace with actual file upload
         const fileUrl = URL.createObjectURL(file)
         const messageType = file.type.startsWith('image/') ? 'IMAGE' : 'FILE'
-        
+
         // Send file message
         if (websocketService.connected && props.conversationId) {
           await websocketService.sendMessage(props.conversationId, fileUrl, messageType)
-          
+
           emit('message-sent', {
             conversationId: props.conversationId,
             content: fileUrl,
@@ -501,44 +509,43 @@ export default {
             metadata: {
               filename: file.name,
               size: file.size,
-              type: file.type
-            }
+              type: file.type,
+            },
           })
         }
-        
       } catch (error) {
         console.error('Error sending file:', error)
       } finally {
         uploadingFile.value = null
         uploadProgress.value = 0
-        
+
         // Clear file input
         if (fileInput.value) {
           fileInput.value.value = ''
         }
       }
     }
-    
+
     // Handle typing
     const handleTyping = () => {
       if (!connected.value || !props.conversationId) return
-      
+
       // Start typing indicator
       if (!isUserTyping) {
         isUserTyping = true
         websocketService.sendTypingIndicator(props.conversationId, true)
       }
-      
+
       // Auto-resize textarea
       autoResizeTextarea()
-      
+
       // Reset typing timer
       clearTimeout(typingTimer)
       typingTimer = setTimeout(() => {
         stopTyping()
       }, 2000)
     }
-    
+
     // Stop typing indicator
     const stopTyping = () => {
       if (isUserTyping && connected.value && props.conversationId) {
@@ -547,7 +554,7 @@ export default {
       }
       clearTimeout(typingTimer)
     }
-    
+
     // Handle key down
     const handleKeyDown = (event) => {
       if (event.key === 'Enter' && !event.shiftKey) {
@@ -555,12 +562,12 @@ export default {
         sendMessage()
       }
     }
-    
+
     // Handle paste
     const handlePaste = (event) => {
       const items = event.clipboardData?.items
       if (!items) return
-      
+
       for (const item of items) {
         if (item.type.startsWith('image/')) {
           event.preventDefault()
@@ -573,7 +580,7 @@ export default {
         }
       }
     }
-    
+
     // Auto-resize textarea
     const autoResizeTextarea = () => {
       if (messageInput.value) {
@@ -581,7 +588,7 @@ export default {
         messageInput.value.style.height = Math.min(messageInput.value.scrollHeight, 120) + 'px'
       }
     }
-    
+
     // Mark messages as read
     const markAsRead = async () => {
       if (props.conversationId) {
@@ -593,34 +600,34 @@ export default {
         }
       }
     }
-    
+
     // Scroll to bottom
     const scrollToBottom = () => {
       if (messagesContainer.value) {
         messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
       }
     }
-    
+
     // WebSocket event handlers
     const handleIncomingMessage = (messageData) => {
       // Add message to list
       messages.value.push({
         ...messageData,
-        status: 'delivered'
+        status: 'delivered',
       })
-      
+
       // Mark as read if window is focused
       if (document.hasFocus()) {
         markAsRead()
       }
-      
+
       // Scroll to bottom
       nextTick(() => scrollToBottom())
     }
-    
+
     const handleTypingIndicator = (typingData) => {
       isTyping.value = typingData.isTyping
-      
+
       if (typingData.isTyping) {
         // Auto-hide after 3 seconds
         setTimeout(() => {
@@ -628,53 +635,53 @@ export default {
         }, 3000)
       }
     }
-    
+
     // UI event handlers
     const toggleProductInfo = () => {
       showProductInfo.value = !showProductInfo.value
     }
-    
+
     const viewProduct = () => {
       if (props.productId) {
         router.push(`/products/${props.productId}`)
       }
     }
-    
+
     const openFileSelector = () => {
       if (fileInput.value) {
         fileInput.value.click()
       }
     }
-    
+
     const cancelFileUpload = () => {
       uploadingFile.value = null
       uploadProgress.value = 0
     }
-    
+
     const toggleEmojiPicker = () => {
       showEmojiPicker.value = !showEmojiPicker.value
     }
-    
+
     const closeEmojiPicker = () => {
       showEmojiPicker.value = false
     }
-    
+
     const insertEmoji = (emoji) => {
       messageText.value += emoji
       closeEmojiPicker()
       messageInput.value?.focus()
     }
-    
+
     const openImageModal = (imageUrl) => {
       modalImage.value = imageUrl
       showImageModal.value = true
     }
-    
+
     const closeImageModal = () => {
       showImageModal.value = false
       modalImage.value = ''
     }
-    
+
     const reconnect = async () => {
       try {
         const token = localStorage.getItem('token')
@@ -685,20 +692,20 @@ export default {
         console.error('Reconnection failed:', error)
       }
     }
-    
+
     // Utility functions
     const formatTime = (timestamp) => {
       return new Date(timestamp).toLocaleTimeString('vi-VN', {
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       })
     }
-    
+
     const formatDate = (date) => {
       const today = new Date()
       const yesterday = new Date(today)
       yesterday.setDate(yesterday.getDate() - 1)
-      
+
       if (date.toDateString() === today.toDateString()) {
         return 'Hôm nay'
       } else if (date.toDateString() === yesterday.toDateString()) {
@@ -707,23 +714,23 @@ export default {
         return date.toLocaleDateString('vi-VN')
       }
     }
-    
+
     const formatLastSeen = (timestamp) => {
       const now = new Date()
       const lastSeen = new Date(timestamp)
       const diff = now - lastSeen
       const minutes = Math.floor(diff / 60000)
-      
+
       if (minutes < 1) return 'vừa xong'
       if (minutes < 60) return `${minutes} phút trước`
-      
+
       const hours = Math.floor(minutes / 60)
       if (hours < 24) return `${hours} giờ trước`
-      
+
       const days = Math.floor(hours / 24)
       return `${days} ngày trước`
     }
-    
+
     const formatFileSize = (bytes) => {
       if (bytes === 0) return '0 Bytes'
       const k = 1024
@@ -731,101 +738,117 @@ export default {
       const i = Math.floor(Math.log(bytes) / Math.log(k))
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
     }
-    
+
     const getMessageClass = (message) => {
       return {
-        'own': message.isOwn,
-        'other': !message.isOwn,
-        'system': message.messageType === 'SYSTEM',
-        'image': message.messageType === 'IMAGE',
-        'file': message.messageType === 'FILE'
+        own: message.isOwn,
+        other: !message.isOwn,
+        system: message.messageType === 'SYSTEM',
+        image: message.messageType === 'IMAGE',
+        file: message.messageType === 'FILE',
       }
     }
-    
+
     const getStatusClass = (status) => {
       return {
-        'sent': status === 'sent',
-        'delivered': status === 'delivered',
-        'read': status === 'read'
+        sent: status === 'sent',
+        delivered: status === 'delivered',
+        read: status === 'read',
       }
     }
-    
+
     const getStatusIcon = (status) => {
       switch (status) {
-        case 'sent': return '✓'
-        case 'delivered': return '✓✓'
-        case 'read': return '✓✓'
-        default: return '⏳'
+        case 'sent':
+          return '✓'
+        case 'delivered':
+          return '✓✓'
+        case 'read':
+          return '✓✓'
+        default:
+          return '⏳'
       }
     }
-    
+
     const getFileName = (url) => {
       return url.split('/').pop() || 'file'
     }
-    
+
     const getFileSize = (size) => {
       return size ? formatFileSize(size) : ''
     }
-    
+
     const downloadFile = (url) => {
       const link = document.createElement('a')
       link.href = url
       link.download = getFileName(url)
       link.click()
     }
-    
+
     // Watch for connection status
-    watch(() => websocketService.connected, (isConnected) => {
-      connected.value = isConnected
-    })
-    
-    // Watch for conversation changes
-    watch(() => props.conversationId, (newConversationId) => {
-      if (newConversationId) {
-        loadMessages()
-        
-        // Join conversation room
-        websocketService.joinConversation(newConversationId)
+    watch(
+      () => websocketService.connected,
+      (isConnected) => {
+        connected.value = isConnected
       }
-    })
-    
+    )
+
+    // Watch for conversation changes
+    watch(
+      () => props.conversationId,
+      (newConversationId) => {
+        if (newConversationId) {
+          loadMessages()
+
+          // Join conversation room
+          websocketService.joinConversation(newConversationId)
+        }
+      }
+    )
+
     // Lifecycle
     onMounted(() => {
       // Set initial connection status
       connected.value = websocketService.connected
-      
+
       // Load messages if conversation exists
       if (props.conversationId) {
         loadMessages()
         websocketService.joinConversation(props.conversationId)
       }
-      
+
       // Setup WebSocket event listeners
-      const unsubscribeMessage = websocketService.onMessage(props.conversationId || '*', handleIncomingMessage)
-      const unsubscribeTyping = websocketService.onTyping(props.conversationId || '*', handleTypingIndicator)
-      
+      const unsubscribeMessage = websocketService.onMessage(
+        props.conversationId || '*',
+        handleIncomingMessage
+      )
+      const unsubscribeTyping = websocketService.onTyping(
+        props.conversationId || '*',
+        handleTypingIndicator
+      )
+
       // Focus input
       nextTick(() => {
         messageInput.value?.focus()
       })
-      
+
       // Cleanup function
       return () => {
         unsubscribeMessage()
         unsubscribeTyping()
       }
     })
-    
+
     onUnmounted(() => {
       // Leave conversation room
       if (props.conversationId) {
         websocketService.leaveConversation(props.conversationId)
       }
-      
+
       // Stop typing
       stopTyping()
     })
-    
+
     return {
       // State
       messages,
@@ -843,17 +866,17 @@ export default {
       uploadProgress,
       quickStartMessages,
       emojiCategories,
-      
+
       // Computed
       currentEmojis,
       canSendMessage,
       messagesWithSeparators,
-      
+
       // Refs
       messagesContainer,
       messageInput,
       fileInput,
-      
+
       // Methods
       sendMessage,
       sendQuickMessage,
@@ -871,7 +894,7 @@ export default {
       openImageModal,
       closeImageModal,
       reconnect,
-      
+
       // Utilities
       formatTime,
       formatDate,
@@ -882,9 +905,9 @@ export default {
       getStatusIcon,
       getFileName,
       getFileSize,
-      downloadFile
+      downloadFile,
     }
-  }
+  },
 }
 </script>
 
@@ -1290,7 +1313,9 @@ export default {
 }
 
 @keyframes typing {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     transform: translateY(0);
   }
   30% {
@@ -1666,52 +1691,52 @@ export default {
   .chat-header {
     padding: 0.75rem;
   }
-  
+
   .seller-info {
     gap: 0.5rem;
   }
-  
+
   .seller-avatar img {
     width: 32px;
     height: 32px;
   }
-  
+
   .seller-details h3 {
     font-size: 0.9rem;
   }
-  
+
   .status-text {
     font-size: 0.7rem;
   }
-  
+
   .messages-container {
     padding: 0.75rem;
   }
-  
+
   .message {
     max-width: 85%;
     padding: 0.5rem 0.75rem;
   }
-  
+
   .message-input-container {
     padding: 0.75rem;
   }
-  
+
   .input-area {
     gap: 0.4rem;
   }
-  
+
   .attach-btn,
   .send-btn {
     width: 36px;
     height: 36px;
   }
-  
+
   .emoji-picker {
     width: 280px;
     margin: 1rem;
   }
-  
+
   .emoji-grid {
     grid-template-columns: repeat(5, 1fr);
   }

@@ -34,5 +34,5 @@ public interface ProductRepository extends MongoRepository<Product, String> {
     // Đếm số sản phẩm theo category
     long countByCategoryAndActiveTrue(String category);
 
-    
+    long countByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 }

@@ -9,6 +9,7 @@ import com.marketplace.service.UserService;
 import com.marketplace.service.ProductService;
 import com.marketplace.service.OrderService;
 import com.marketplace.service.FileUploadService;
+import com.marketplace.security.JwtTokenProvider;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -39,6 +41,9 @@ public class UserProfileController {
 
     @Autowired
     private FileUploadService fileUploadService;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
     // Lấy thông tin profile
     @GetMapping
@@ -324,9 +329,20 @@ public class UserProfileController {
     @GetMapping("/saved-items")
     public ResponseEntity<Map<String, Object>> getSavedItems() {
         String userId = getCurrentUserId();
-        // TODO: Implement saved items service
+        List<String> savedProductIds = userService.getSavedItems(userId);
+        // Lấy chi tiết sản phẩm từ id, bỏ qua id không hợp lệ
+        List<Product> savedProducts = savedProductIds.stream()
+            .map(id -> {
+                try {
+                    return productService.getProductById(id);
+                } catch (Exception e) {
+                    return null;
+                }
+            })
+            .filter(Objects::nonNull)
+            .toList();
         Map<String, Object> result = new HashMap<>();
-        result.put("savedItems", List.of());
+        result.put("savedItems", savedProducts);
         return ResponseEntity.ok(result);
     }
 
@@ -334,7 +350,7 @@ public class UserProfileController {
     public ResponseEntity<Map<String, Object>> saveForLater(@RequestBody Map<String, Object> request) {
         String userId = getCurrentUserId();
         String productId = (String) request.get("productId");
-        // TODO: Implement saved items service
+        userService.addSavedItem(userId, productId);
         Map<String, Object> result = new HashMap<>();
         result.put("message", "Sản phẩm đã được lưu để mua sau");
         return ResponseEntity.ok(result);
@@ -343,7 +359,7 @@ public class UserProfileController {
     @DeleteMapping("/saved-items/{itemId}")
     public ResponseEntity<Map<String, Object>> removeFromSavedItems(@PathVariable String itemId) {
         String userId = getCurrentUserId();
-        // TODO: Implement saved items service
+        userService.removeSavedItem(userId, itemId);
         Map<String, Object> result = new HashMap<>();
         result.put("message", "Sản phẩm đã được xóa khỏi danh sách lưu");
         return ResponseEntity.ok(result);
@@ -353,26 +369,16 @@ public class UserProfileController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated() &&
                 !authentication.getPrincipal().equals("anonymousUser")) {
-
             String token = getJwtFromCurrentRequest();
             if (token != null) {
                 try {
-                    org.springframework.context.ApplicationContext context =
-                            org.springframework.web.context.support.WebApplicationContextUtils
-                                    .getWebApplicationContext(((org.springframework.web.context.request.ServletRequestAttributes)
-                                            org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes())
-                                            .getRequest().getServletContext());
-
-                    if (context != null) {
-                        com.marketplace.security.JwtTokenProvider jwtProvider = context.getBean(com.marketplace.security.JwtTokenProvider.class);
-                        return jwtProvider.getUserIdFromToken(token);
-                    }
+                    return jwtTokenProvider.getUserIdFromToken(token);
                 } catch (Exception e) {
-                    // Fall back to mock for now
+                    // Log error if needed
                 }
             }
         }
-        return "mockUserId123";
+        throw new RuntimeException("Cannot extract userId from JWT");
     }
 
     private String getJwtFromCurrentRequest() {

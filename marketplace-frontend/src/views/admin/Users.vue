@@ -1,515 +1,403 @@
 <template>
-  <div class="admin-users-page">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">👥 Quản lý Người dùng</h1>
-        <p class="page-subtitle">Quản lý tài khoản và quyền hạn của tất cả người dùng</p>
-      </div>
-      
-      <div class="header-actions">
-        <button @click="refreshUsers" class="refresh-btn" :disabled="loading">
-          {{ loading ? '⏳ Đang tải...' : '🔄 Làm mới' }}
-        </button>
-        <button @click="exportUsers" class="export-btn">
-          📊 Xuất Excel
-        </button>
-        <button @click="showCreateUserModal = true" class="create-btn">
-          ➕ Thêm người dùng
+  <div class="admin-users">
+    <div class="container">
+      <!-- Header -->
+      <div class="page-header">
+        <div class="header-info">
+          <h1>👥 Quản lý người dùng</h1>
+          <p>Quản lý tất cả người dùng trong hệ thống</p>
+        </div>
+        <button @click="showCreateUserModal = true" class="btn-create">
+          ➕ Thêm người dùng mới
         </button>
       </div>
-    </div>
 
-    <!-- Stats Cards -->
-    <div class="stats-section">
-      <div class="stats-grid">
-        <div class="stat-card total">
-          <div class="stat-icon">👥</div>
-          <div class="stat-content">
-            <h3 class="stat-number">{{ userStats.total }}</h3>
-            <p class="stat-label">Tổng người dùng</p>
-            <span class="stat-change positive">+{{ userStats.newThisMonth }} tháng này</span>
-          </div>
-        </div>
-        
-        <div class="stat-card active">
-          <div class="stat-icon">✅</div>
-          <div class="stat-content">
-            <h3 class="stat-number">{{ userStats.active }}</h3>
-            <p class="stat-label">Đang hoạt động</p>
-            <span class="stat-percentage">{{ getPercentage(userStats.active, userStats.total) }}%</span>
-          </div>
-        </div>
-        
-        <div class="stat-card blocked">
-          <div class="stat-icon">🚫</div>
-          <div class="stat-content">
-            <h3 class="stat-number">{{ userStats.blocked }}</h3>
-            <p class="stat-label">Bị khóa</p>
-            <span class="stat-percentage">{{ getPercentage(userStats.blocked, userStats.total) }}%</span>
-          </div>
-        </div>
-        
-        <div class="stat-card admins">
-          <div class="stat-icon">👑</div>
-          <div class="stat-content">
-            <h3 class="stat-number">{{ userStats.admins }}</h3>
-            <p class="stat-label">Quản trị viên</p>
-          </div>
-        </div>
-        
-        <div class="stat-card vip">
-          <div class="stat-icon">💎</div>
-          <div class="stat-content">
-            <h3 class="stat-number">{{ userStats.vip }}</h3>
-            <p class="stat-label">VIP</p>
-            <span class="stat-percentage">{{ getPercentage(userStats.vip, userStats.total) }}%</span>
-          </div>
-        </div>
-        
-        <div class="stat-card verified">
-          <div class="stat-icon">✅</div>
-          <div class="stat-content">
-            <h3 class="stat-number">{{ userStats.verified }}</h3>
-            <p class="stat-label">Đã xác thực</p>
-            <span class="stat-percentage">{{ getPercentage(userStats.verified, userStats.total) }}%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Filters Section -->
-    <div class="filters-section">
-      <div class="filters-grid">
-        <!-- Status Filter -->
-        <div class="filter-group">
-          <label>Trạng thái:</label>
-          <select v-model="filters.status" @change="applyFilters">
-            <option value="">Tất cả</option>
-            <option value="active">Hoạt động</option>
-            <option value="blocked">Bị khóa</option>
-            <option value="pending">Chờ xác thực</option>
-          </select>
-        </div>
-        
-        <!-- Role Filter -->
-        <div class="filter-group">
-          <label>Vai trò:</label>
-          <select v-model="filters.role" @change="applyFilters">
-            <option value="">Tất cả</option>
-            <option value="USER">Người dùng</option>
-            <option value="ADMIN">Quản trị viên</option>
-            <option value="SELLER">Người bán</option>
-          </select>
-        </div>
-        
-        <!-- VIP Filter -->
-        <div class="filter-group">
-          <label>Loại tài khoản:</label>
-          <select v-model="filters.accountType" @change="applyFilters">
-            <option value="">Tất cả</option>
-            <option value="vip">VIP</option>
-            <option value="regular">Thường</option>
-          </select>
-        </div>
-        
-        <!-- Date Range Filter -->
-        <div class="filter-group">
-          <label>Ngày tham gia từ:</label>
-          <input 
-            v-model="filters.startDate" 
-            type="date" 
-            @change="applyFilters"
-          />
-        </div>
-        
-        <div class="filter-group">
-          <label>Đến:</label>
-          <input 
-            v-model="filters.endDate" 
-            type="date" 
-            @change="applyFilters"
-          />
-        </div>
-        
-        <!-- Search -->
-        <div class="filter-group search-group">
-          <label>Tìm kiếm:</label>
-          <input 
-            v-model="filters.search" 
-            type="text" 
-            placeholder="Tên, email, điện thoại..."
+      <!-- Filter và Search (gọn) -->
+      <div class="filter-section">
+        <div class="search-box">
+          <input
+            v-model="filters.search"
+            type="text"
+            placeholder="Tìm theo tên, email, điện thoại..."
+            class="search-input"
             @input="debounceSearch"
           />
         </div>
-        
-        <!-- Sort -->
-        <div class="filter-group">
-          <label>Sắp xếp:</label>
-          <select v-model="sortBy" @change="applySort">
-            <option value="newest">Mới nhất</option>
-            <option value="oldest">Cũ nhất</option>
-            <option value="nameAsc">Tên A → Z</option>
-            <option value="nameDesc">Tên Z → A</option>
-            <option value="mostActive">Hoạt động nhiều</option>
-          </select>
-        </div>
-        
-        <div class="filter-actions">
-          <button @click="clearFilters" class="clear-btn">
-            🗑️ Xóa bộ lọc
-          </button>
-        </div>
+        <button class="btn-advanced-filter" @click="showFilterModal = true">
+          <span class="filter-icon">🔍</span> Bộ lọc nâng cao
+        </button>
       </div>
-    </div>
 
-    <!-- Users Table -->
-    <div class="users-section">
-      <div class="table-container">
-        <div v-if="loading" class="loading-state">
-          <div class="loading-spinner">⏳ Đang tải người dùng...</div>
-        </div>
-        
-        <div v-else-if="error" class="error-state">
-          <div class="error-content">
-            <div class="error-icon">⚠️</div>
-            <h3>Có lỗi xảy ra</h3>
-            <p>{{ error }}</p>
-            <button @click="refreshUsers" class="retry-btn">Thử lại</button>
+      <!-- Popup Modal Advanced Filter -->
+      <div v-if="showFilterModal" class="modal-overlay" @click="closeFilterModal">
+        <div class="modal-content filter-modal" @click.stop>
+          <div class="modal-header">
+            <h2>Bộ lọc nâng cao</h2>
+            <button @click="closeFilterModal" class="close-btn">✕</button>
           </div>
-        </div>
-        
-        <table v-else-if="paginatedUsers.length > 0" class="users-table">
-          <thead>
-            <tr>
-              <th>Người dùng</th>
-              <th>Email & Điện thoại</th>
-              <th>Vai trò</th>
-              <th>Trạng thái</th>
-              <th>Hoạt động</th>
-              <th>Ngày tham gia</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="user in paginatedUsers" :key="user.id" class="user-row">
-              <td>
-                <div class="user-info">
-                  <div class="user-avatar">
-                    <img :src="user.avatar || '/default-avatar.jpg'" :alt="user.name" />
-                    <div v-if="user.isOnline" class="online-indicator"></div>
-                  </div>
-                  <div class="user-details">
-                    <h4 class="user-name">
-                      {{ user.name }}
-                      <span v-if="user.isVip" class="vip-badge">👑 VIP</span>
-                      <span v-if="user.isVerified" class="verified-badge">✅</span>
-                    </h4>
-                    <p class="user-id">ID: {{ user.id }}</p>
-                  </div>
-                </div>
-              </td>
-              
-              <td>
-                <div class="contact-info">
-                  <div class="email">📧 {{ user.email }}</div>
-                  <div class="phone">📱 {{ user.phone || 'Chưa cập nhật' }}</div>
-                </div>
-              </td>
-              
-              <td>
-                <select 
-                  v-model="user.role" 
-                  @change="updateUserRole(user)"
-                  class="role-select"
-                  :class="user.role.toLowerCase()"
-                >
+          <div class="modal-body">
+            <div class="filter-grid">
+              <div class="form-group">
+                <label>Trạng thái</label>
+                <select v-model="tempFilters.status" class="filter-select">
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="active">Hoạt động</option>
+                  <option value="blocked">Bị khóa</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Vai trò</label>
+                <select v-model="tempFilters.role" class="filter-select">
+                  <option value="">Tất cả vai trò</option>
                   <option value="USER">Người dùng</option>
-                  <option value="SELLER">Người bán</option>
                   <option value="ADMIN">Quản trị viên</option>
                 </select>
-              </td>
-              
-              <td>
-                <div class="status-container">
+              </div>
+              <div class="form-group">
+                <label>Loại tài khoản</label>
+                <select v-model="tempFilters.accountType" class="filter-select">
+                  <option value="">Tất cả loại tài khoản</option>
+                  <option value="vip">VIP</option>
+                  <option value="regular">Thường</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Từ ngày</label>
+                <input type="date" v-model="tempFilters.startDate" class="filter-select" />
+              </div>
+              <div class="form-group">
+                <label>Đến ngày</label>
+                <input type="date" v-model="tempFilters.endDate" class="filter-select" />
+              </div>
+              <div class="form-group">
+                <label>Sắp xếp</label>
+                <select v-model="tempSortBy" class="filter-select">
+                  <option value="newest">Mới nhất</option>
+                  <option value="oldest">Cũ nhất</option>
+                  <option value="nameAsc">Tên A → Z</option>
+                  <option value="nameDesc">Tên Z → A</option>
+                  <option value="mostActive">Hoạt động nhiều</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button @click="clearTempFilters" class="btn-clear">Xóa bộ lọc</button>
+            <button @click="applyTempFilters" class="btn-primary">Áp dụng</button>
+            <button @click="closeFilterModal" class="btn-secondary">Đóng</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-info">
+            <h3>{{ userStats.total }}</h3>
+            <p>Tổng người dùng</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-info">
+            <h3>{{ userStats.active }}</h3>
+            <p>Hoạt động</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🚫</div>
+          <div class="stat-info">
+            <h3>{{ userStats.blocked }}</h3>
+            <p>Bị khóa</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👑</div>
+          <div class="stat-info">
+            <h3>{{ userStats.vip }}</h3>
+            <p>VIP</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-info">
+            <h3>{{ userStats.verified }}</h3>
+            <p>Đã xác thực</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🛡️</div>
+          <div class="stat-info">
+            <h3>{{ userStats.admins }}</h3>
+            <p>Quản trị viên</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Table -->
+      <div class="users-table-container">
+        <div v-if="loading" class="loading">
+          <div class="spinner"></div>
+          <p>Đang tải người dùng...</p>
+        </div>
+        <div v-else-if="paginatedUsers.length === 0" class="empty-state">
+          <div class="empty-icon">👥</div>
+          <h3>Không có người dùng nào</h3>
+          <p>
+            {{
+              filters.search ||
+              filters.status ||
+              filters.role ||
+              filters.accountType ||
+              filters.startDate ||
+              filters.endDate
+                ? 'Không tìm thấy người dùng nào với bộ lọc hiện tại. Hãy thử thay đổi điều kiện tìm kiếm.'
+                : 'Chưa có người dùng nào trong hệ thống.'
+            }}
+          </p>
+          <button
+            v-if="
+              filters.search ||
+              filters.status ||
+              filters.role ||
+              filters.accountType ||
+              filters.startDate ||
+              filters.endDate
+            "
+            @click="clearFilters"
+            class="btn-add-first"
+          >
+            🔄 Xóa bộ lọc
+          </button>
+        </div>
+        <div v-else class="users-table">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 120px">🆔 ID</th>
+                <th style="width: 220px">📧 Email</th>
+                <th style="width: 120px">🎭 Vai trò</th>
+                <th style="width: 120px">🔄 Trạng thái</th>
+                <th style="width: 120px">📅 Ngày tạo</th>
+                <th style="width: 140px">⚡ Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="user in paginatedUsers" :key="user.id" class="user-row">
+                <td class="user-id">#{{ user.id.slice(-8) }}</td>
+                <td class="user-email">{{ user.email }}</td>
+                <td class="user-role">{{ getRoleText(user.role) }}</td>
+                <td>
                   <span class="status-badge" :class="user.status.toLowerCase()">
                     {{ getStatusText(user.status) }}
                   </span>
-                  <div class="status-actions">
-                    <button 
-                      v-if="user.status === 'active'"
-                      @click="toggleUserStatus(user)"
-                      class="status-btn block-btn"
-                      title="Khóa tài khoản"
+                </td>
+                <td class="created-date">{{ formatDate(user.createdAt) }}</td>
+                <td>
+                  <div class="action-buttons">
+                    <button
+                      @click="viewUserDetails(user)"
+                      class="btn btn-view"
+                      title="Xem chi tiết"
                     >
-                      🚫
+                      <span class="action-icon">👁️</span>
                     </button>
-                    <button 
-                      v-else
+                    <button @click="editUser(user)" class="btn btn-edit" title="Chỉnh sửa">
+                      <span class="action-icon">✏️</span>
+                    </button>
+                    <button
                       @click="toggleUserStatus(user)"
-                      class="status-btn unblock-btn"
-                      title="Mở khóa tài khoản"
+                      class="btn btn-block"
+                      :title="user.status === 'active' ? 'Khóa' : 'Mở khóa'"
                     >
-                      ✅
+                      <span class="action-icon">{{ user.status === 'active' ? '🚫' : '✅' }}</span>
+                    </button>
+                    <button @click="deleteUser(user)" class="btn btn-delete" title="Xóa">
+                      <span class="action-icon">🗑️</span>
                     </button>
                   </div>
-                </div>
-              </td>
-              
-              <td>
-                <div class="activity-info">
-                  <div class="orders-count">📋 {{ user.totalOrders }} đơn hàng</div>
-                  <div class="total-spent">💰 {{ formatPrice(user.totalSpent) }}</div>
-                  <div class="last-login">🕒 {{ formatDateTime(user.lastLogin) }}</div>
-                </div>
-              </td>
-              
-              <td>
-                <div class="join-date">
-                  <div class="date">{{ formatDate(user.createdAt) }}</div>
-                  <div class="time">{{ formatTime(user.createdAt) }}</div>
-                </div>
-              </td>
-              
-              <td>
-                <div class="action-buttons">
-                  <button 
-                    @click="viewUserDetails(user)" 
-                    class="action-btn view-btn"
-                    title="Xem chi tiết"
-                  >
-                    👁️
-                  </button>
-                  
-                  <button 
-                    @click="editUser(user)" 
-                    class="action-btn edit-btn"
-                    title="Chỉnh sửa"
-                  >
-                    ✏️
-                  </button>
-                  
-                  <button 
-                    @click="toggleVipStatus(user)" 
-                    class="action-btn vip-btn"
-                    :class="{ active: user.isVip }"
-                    :title="user.isVip ? 'Hủy VIP' : 'Nâng cấp VIP'"
-                  >
-                    👑
-                  </button>
-                  
-                  <button 
-                    @click="deleteUser(user)" 
-                    class="action-btn delete-btn"
-                    title="Xóa tài khoản"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        
-        <div v-else class="no-users">
-          <div class="no-users-content">
-            <div class="no-users-icon">👥</div>
-            <h3>Không tìm thấy người dùng nào</h3>
-            <p>Thử thay đổi bộ lọc hoặc kiểm tra lại từ khóa tìm kiếm</p>
-          </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="pagination">
-        <button 
-          @click="changePage(currentPage - 1)"
-          :disabled="currentPage === 1"
-          class="pagination-btn"
-        >
-          ⬅️ Trước
+        <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1" class="page-btn">
+          « Trước
         </button>
-        
-        <div class="pagination-info">
-          Trang {{ currentPage }} / {{ totalPages }} 
-          ({{ filteredUsers.length }} người dùng)
-        </div>
-        
-        <div class="pagination-numbers">
-          <button
-            v-for="page in visiblePages"
-            :key="page"
-            @click="changePage(page)"
-            class="pagination-btn"
-            :class="{ active: page === currentPage }"
-          >
-            {{ page }}
-          </button>
-        </div>
-        
-        <button 
+        <span class="page-info"> Trang {{ currentPage }} / {{ totalPages }} </span>
+        <button
           @click="changePage(currentPage + 1)"
           :disabled="currentPage === totalPages"
-          class="pagination-btn"
+          class="page-btn"
         >
-          Sau ➡️
+          Sau »
         </button>
       </div>
     </div>
 
     <!-- User Details Modal -->
     <div v-if="showUserModal" class="modal-overlay" @click="closeUserModal">
-      <div class="modal-content user-modal" @click.stop>
+      <div class="modal-content user-modal redesigned-user-modal" @click.stop>
         <div class="modal-header">
           <h2>Chi tiết người dùng</h2>
           <button @click="closeUserModal" class="close-btn">✕</button>
         </div>
-        
         <div class="modal-body" v-if="selectedUser">
-          <div class="user-details-grid">
-            <!-- Profile Information -->
-            <div class="detail-section">
-              <h3>👤 Thông tin cá nhân</h3>
-              <div class="profile-details">
-                <div class="profile-avatar">
-                  <img :src="selectedUser.avatar || '/default-avatar.jpg'" :alt="selectedUser.name" />
-                  <div class="avatar-badges">
-                    <span v-if="selectedUser.isVip" class="badge vip">👑 VIP</span>
-                    <span v-if="selectedUser.isVerified" class="badge verified">✅ Xác thực</span>
-                  </div>
-                </div>
-                <div class="profile-info">
-                  <p><strong>Tên:</strong> {{ selectedUser.name }}</p>
-                  <p><strong>Email:</strong> {{ selectedUser.email }}</p>
-                  <p><strong>Điện thoại:</strong> {{ selectedUser.phone || 'Chưa cập nhật' }}</p>
-                  <p><strong>Địa chỉ:</strong> {{ selectedUser.address || 'Chưa cập nhật' }}</p>
-                  <p><strong>Ngày sinh:</strong> {{ selectedUser.birthday || 'Chưa cập nhật' }}</p>
-                </div>
-              </div>
+          <div class="user-details-flex">
+            <div class="profile-avatar-large">
+              <img
+                :src="selectedUser.avatar || '/default-avatar.jpg'"
+                :alt="selectedUser.firstName + ' ' + selectedUser.lastName"
+              />
             </div>
-            
-            <!-- Account Stats -->
-            <div class="detail-section">
-              <h3>📊 Thống kê tài khoản</h3>
-              <div class="stats-list">
-                <div class="stat-item">
-                  <span class="stat-label">Tổng đơn hàng:</span>
-                  <span class="stat-value">{{ selectedUser.totalOrders }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Tổng chi tiêu:</span>
-                  <span class="stat-value">{{ formatPrice(selectedUser.totalSpent) }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Đánh giá:</span>
-                  <span class="stat-value">{{ selectedUser.reviewCount }} đánh giá</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Điểm loyalty:</span>
-                  <span class="stat-value">{{ selectedUser.loyaltyPoints }} điểm</span>
-                </div>
+            <div class="profile-info-block">
+              <div style="margin-bottom: 8px; color: #888; font-size: 0.98em">
+                ID: #{{ selectedUser.id?.slice(-8) }}
               </div>
+              <p><strong>Email:</strong> {{ selectedUser.email }}</p>
+              <p><strong>Họ:</strong> {{ selectedUser.firstName }}</p>
+              <p><strong>Tên:</strong> {{ selectedUser.lastName }}</p>
+              <p><strong>Điện thoại:</strong> {{ selectedUser.phone || 'Chưa cập nhật' }}</p>
+              <p><strong>Địa chỉ:</strong> {{ selectedUser.address || 'Chưa cập nhật' }}</p>
+              <p><strong>Ngày sinh:</strong> {{ selectedUser.birthday || 'Chưa cập nhật' }}</p>
+              <p><strong>Vai trò:</strong> {{ getRoleText(selectedUser.role) }}</p>
+              <p><strong>Trạng thái:</strong> {{ getStatusText(selectedUser.status) }}</p>
+              <p><strong>VIP:</strong> {{ selectedUser.isVip ? 'Có' : 'Không' }}</p>
+              <p>
+                <strong>Đã xác thực email:</strong> {{ selectedUser.isVerified ? 'Có' : 'Không' }}
+              </p>
+              <p><strong>Ngày tạo:</strong> {{ formatDate(selectedUser.createdAt) }}</p>
+              <p><strong>Ngày cập nhật:</strong> {{ formatDate(selectedUser.updatedAt) }}</p>
+              <p>
+                <strong>Lần đăng nhập cuối:</strong>
+                {{
+                  selectedUser.lastLogin
+                    ? formatDateTime(selectedUser.lastLogin)
+                    : 'Chưa từng đăng nhập'
+                }}
+              </p>
             </div>
-            
-            <!-- Activity Timeline -->
-            <div class="detail-section full-width">
-              <h3>📅 Hoạt động gần đây</h3>
-              <div class="activity-timeline">
-                <div v-for="activity in selectedUser.recentActivities" :key="activity.id" class="activity-item">
-                  <div class="activity-icon">{{ activity.icon }}</div>
-                  <div class="activity-content">
-                    <h4>{{ activity.title }}</h4>
-                    <p>{{ activity.description }}</p>
-                    <span class="activity-date">{{ formatDateTime(activity.createdAt) }}</span>
-                  </div>
-                </div>
+          </div>
+          <div class="user-stats-block">
+            <h4>📊 Thống kê tài khoản</h4>
+            <div class="stats-list">
+              <div class="stat-item">
+                <span>Tổng đơn hàng:</span> <b>{{ selectedUser.totalOrders }}</b>
+              </div>
+              <div class="stat-item">
+                <span>Tổng chi tiêu:</span> <b>{{ formatPrice(selectedUser.totalSpent) }}</b>
+              </div>
+              <div class="stat-item">
+                <span>Đánh giá:</span> <b>{{ selectedUser.reviewCount }}</b>
+              </div>
+              <div class="stat-item">
+                <span>Điểm loyalty:</span> <b>{{ selectedUser.loyaltyPoints }}</b>
               </div>
             </div>
           </div>
+          <div class="user-stats-block">
+            <h4>🛒 Lịch sử mua hàng</h4>
+            <ul
+              v-if="selectedUser.purchaseHistory && selectedUser.purchaseHistory.length"
+              style="margin: 0 0 8px 0; padding-left: 18px"
+            >
+              <li v-for="item in selectedUser.purchaseHistory" :key="item">{{ item }}</li>
+            </ul>
+            <div v-else style="color: #888">Không có dữ liệu</div>
+            <h4>📦 Sản phẩm đã bán</h4>
+            <ul
+              v-if="selectedUser.productsSold && selectedUser.productsSold.length"
+              style="margin: 0 0 8px 0; padding-left: 18px"
+            >
+              <li v-for="item in selectedUser.productsSold" :key="item">{{ item }}</li>
+            </ul>
+            <div v-else style="color: #888">Không có dữ liệu</div>
+            <h4>💾 Sản phẩm lưu lại</h4>
+            <ul
+              v-if="selectedUser.savedItems && selectedUser.savedItems.length"
+              style="margin: 0 0 8px 0; padding-left: 18px"
+            >
+              <li v-for="item in selectedUser.savedItems" :key="item">{{ item }}</li>
+            </ul>
+            <div v-else style="color: #888">Không có dữ liệu</div>
+          </div>
         </div>
-        
         <div class="modal-footer">
-          <button @click="editUser(selectedUser)" class="btn-secondary">
-            ✏️ Chỉnh sửa
-          </button>
-          <button @click="closeUserModal" class="btn-primary">
-            Đóng
-          </button>
+          <button @click="editUser(selectedUser)" class="btn-secondary">✏️ Chỉnh sửa</button>
+          <button @click="closeUserModal" class="btn-primary">Đóng</button>
         </div>
       </div>
     </div>
 
     <!-- Create/Edit User Modal -->
-    <div v-if="showCreateUserModal || showEditUserModal" class="modal-overlay" @click="closeCreateUserModal">
+    <div
+      v-if="showCreateUserModal || showEditUserModal"
+      class="modal-overlay"
+      @click="closeCreateUserModal"
+    >
       <div class="modal-content create-user-modal" @click.stop>
         <div class="modal-header">
           <h2>{{ showEditUserModal ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới' }}</h2>
           <button @click="closeCreateUserModal" class="close-btn">✕</button>
         </div>
-        
+
         <div class="modal-body">
           <form @submit.prevent="saveUser" class="user-form">
             <div class="form-grid">
               <div class="form-group">
-                <label>Họ tên *</label>
-                <input v-model="userForm.name" type="text" required />
+                <label>Họ *</label>
+                <input v-model="userForm.firstName" type="text" required />
               </div>
-              
+
+              <div class="form-group">
+                <label>Tên *</label>
+                <input v-model="userForm.lastName" type="text" required />
+              </div>
+
               <div class="form-group">
                 <label>Email *</label>
                 <input v-model="userForm.email" type="email" required />
               </div>
-              
+
               <div class="form-group">
                 <label>Điện thoại</label>
                 <input v-model="userForm.phone" type="tel" />
               </div>
-              
+
               <div class="form-group">
                 <label>Vai trò *</label>
                 <select v-model="userForm.role" required>
                   <option value="USER">Người dùng</option>
-                  <option value="SELLER">Người bán</option>
                   <option value="ADMIN">Quản trị viên</option>
                 </select>
               </div>
-              
+
               <div v-if="!showEditUserModal" class="form-group">
                 <label>Mật khẩu *</label>
                 <input v-model="userForm.password" type="password" required />
               </div>
-              
+
               <div class="form-group">
                 <label>Địa chỉ</label>
                 <textarea v-model="userForm.address" rows="3"></textarea>
               </div>
             </div>
-            
+
             <div class="form-checkboxes">
-              <label class="checkbox-label">
-                <input v-model="userForm.isVip" type="checkbox" />
-                <span>Tài khoản VIP</span>
-              </label>
-              
-              <label class="checkbox-label">
-                <input v-model="userForm.isVerified" type="checkbox" />
-                <span>Đã xác thực</span>
-              </label>
-              
-              <label class="checkbox-label">
-                <input v-model="userForm.isActive" type="checkbox" />
-                <span>Kích hoạt tài khoản</span>
-              </label>
+              <!-- Không còn checkbox nào ở đây -->
             </div>
           </form>
         </div>
-        
+
         <div class="modal-footer">
-          <button @click="closeCreateUserModal" class="btn-secondary">
-            Hủy
-          </button>
+          <button @click="closeCreateUserModal" class="btn-secondary">Hủy</button>
           <button @click="saveUser" class="btn-primary" :disabled="saving">
-            {{ saving ? '⏳ Đang lưu...' : (showEditUserModal ? 'Cập nhật' : 'Tạo tài khoản') }}
+            {{ saving ? '⏳ Đang lưu...' : showEditUserModal ? 'Cập nhật' : 'Tạo tài khoản' }}
           </button>
         </div>
       </div>
@@ -521,12 +409,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { adminAPI } from '@/services/api'
+import Multiselect from 'vue-multiselect'
+import 'vue-multiselect/dist/vue-multiselect.css'
 
 export default {
   name: 'AdminUsers',
+  components: { Multiselect },
   setup() {
     const router = useRouter()
-    
+
     // Reactive data
     const users = ref([])
     const loading = ref(false)
@@ -536,7 +427,7 @@ export default {
     const showCreateUserModal = ref(false)
     const showEditUserModal = ref(false)
     const saving = ref(false)
-    
+
     // Stats
     const userStats = ref({
       total: 0,
@@ -545,9 +436,9 @@ export default {
       admins: 0,
       vip: 0,
       verified: 0,
-      newThisMonth: 0
+      newThisMonth: 0,
     })
-    
+
     // Filters
     const filters = ref({
       status: '',
@@ -555,18 +446,19 @@ export default {
       accountType: '',
       startDate: '',
       endDate: '',
-      search: ''
+      search: '',
     })
-    
+
     const sortBy = ref('newest')
-    
+
     // Pagination
     const currentPage = ref(1)
     const itemsPerPage = 10
-    
+
     // User form
     const userForm = ref({
-      name: '',
+      firstName: '',
+      lastName: '',
       email: '',
       phone: '',
       role: 'USER',
@@ -574,64 +466,70 @@ export default {
       address: '',
       isVip: false,
       isVerified: false,
-      isActive: true
+      isActive: true,
     })
-    
+
     // Debounce timer for search
     let searchTimeout = null
-    
+
+    // Popup filter modal state
+    const showFilterModal = ref(false)
+    const tempFilters = ref({ ...filters.value })
+    const tempSortBy = ref(sortBy.value)
+
     // Computed properties
     const filteredUsers = computed(() => {
       let filtered = [...users.value]
-      
+
       // Status filter
       if (filters.value.status) {
-        filtered = filtered.filter(user => user.status === filters.value.status)
+        filtered = filtered.filter((user) => user.status === filters.value.status)
       }
-      
+
       // Role filter
       if (filters.value.role) {
-        filtered = filtered.filter(user => user.role === filters.value.role)
+        filtered = filtered.filter((user) => user.role === filters.value.role)
       }
-      
+
       // Account type filter
       if (filters.value.accountType) {
         if (filters.value.accountType === 'vip') {
-          filtered = filtered.filter(user => user.isVip)
+          filtered = filtered.filter((user) => user.isVip)
         } else if (filters.value.accountType === 'regular') {
-          filtered = filtered.filter(user => !user.isVip)
+          filtered = filtered.filter((user) => !user.isVip)
         }
       }
-      
+
       // Date filter
       if (filters.value.startDate) {
-        filtered = filtered.filter(user => 
-          new Date(user.createdAt) >= new Date(filters.value.startDate)
+        filtered = filtered.filter(
+          (user) => new Date(user.createdAt) >= new Date(filters.value.startDate)
         )
       }
-      
+
       if (filters.value.endDate) {
-        filtered = filtered.filter(user => 
-          new Date(user.createdAt) <= new Date(filters.value.endDate)
+        filtered = filtered.filter(
+          (user) => new Date(user.createdAt) <= new Date(filters.value.endDate)
         )
       }
-      
+
       // Search filter
       if (filters.value.search) {
         const searchTerm = filters.value.search.toLowerCase()
-        filtered = filtered.filter(user => 
-          user.name.toLowerCase().includes(searchTerm) ||
-          user.email.toLowerCase().includes(searchTerm) ||
-          (user.phone && user.phone.includes(searchTerm))
+        filtered = filtered.filter(
+          (user) =>
+            user.name.toLowerCase().includes(searchTerm) ||
+            user.email.toLowerCase().includes(searchTerm) ||
+            (user.phone && user.phone.includes(searchTerm))
         )
       }
-      
+
       return filtered
     })
-    
+
     const sortedUsers = computed(() => {
       const sorted = [...filteredUsers.value]
-      
+
       switch (sortBy.value) {
         case 'oldest':
           return sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
@@ -646,24 +544,22 @@ export default {
           return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       }
     })
-    
+
     const paginatedUsers = computed(() => {
       const start = (currentPage.value - 1) * itemsPerPage
       return sortedUsers.value.slice(start, start + itemsPerPage)
     })
-    
-    const totalPages = computed(() => 
-      Math.ceil(sortedUsers.value.length / itemsPerPage)
-    )
-    
+
+    const totalPages = computed(() => Math.ceil(sortedUsers.value.length / itemsPerPage))
+
     const visiblePages = computed(() => {
       const total = totalPages.value
       const current = currentPage.value
       const delta = 2
-      
+
       let start = Math.max(1, current - delta)
       let end = Math.min(total, current + delta)
-      
+
       if (end - start < delta * 2) {
         if (start === 1) {
           end = Math.min(total, start + delta * 2)
@@ -671,19 +567,43 @@ export default {
           start = Math.max(1, end - delta * 2)
         }
       }
-      
+
       return Array.from({ length: end - start + 1 }, (_, i) => start + i)
     })
-    
+
     // Methods
     const loadUsers = async () => {
       loading.value = true
       error.value = null
-      
+
       try {
-        const response = await adminAPI.getUsers()
-        users.value = response.data.users || response.data
-        calculateStats()
+        const [usersResponse, statsResponse] = await Promise.all([
+          adminAPI.getUsers(),
+          adminAPI.getUserStats(),
+        ])
+
+        users.value = usersResponse.data.map((user) => ({
+          ...user,
+          name: `${user.firstName} ${user.lastName}`,
+          status: user.enabled ? 'active' : 'blocked',
+          totalOrders: user.purchaseHistory ? user.purchaseHistory.length : 0,
+          totalSpent: 0, // This would need to be calculated from orders
+          reviewCount: 0, // This would need to be fetched from reviews
+          loyaltyPoints: 0, // This would need to be fetched from loyalty service
+          isOnline: false, // This would need real-time tracking
+          address: user.address || 'Chưa cập nhật',
+          birthday: user.birthday || 'Chưa cập nhật',
+        }))
+
+        userStats.value = {
+          total: statsResponse.data.totalUsers,
+          active: statsResponse.data.activeUsers,
+          blocked: statsResponse.data.inactiveUsers,
+          admins: statsResponse.data.adminUsers,
+          vip: statsResponse.data.vipUsers,
+          verified: statsResponse.data.verifiedUsers,
+          newThisMonth: statsResponse.data.newUsersThisMonth,
+        }
       } catch (err) {
         error.value = 'Không thể tải danh sách người dùng'
         console.error('Error loading users:', err)
@@ -691,122 +611,105 @@ export default {
         loading.value = false
       }
     }
-    
-    const calculateStats = () => {
-      const stats = {
-        total: users.value.length,
-        active: 0,
-        blocked: 0,
-        admins: 0,
-        vip: 0,
-        verified: 0,
-        newThisMonth: 0
-      }
-      
-      const oneMonthAgo = new Date()
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-      
-      users.value.forEach(user => {
-        if (user.status === 'active') stats.active++
-        if (user.status === 'blocked') stats.blocked++
-        if (user.role === 'ADMIN') stats.admins++
-        if (user.isVip) stats.vip++
-        if (user.isVerified) stats.verified++
-        if (new Date(user.createdAt) > oneMonthAgo) stats.newThisMonth++
-      })
-      
-      userStats.value = stats
-    }
-    
+
     const toggleUserStatus = async (user) => {
       const newStatus = user.status === 'active' ? 'blocked' : 'active'
       const action = newStatus === 'blocked' ? 'khóa' : 'mở khóa'
-      
+
       if (confirm(`Bạn có chắc chắn muốn ${action} tài khoản của ${user.name}?`)) {
         try {
           await adminAPI.toggleUserStatus(user.id)
           user.status = newStatus
-          calculateStats()
+          await loadUsers() // Reload to get updated stats
         } catch (err) {
           console.error('Error toggling user status:', err)
+          alert('Có lỗi xảy ra khi cập nhật trạng thái người dùng')
         }
       }
     }
-    
+
     const updateUserRole = async (user) => {
       try {
-        // API call to update user role
-        console.log('Updating user role:', user.id, user.role)
+        await adminAPI.updateUserRole(user.id, user.role)
+        console.log('User role updated successfully')
       } catch (err) {
         console.error('Error updating user role:', err)
-        await loadUsers()
+        alert('Có lỗi xảy ra khi cập nhật vai trò người dùng')
+        await loadUsers() // Reload to get correct data
       }
     }
-    
+
     const toggleVipStatus = async (user) => {
-      user.isVip = !user.isVip
-      calculateStats()
-      // API call would go here
-    }
-    
-    const viewUserDetails = (user) => {
-      selectedUser.value = {
-        ...user,
-        recentActivities: [
-          {
-            id: 1,
-            icon: '🛒',
-            title: 'Đặt hàng thành công',
-            description: 'Đã đặt đơn hàng #12345 với tổng giá trị 2.500.000đ',
-            createdAt: '2024-12-22T10:30:00'
-          },
-          {
-            id: 2,
-            icon: '⭐',
-            title: 'Đánh giá sản phẩm',
-            description: 'Đã đánh giá 5 sao cho sản phẩm iPhone 15 Pro',
-            createdAt: '2024-12-21T15:20:00'
-          }
-        ]
+      try {
+        await adminAPI.toggleVipStatus(user.id)
+        user.isVip = !user.isVip
+        await loadUsers() // Reload to get updated stats
+      } catch (err) {
+        console.error('Error toggling VIP status:', err)
+        alert('Có lỗi xảy ra khi cập nhật trạng thái VIP')
       }
-      showUserModal.value = true
     }
-    
+
+    const viewUserDetails = async (user) => {
+      try {
+        const res = await adminAPI.getUserById(user.id)
+        selectedUser.value = res.data
+        showUserModal.value = true
+      } catch (e) {
+        alert('Không lấy được thông tin người dùng!')
+      }
+    }
+
     const closeUserModal = () => {
       showUserModal.value = false
       selectedUser.value = null
     }
-    
+
     const editUser = (user) => {
       userForm.value = {
-        ...user,
-        password: '' // Don't include password in edit form
+        id: user.id,
+        firstName: user.firstName || user.name?.split(' ')[0] || '',
+        lastName: user.lastName || user.name?.split(' ').slice(1).join(' ') || '',
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        password: '', // Don't include password in edit form
+        address: user.address,
+        isVip: user.isVip,
+        isVerified: user.isVerified,
+        isActive: user.status === 'active',
       }
       showEditUserModal.value = true
       showUserModal.value = false
     }
-    
+
     const deleteUser = async (user) => {
-      if (confirm(`Bạn có chắc chắn muốn xóa tài khoản của ${user.name}? Hành động này không thể hoàn tác.`)) {
+      if (
+        confirm(
+          `Bạn có chắc chắn muốn xóa tài khoản của ${user.name}? Hành động này không thể hoàn tác.`
+        )
+      ) {
         try {
-          // API call to delete user
-          users.value = users.value.filter(u => u.id !== user.id)
-          calculateStats()
+          await adminAPI.deleteUser(user.id)
+          users.value = users.value.filter((u) => u.id !== user.id)
+          await loadUsers() // Reload to get updated stats
         } catch (err) {
           console.error('Error deleting user:', err)
+          alert('Có lỗi xảy ra khi xóa người dùng')
         }
       }
     }
-    
+
     const closeCreateUserModal = () => {
       showCreateUserModal.value = false
       showEditUserModal.value = false
       resetUserForm()
     }
-    
+
     const resetUserForm = () => {
       userForm.value = {
-        name: '',
+        firstName: '',
+        lastName: '',
         email: '',
         phone: '',
         role: 'USER',
@@ -814,46 +717,60 @@ export default {
         address: '',
         isVip: false,
         isVerified: false,
-        isActive: true
+        isActive: true,
       }
     }
-    
+
     const saveUser = async () => {
       saving.value = true
       try {
+        const userData = {
+          firstName: userForm.value.firstName,
+          lastName: userForm.value.lastName,
+          email: userForm.value.email,
+          phone: userForm.value.phone,
+          role: userForm.value.role,
+          password: userForm.value.password,
+          address: userForm.value.address,
+          isVip: userForm.value.isVip,
+          isVerified: userForm.value.isVerified,
+          enabled: userForm.value.isActive,
+        }
+
         if (showEditUserModal.value) {
           // Update existing user
-          console.log('Updating user:', userForm.value)
+          await adminAPI.updateUser(userForm.value.id, userData)
         } else {
           // Create new user
-          console.log('Creating user:', userForm.value)
+          await adminAPI.createUser(userData)
         }
         closeCreateUserModal()
         await loadUsers()
       } catch (err) {
         console.error('Error saving user:', err)
+        alert('Có lỗi xảy ra khi lưu người dùng')
       } finally {
         saving.value = false
       }
     }
-    
+
     const exportUsers = () => {
       // Export users to Excel logic
       console.log('Exporting users...')
     }
-    
+
     const refreshUsers = () => {
       loadUsers()
     }
-    
+
     const applyFilters = () => {
       currentPage.value = 1
     }
-    
+
     const applySort = () => {
       currentPage.value = 1
     }
-    
+
     const clearFilters = () => {
       filters.value = {
         status: '',
@@ -861,111 +778,109 @@ export default {
         accountType: '',
         startDate: '',
         endDate: '',
-        search: ''
+        search: '',
       }
       sortBy.value = 'newest'
       currentPage.value = 1
     }
-    
+
     const debounceSearch = () => {
       clearTimeout(searchTimeout)
       searchTimeout = setTimeout(() => {
         applyFilters()
       }, 500)
     }
-    
+
     const changePage = (page) => {
       currentPage.value = page
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
-    
+
     const getStatusText = (status) => {
       const statusTexts = {
         active: 'Hoạt động',
         blocked: 'Bị khóa',
-        pending: 'Chờ xác thực'
+        pending: 'Chờ xác thực',
       }
       return statusTexts[status] || status
     }
-    
+
     const getPercentage = (value, total) => {
       return total > 0 ? Math.round((value / total) * 100) : 0
     }
-    
+
     const formatPrice = (price) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
       }).format(price)
     }
-    
+
     const formatDate = (date) => {
       return new Date(date).toLocaleDateString('vi-VN')
     }
-    
+
     const formatTime = (date) => {
-      return new Date(date).toLocaleTimeString('vi-VN', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      return new Date(date).toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
       })
     }
-    
+
     const formatDateTime = (date) => {
       return new Date(date).toLocaleString('vi-VN')
     }
-    
-    // Mock data for development
-    const loadMockData = () => {
-      users.value = [
-        {
-          id: 1,
-          name: 'Nguyễn Văn A',
-          email: 'user1@example.com',
-          phone: '0123456789',
-          role: 'USER',
-          status: 'active',
-          isVip: true,
-          isVerified: true,
-          isOnline: true,
-          avatar: '/default-avatar.jpg',
-          totalOrders: 15,
-          totalSpent: 25000000,
-          reviewCount: 8,
-          loyaltyPoints: 1250,
-          lastLogin: '2024-12-22T10:30:00',
-          createdAt: '2024-01-15T08:00:00',
-          address: '123 Đường ABC, Quận 1, TP.HCM'
-        },
-        {
-          id: 2,
-          name: 'Trần Thị B',
-          email: 'user2@example.com',
-          phone: '0987654321',
-          role: 'SELLER',
-          status: 'active',
-          isVip: false,
-          isVerified: true,
-          isOnline: false,
-          avatar: '/default-avatar.jpg',
-          totalOrders: 3,
-          totalSpent: 5000000,
-          reviewCount: 2,
-          loyaltyPoints: 350,
-          lastLogin: '2024-12-21T16:45:00',
-          createdAt: '2024-03-20T10:15:00'
-        }
-        // Add more mock users...
-      ]
-      calculateStats()
+
+    const handleImageError = (event) => {
+      event.target.src = '/default-avatar.jpg'
     }
-    
+
+    const getRoleText = (role) => {
+      switch (role) {
+        case 'ADMIN':
+          return 'Quản trị viên'
+        case 'USER':
+          return 'Người dùng'
+        default:
+          return role
+      }
+    }
+
+    // When opening modal, copy current filters
+    const openFilterModal = () => {
+      tempFilters.value = { ...filters.value }
+      tempSortBy.value = sortBy.value
+      showFilterModal.value = true
+    }
+    const closeFilterModal = () => {
+      showFilterModal.value = false
+    }
+    // Clear temp filters in modal
+    const clearTempFilters = () => {
+      tempFilters.value = {
+        status: '',
+        role: '',
+        accountType: '',
+        startDate: '',
+        endDate: '',
+        search: '',
+      }
+      tempSortBy.value = 'newest'
+    }
+    // Apply temp filters to real filters
+    const applyTempFilters = () => {
+      filters.value = { ...tempFilters.value }
+      sortBy.value = tempSortBy.value
+      currentPage.value = 1
+      showFilterModal.value = false
+    }
+
     // Lifecycle
     onMounted(() => {
       // Load real data or mock data for development
-      loadMockData() // Remove this and uncomment loadUsers() for production
-      // loadUsers()
+      loadUsers()
     })
-    
+
     return {
       users,
       loading,
@@ -1006,17 +921,32 @@ export default {
       formatPrice,
       formatDate,
       formatTime,
-      formatDateTime
+      formatDateTime,
+      handleImageError,
+      getRoleText,
+      showFilterModal,
+      tempFilters,
+      tempSortBy,
+      openFilterModal,
+      closeFilterModal,
+      clearTempFilters,
+      applyTempFilters,
     }
-  }
+  },
 }
 </script>
 
 <style scoped>
-.admin-users-page {
+.admin-users {
   padding: 24px;
   background: var(--bg-primary);
   min-height: 100vh;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 0;
 }
 
 .page-header {
@@ -1027,720 +957,672 @@ export default {
   gap: 24px;
 }
 
-.page-title {
+.header-info h1 {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #2563eb;
   margin-bottom: 8px;
 }
 
-.page-subtitle {
-  color: var(--text-secondary);
+.header-info p {
+  color: #666;
   font-size: 1.1rem;
 }
 
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.refresh-btn,
-.export-btn,
-.create-btn {
-  padding: 10px 20px;
+.btn-create {
+  padding: 12px 24px;
+  background: var(--accent-purple);
+  color: white;
   border: none;
   border-radius: 8px;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 0.9rem;
   transition: all 0.3s ease;
 }
 
-.refresh-btn {
-  background: var(--accent-blue);
-  color: white;
+.btn-create:hover {
+  background: var(--accent-purple-dark);
+  transform: translateY(-2px);
 }
 
-.export-btn {
-  background: var(--accent-green);
-  color: white;
+.filter-section {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 20px;
+  margin-bottom: 24px;
+  flex-wrap: nowrap;
 }
 
-.create-btn {
-  background: var(--accent-purple);
-  color: white;
+.search-box {
+  flex: 0 1 400px;
+  max-width: 400px;
+  min-width: 260px;
+  width: 100%;
+  margin-right: 0;
 }
 
-.stats-section {
-  margin-bottom: 32px;
+.search-input {
+  width: 100%;
+  padding: 14px 20px;
+  border: 1px solid #e0e7ef;
+  border-radius: 8px;
+  font-size: 1.08rem;
+  background: #f6f8fa;
+  color: #222;
+  box-sizing: border-box;
+}
+
+.btn-advanced-filter {
+  padding: 12px 20px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s;
+}
+
+.btn-advanced-filter:hover {
+  background: #1d4ed8;
+}
+
+.filter-icon {
+  font-size: 1.2em;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 20px;
+  margin-bottom: 32px;
 }
 
 .stat-card {
-  background: var(--bg-secondary);
-  padding: 24px;
+  background: #fff;
   border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 20px 18px;
   display: flex;
   align-items: center;
   gap: 16px;
-  transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.1);
 }
 
 .stat-icon {
   font-size: 2rem;
+  color: #2563eb;
 }
 
-.stat-number {
-  font-size: 1.8rem;
+.stat-info h3 {
+  font-size: 1.3rem;
   font-weight: 700;
-  margin-bottom: 4px;
+  color: #222;
+  margin-bottom: 2px;
 }
 
-.stat-label {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin-bottom: 4px;
+.stat-info p {
+  color: #666;
+  font-size: 0.95rem;
 }
 
-.stat-change.positive {
-  color: var(--accent-green);
-  font-size: 0.8rem;
+.users-table-container {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
+  padding: 24px;
+  margin-bottom: 32px;
+  overflow-x: auto;
 }
 
-.stat-percentage {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.user-avatar {
-  position: relative;
-  width: 48px;
-  height: 48px;
-}
-
-.user-avatar img {
+.users-table table {
   width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.online-indicator {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 12px;
-  height: 12px;
-  background: var(--accent-green);
-  border: 2px solid var(--bg-secondary);
-  border-radius: 50%;
-}
-
-.user-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 1rem;
-  font-weight: 500;
-  margin-bottom: 4px;
 }
 
-.vip-badge,
-.verified-badge {
-  font-size: 0.7rem;
+.users-table th {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  padding: 14px 12px;
+  text-align: left;
+}
+
+.users-table td {
+  padding: 12px 10px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
 }
 
 .user-id {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-weight: 600;
+  color: #2563eb;
 }
 
-.contact-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.user-email {
+  font-size: 0.98em;
+  color: #666;
 }
 
-.email,
-.phone {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-}
-
-.role-select {
-  padding: 6px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.role-select.user { border-color: var(--accent-blue); }
-.role-select.seller { border-color: var(--accent-orange); }
-.role-select.admin { border-color: var(--accent-red); }
-
-.status-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.user-role {
+  font-size: 0.98em;
+  color: #333;
 }
 
 .status-badge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 500;
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 16px;
+  font-size: 0.98em;
+  font-weight: 600;
+  color: #fff;
+  background: #64748b;
+  min-width: 90px;
   text-align: center;
 }
 
 .status-badge.active {
-  background: rgba(76, 175, 80, 0.2);
-  color: var(--accent-green);
+  background: #059669;
 }
 
 .status-badge.blocked {
-  background: rgba(244, 67, 54, 0.2);
-  color: var(--accent-red);
+  background: #ef4444;
 }
 
-.status-badge.pending {
-  background: rgba(255, 152, 0, 0.2);
-  color: var(--accent-orange);
-}
-
-.status-actions {
-  display: flex;
-  justify-content: center;
-}
-
-.status-btn {
-  padding: 4px 8px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem;
-}
-
-.block-btn {
-  background: var(--accent-red);
-  color: white;
-}
-
-.unblock-btn {
-  background: var(--accent-green);
-  color: white;
-}
-
-.activity-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.8rem;
-}
-
-.orders-count {
-  color: var(--accent-blue);
-}
-
-.total-spent {
-  color: var(--accent-green);
-}
-
-.last-login {
-  color: var(--text-secondary);
-}
-
-.join-date {
-  text-align: center;
-}
-
-.date {
-  font-weight: 500;
-  margin-bottom: 2px;
-}
-
-.time {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
+.vip-badge {
+  background: #fde68a;
+  color: #8b4513;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.85em;
+  font-weight: 600;
 }
 
 .action-buttons {
   display: flex;
-  gap: 4px;
-}
-
-.action-btn {
-  padding: 6px 8px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  transition: all 0.2s ease;
-}
-
-.view-btn {
-  background: var(--accent-blue);
-  color: white;
-}
-
-.edit-btn {
-  background: var(--accent-orange);
-  color: white;
-}
-
-.vip-btn {
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-}
-
-.vip-btn.active {
-  background: var(--accent-yellow);
-  color: #8B4513;
-}
-
-.delete-btn {
-  background: var(--accent-red);
-  color: white;
-}
-
-.filters-section {
-  background: var(--bg-secondary);
-  padding: 24px;
-  border-radius: 12px;
-  margin-bottom: 24px;
-}
-
-.filters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  align-items: end;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
   gap: 8px;
-}
-
-.filter-group label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.filter-group input,
-.filter-group select {
-  padding: 10px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 0.9rem;
-}
-
-.search-group {
-  grid-column: span 2;
-}
-
-.clear-btn {
-  padding: 10px 16px;
-  background: var(--accent-red);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  height: fit-content;
-}
-
-.users-section {
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.table-container {
-  overflow-x: auto;
-}
-
-.users-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.users-table th {
-  background: var(--bg-primary);
-  padding: 16px;
-  text-align: left;
-  font-weight: 600;
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.user-row {
-  border-bottom: 1px solid var(--border-color);
-  transition: background-color 0.2s ease;
-}
-
-.user-row:hover {
-  background: var(--bg-primary);
-}
-
-.users-table td {
-  padding: 16px;
-  vertical-align: top;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 1000;
-  padding: 20px;
 }
 
-.modal-content {
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  max-width: 900px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.modal-header h2 {
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.close-btn {
-  background: none;
+.btn {
+  background: #f3f4f6;
   border: none;
-  font-size: 1.5rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 4px;
-}
-
-.modal-body {
-  padding: 24px;
-}
-
-.user-details-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
-}
-
-.detail-section {
-  background: var(--bg-primary);
-  padding: 20px;
   border-radius: 8px;
-}
-
-.detail-section.full-width {
-  grid-column: 1 / -1;
-}
-
-.detail-section h3 {
-  margin-bottom: 16px;
-  color: var(--text-primary);
-  font-size: 1.1rem;
-}
-
-.profile-details {
-  display: flex;
-  gap: 16px;
-}
-
-.profile-avatar {
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 1.1em;
   position: relative;
 }
 
-.profile-avatar img {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  object-fit: cover;
+.btn:hover {
+  background: #dbeafe;
 }
 
-.avatar-badges {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
+.btn-block:hover,
+.btn-delete:hover {
+  background: #fee2e2;
 }
 
-.badge {
-  font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 4px;
+.action-icon {
+  vertical-align: middle;
 }
 
-.badge.vip {
-  background: var(--accent-yellow);
-  color: #8B4513;
-}
-
-.badge.verified {
-  background: var(--accent-green);
-  color: white;
-}
-
-.profile-info {
-  flex: 1;
-}
-
-.profile-info p {
-  margin: 8px 0;
-  color: var(--text-secondary);
-}
-
-.stats-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.stat-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.stat-label {
-  color: var(--text-secondary);
-}
-
-.stat-value {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.activity-timeline {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.activity-item {
-  display: flex;
-  gap: 12px;
-}
-
-.activity-icon {
-  font-size: 1.2rem;
-  width: 24px;
+.loading {
   text-align: center;
+  padding: 40px 0;
 }
 
-.activity-content h4 {
-  margin-bottom: 4px;
-  color: var(--text-primary);
+.spinner {
+  border: 4px solid #e0e7ef;
+  border-top: 4px solid #2563eb;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 12px auto;
 }
 
-.activity-content p {
-  margin-bottom: 4px;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-.activity-date {
-  font-size: 0.8rem;
-  color: var(--text-tertiary);
+.empty-state {
+  text-align: center;
+  color: #888;
+  padding: 32px 0 16px 0;
+  font-size: 1.1em;
 }
 
-.user-form {
-  width: 100%;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-group label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  padding: 10px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 0.9rem;
-}
-
-.form-checkboxes {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 24px;
-  border-top: 1px solid var(--border-color);
-}
-
-.btn-primary,
-.btn-secondary {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
-}
-
-.btn-primary {
-  background: var(--accent-blue);
-  color: white;
-}
-
-.btn-secondary {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+.empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
 }
 
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  padding: 24px;
-  background: var(--bg-primary);
+  gap: 16px;
+  padding: 24px 0;
 }
 
-.pagination-btn {
-  padding: 8px 12px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border-radius: 6px;
+.page-btn {
+  padding: 10px 16px;
+  border: 1px solid #e0e7ef;
+  background: #f6f8fa;
+  color: #2563eb;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s;
+  font-weight: 600;
 }
 
-.pagination-btn:hover:not(:disabled) {
-  background: var(--accent-blue);
-  color: white;
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.pagination-btn.active {
-  background: var(--accent-blue);
-  color: white;
+.page-info {
+  color: #666;
+  font-size: 1rem;
+  margin: 0 16px;
 }
 
-@media (max-width: 768px) {
-  .admin-users-page {
-    padding: 16px;
-  }
-  
-  .page-header {
+.date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.date-label {
+  font-size: 0.85em;
+  color: #2563eb;
+  margin-bottom: 2px;
+  font-weight: 500;
+}
+
+@media (max-width: 1024px) {
+  .filter-section {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
+    flex-wrap: wrap;
   }
-  
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  .search-box {
+    max-width: 100%;
+    min-width: 0;
+    margin-right: 0;
+  }
+  .filters {
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+}
+
+/* Style cho vue-multiselect dark mode */
+.multiselect-dark .multiselect__select {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+.multiselect-dark .multiselect__content-wrapper {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+.multiselect-dark .multiselect__option--highlight {
+  background: var(--accent-blue);
+  color: white;
+}
+.multiselect-dark .multiselect__option {
+  color: var(--text-primary);
+}
+.multiselect-dark .multiselect__single {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+/* Modal filter */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content.filter-modal {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.18);
+  padding: 32px 28px 20px 28px;
+  min-width: 340px;
+  max-width: 95vw;
+  width: 420px;
+  position: relative;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.modal-header h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: #888;
+}
+.filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 16px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-group label {
+  font-size: 0.98em;
+  color: #222;
+  font-weight: 500;
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+.btn-secondary {
+  background: #e0e7ef;
+  color: #2563eb;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+.btn-secondary:hover {
+  background: #c7d2fe;
+  color: #1d4ed8;
+}
+.btn-clear {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.btn-clear:hover {
+  background: #dc2626;
+}
+@media (max-width: 600px) {
+  .modal-content.filter-modal {
+    width: 98vw;
+    min-width: 0;
+    padding: 18px 6vw 12px 6vw;
+  }
+  .filter-grid {
+    grid-template-columns: 1fr;
     gap: 12px;
   }
-  
-  .filters-grid {
+}
+
+.created-date {
+  background: #e6f0ff;
+  color: #2563eb;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.redesigned-user-modal {
+  max-width: 540px;
+  width: 98vw;
+  padding: 0 0 24px 0;
+  border-radius: 18px;
+  overflow-y: auto;
+  max-height: 90vh;
+  background: #f6f8fa;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+.redesigned-user-modal .modal-header {
+  padding: 24px 32px 10px 32px;
+  margin-bottom: 0;
+}
+.redesigned-user-modal .modal-header h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+.redesigned-user-modal .close-btn {
+  margin-right: -8px;
+  margin-top: -8px;
+}
+.redesigned-user-modal .modal-footer {
+  padding: 18px 32px 0 32px;
+  margin-top: 18px;
+}
+.user-details-flex {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+  padding: 18px 32px 0 32px;
+  flex-wrap: wrap;
+}
+.profile-avatar-large {
+  flex: 0 0 110px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.profile-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.profile-info-block {
+  flex: 1;
+  min-width: 180px;
+  font-size: 1.05em;
+  color: #222;
+}
+.user-stats-block,
+.user-activity-block {
+  padding: 18px 32px 0 32px;
+}
+.stats-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 24px;
+  margin-top: 8px;
+}
+.stat-item {
+  min-width: 120px;
+  color: #2563eb;
+  font-weight: 500;
+}
+.user-activity-block {
+  margin-top: 8px;
+}
+.activity-timeline {
+  margin-top: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.activity-icon {
+  font-size: 1.3em;
+  margin-top: 2px;
+}
+.activity-content h5 {
+  margin: 0 0 2px 0;
+  font-size: 1em;
+  color: #2563eb;
+}
+.activity-date {
+  font-size: 0.92em;
+  color: #888;
+}
+@media (max-width: 600px) {
+  .user-details-flex,
+  .user-stats-block,
+  .user-activity-block {
+    padding: 12px 6vw 0 6vw;
+  }
+  .redesigned-user-modal {
+    padding: 0 0 8px 0;
+  }
+  .redesigned-user-modal .modal-header,
+  .redesigned-user-modal .modal-footer {
+    padding-left: 6vw;
+    padding-right: 6vw;
+  }
+}
+.user-stats-block h4 {
+  color: #2563eb;
+  font-weight: 700;
+  margin-top: 18px;
+  margin-bottom: 6px;
+  font-size: 1.08em;
+}
+
+.create-user-modal {
+  max-width: 480px;
+  width: 98vw;
+  background: #f6f8fa;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  padding: 0 0 24px 0;
+  overflow-y: auto;
+  max-height: 90vh;
+}
+.create-user-modal .modal-header {
+  padding: 24px 32px 10px 32px;
+  margin-bottom: 0;
+}
+.create-user-modal .modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+.create-user-modal .close-btn {
+  margin-right: -8px;
+  margin-top: -8px;
+}
+.create-user-modal .modal-footer {
+  padding: 18px 32px 0 32px;
+  margin-top: 18px;
+}
+.create-user-modal .user-form {
+  padding: 18px 32px 0 32px;
+}
+.create-user-modal .form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 16px;
+}
+.create-user-modal .form-group label {
+  color: #2563eb;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.create-user-modal .form-group input,
+.create-user-modal .form-group textarea,
+.create-user-modal .form-group select {
+  border-radius: 8px;
+  border: 1px solid #e0e7ef;
+  padding: 10px 12px;
+  font-size: 1em;
+  background: #fff;
+  color: #222;
+  margin-bottom: 0;
+}
+.create-user-modal .form-checkboxes {
+  display: flex;
+  gap: 18px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.create-user-modal .checkbox-label {
+  color: #2563eb;
+  font-weight: 500;
+  font-size: 1em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+@media (max-width: 600px) {
+  .create-user-modal .modal-header,
+  .create-user-modal .modal-footer,
+  .create-user-modal .user-form {
+    padding-left: 6vw;
+    padding-right: 6vw;
+  }
+  .create-user-modal .form-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  
-  .search-group {
-    grid-column: span 1;
-  }
-  
-  .users-table {
-    font-size: 0.8rem;
-  }
-  
-  .modal-content {
-    margin: 10px;
-  }
-  
-  .user-details-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .detail-section.full-width {
-    grid-column: 1;
-  }
-  
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .form-checkboxes {
-    flex-direction: column;
     gap: 12px;
   }
 }

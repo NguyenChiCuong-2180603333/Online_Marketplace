@@ -27,17 +27,11 @@
           v-for="category in categories"
           :key="category.id"
           class="category-card"
-          @click="viewCategory(category.slug)"
+          @click="viewCategory(category.name)"
         >
-          <div class="category-image">
-            <img
-              :src="category.imageUrl || '/placeholder-category.jpg'"
-              :alt="category.name"
-              @error="handleImageError"
-            />
-            <div class="category-overlay">
-              <div class="category-icon">{{ category.icon || '📦' }}</div>
-            </div>
+          <div class="category-image category-icon-only">
+            <div class="category-icon-large">{{ category.icon || '📦' }}</div>
+            <div class="category-overlay"></div>
           </div>
 
           <div class="category-info">
@@ -50,16 +44,12 @@
                 <span class="stat-value">{{ category.productCount || 0 }}</span>
                 <span class="stat-label">sản phẩm</span>
               </div>
-
-              <div class="stat">
-                <span class="stat-icon">⭐</span>
-                <span class="stat-value">{{ category.averageRating || 0 }}</span>
-                <span class="stat-label">đánh giá</span>
-              </div>
             </div>
 
             <div class="category-actions">
-              <button class="btn btn-primary">Xem sản phẩm</button>
+              <button class="btn btn-primary" @click.stop="viewCategory(category.name)">
+                Xem sản phẩm
+              </button>
 
               <div class="category-tags" v-if="category.tags && category.tags.length > 0">
                 <span v-for="tag in category.tags.slice(0, 3)" :key="tag" class="tag">
@@ -117,7 +107,7 @@
             v-for="category in featuredCategories"
             :key="category.id"
             class="featured-card"
-            @click="viewCategory(category.slug)"
+            @click="viewCategory(category.name)"
           >
             <div class="featured-image">
               <img :src="category.imageUrl || '/placeholder-category.jpg'" :alt="category.name" />
@@ -129,7 +119,6 @@
               <p>{{ category.description }}</p>
               <div class="featured-stats">
                 <span>{{ category.productCount }} sản phẩm</span>
-                <span>{{ category.averageRating }}⭐</span>
               </div>
             </div>
           </div>
@@ -157,14 +146,6 @@
             <div class="stat-content">
               <h3>{{ totalProducts }}</h3>
               <p>Tổng số sản phẩm</p>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon">⭐</div>
-            <div class="stat-content">
-              <h3>{{ averageRating }}</h3>
-              <p>Đánh giá trung bình</p>
             </div>
           </div>
 
@@ -373,46 +354,36 @@ export default {
   box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
 }
 
-.category-image {
-  position: relative;
-  width: 100%;
+.category-image.category-icon-only {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 200px;
-  overflow: hidden;
+  background: rgba(0, 212, 255, 0.05);
+  position: relative;
 }
 
-.category-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
+.category-icon-large {
+  font-size: 5rem;
+  color: var(--text-accent);
+  text-shadow: 0 2px 8px rgba(0, 212, 255, 0.15);
+  z-index: 2;
 }
 
-.category-card:hover .category-image img {
-  transform: scale(1.1);
-}
-
-.category-overlay {
+.category-image.category-icon-only .category-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 0;
+  z-index: 1;
+  transition: background 0.3s;
 }
 
-.category-card:hover .category-overlay {
-  opacity: 1;
-}
-
-.category-icon {
-  font-size: 3rem;
-  color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+.category-card:hover .category-image.category-icon-only .category-overlay {
+  background: rgba(0, 212, 255, 0.12);
 }
 
 .category-info {

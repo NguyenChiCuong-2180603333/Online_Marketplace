@@ -153,9 +153,8 @@
                     v-for="i in 5"
                     :key="i"
                     class="star"
-                    :class="[i <= Math.round(product.rating || 0) ? 'filled' : '']"
-                    >⭐</span
-                  >
+                    :class="[i <= Number(product.averageRating || 0) ? 'filled' : '']"
+                  >⭐</span>
                 </div>
                 <span class="rating-text">({{ product.reviewCount || 0 }})</span>
               </div>
@@ -329,6 +328,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
 import { productAPI, categoryAPI } from '@/services/api'
+import { searchAPI } from '@/services/api'
 
 export default {
   name: 'Products',
@@ -404,13 +404,8 @@ export default {
 
         // Prepare API parameters
         const params = {
-          page: currentPage.value - 1, // Backend uses 0-based pagination
+          page: currentPage.value - 1,
           size: itemsPerPage.value,
-        }
-
-        // Add search query
-        if (searchQuery.value.trim()) {
-          params.search = searchQuery.value.trim()
         }
 
         // Add category filter
@@ -427,30 +422,35 @@ export default {
           }
         }
 
-        // Add sorting
-        if (filters.value.sortBy) {
-          params.sort = filters.value.sortBy
+        // Map sortBy/sortOrder for backend
+        const sortMap = {
+          newest: { sortBy: 'createdAt', sortOrder: 'desc' },
+          'price-asc': { sortBy: 'price', sortOrder: 'asc' },
+          'price-desc': { sortBy: 'price', sortOrder: 'desc' },
+          rating: { sortBy: 'rating', sortOrder: 'desc' },
+          popular: { sortBy: 'reviewCount', sortOrder: 'desc' },
         }
+        const sort = sortMap[filters.value.sortBy] || { sortBy: 'createdAt', sortOrder: 'desc' }
+        params.sortBy = sort.sortBy
+        params.sortOrder = sort.sortOrder
 
-        console.log('Loading products with params:', params)
+        // Add search query
+        const query = searchQuery.value.trim() || undefined
 
-        const response = await productAPI.getAll(params)
+        // Gọi API mới
+        const response = await searchAPI.products(query, params)
 
-        // Handle different response formats
-        if (response.data.content) {
-          // Paginated response
-          products.value = response.data.content
-          totalResults.value = response.data.totalElements
+        // Lấy dữ liệu từ response.data.products
+        if (response.data.products) {
+          products.value = response.data.products
+          totalResults.value = response.data.totalElements || response.data.products.length
         } else if (Array.isArray(response.data)) {
-          // Simple array response
           products.value = response.data
           totalResults.value = response.data.length
         } else {
           products.value = []
           totalResults.value = 0
         }
-
-        console.log('Loaded products:', products.value)
       } catch (err) {
         console.error('Error loading products:', err)
         error.value = err.response?.data?.message || 'Không thể tải danh sách sản phẩm'

@@ -11,16 +11,11 @@
           Chào mừng trở lại với Seller Dashboard. Hãy cùng xem tình hình kinh doanh hôm nay.
         </p>
       </div>
-      
       <div class="header-actions">
         <button @click="refreshDashboard" :disabled="loading.dashboard" class="refresh-btn">
-          <span :class="{ 'spinning': loading.dashboard }">🔄</span>
+          <span :class="{ spinning: loading.dashboard }">🔄</span>
           {{ loading.dashboard ? 'Đang tải...' : 'Làm mới' }}
         </button>
-        
-        <router-link to="/seller/products/create" class="create-product-btn">
-          ➕ Tạo sản phẩm mới
-        </router-link>
       </div>
     </header>
 
@@ -37,7 +32,7 @@
       <!-- Stats Overview -->
       <section class="stats-section">
         <h2 class="section-title">📊 Tổng quan</h2>
-        
+
         <div class="stats-grid">
           <!-- Total Products -->
           <div class="stat-card products">
@@ -51,7 +46,7 @@
               <span class="trend-text">+{{ stats.newProductsThisMonth || 0 }} tháng này</span>
             </div>
           </div>
-          
+
           <!-- Active Products -->
           <div class="stat-card active">
             <div class="stat-icon">✅</div>
@@ -61,15 +56,15 @@
             </div>
             <div class="stat-progress">
               <div class="progress-bar">
-                <div 
-                  class="progress-fill" 
+                <div
+                  class="progress-fill"
                   :style="{ width: getActiveProductPercentage() + '%' }"
                 ></div>
               </div>
               <span class="progress-text">{{ getActiveProductPercentage() }}%</span>
             </div>
           </div>
-          
+
           <!-- Total Orders -->
           <div class="stat-card orders">
             <div class="stat-icon">📋</div>
@@ -84,7 +79,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Revenue -->
           <div class="stat-card revenue">
             <div class="stat-icon">💰</div>
@@ -95,51 +90,12 @@
             <div class="stat-breakdown">
               <div class="breakdown-item">
                 <span class="breakdown-label">Tháng này:</span>
-                <span class="breakdown-value this-month">{{ formatMoney(stats.thisMonthRevenue || 0) }}</span>
+                <span class="breakdown-value this-month">{{
+                  formatMoney(stats.thisMonthRevenue || 0)
+                }}</span>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <!-- Quick Actions -->
-      <section class="quick-actions-section">
-        <h2 class="section-title">🚀 Hành động nhanh</h2>
-        
-        <div class="actions-grid">
-          <router-link to="/seller/products/create" class="action-card primary">
-            <div class="action-icon">➕</div>
-            <h3 class="action-title">Tạo sản phẩm mới</h3>
-            <p class="action-description">Thêm sản phẩm mới vào cửa hàng của bạn</p>
-            <div class="action-cta">Bắt đầu tạo →</div>
-          </router-link>
-          
-          <router-link to="/seller/products" class="action-card">
-            <div class="action-icon">📦</div>
-            <h3 class="action-title">Quản lý sản phẩm</h3>
-            <p class="action-description">Chỉnh sửa, cập nhật và quản lý kho hàng</p>
-            <div class="action-badge" v-if="lowStockProducts.length > 0">
-              {{ lowStockProducts.length }} sản phẩm sắp hết
-            </div>
-          </router-link>
-          
-          <router-link to="/seller/orders" class="action-card">
-            <div class="action-icon">📋</div>
-            <h3 class="action-title">Xử lý đơn hàng</h3>
-            <p class="action-description">Cập nhật trạng thái và giao hàng</p>
-            <div class="action-badge urgent" v-if="stats.pendingOrders > 0">
-              {{ stats.pendingOrders }} đơn chờ xử lý
-            </div>
-          </router-link>
-          
-          <router-link to="/seller/analytics" class="action-card">
-            <div class="action-icon">📈</div>
-            <h3 class="action-title">Xem thống kê</h3>
-            <p class="action-description">Phân tích hiệu suất và xu hướng bán hàng</p>
-            <div class="action-trend">
-              <span class="trend-up">📊 Doanh thu tăng</span>
-            </div>
-          </router-link>
         </div>
       </section>
 
@@ -147,49 +103,43 @@
       <section class="recent-orders-section" v-if="recentOrders.length > 0">
         <div class="section-header">
           <h2 class="section-title">📋 Đơn hàng gần đây</h2>
-          <router-link to="/seller/orders" class="view-all-link">
-            Xem tất cả →
-          </router-link>
+          <router-link to="/seller/orders" class="view-all-link"> Xem tất cả → </router-link>
         </div>
-        
+
         <div class="orders-list">
-          <div 
-            v-for="order in recentOrders.slice(0, 5)" 
-            :key="order.id" 
-            class="order-item"
-          >
+          <div v-for="order in recentOrders.slice(0, 5)" :key="order.id" class="order-item">
             <div class="order-info">
               <h4 class="order-id">#{{ order.id.slice(-8) }}</h4>
               <p class="order-customer">{{ order.customerName || 'Khách hàng' }}</p>
               <p class="order-date">{{ formatDate(order.createdAt) }}</p>
             </div>
-            
+
             <div class="order-products">
               <div class="product-summary">
                 <span class="product-count">{{ order.items?.length || 1 }} sản phẩm</span>
               </div>
             </div>
-            
+
             <div class="order-status">
               <span :class="['status-badge', getStatusClass(order.status)]">
                 {{ getStatusText(order.status) }}
               </span>
             </div>
-            
+
             <div class="order-amount">
               <span class="amount">{{ formatMoney(order.totalAmount) }}</span>
             </div>
-            
+
             <div class="order-actions">
-              <router-link 
-                :to="`/seller/orders/${order.id}`" 
+              <router-link
+                :to="`/seller/orders/${order.id}`"
                 class="action-btn view"
                 title="Xem chi tiết"
               >
                 👁️
               </router-link>
-              
-              <button 
+
+              <button
                 v-if="order.status === 'PENDING'"
                 @click="quickUpdateStatus(order.id, 'PROCESSING')"
                 class="action-btn process"
@@ -197,94 +147,6 @@
               >
                 ⚙️
               </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Performance Insights -->
-      <section class="insights-section">
-        <h2 class="section-title">💡 Thông tin hữu ích</h2>
-        
-        <div class="insights-grid">
-          <!-- Best Selling Products -->
-          <div class="insight-card">
-            <h3 class="insight-title">🏆 Sản phẩm bán chạy</h3>
-            <div class="insight-content">
-              <div v-if="bestSellingProducts.length === 0" class="no-data">
-                <p>Chưa có dữ liệu bán hàng</p>
-              </div>
-              <div v-else class="product-list">
-                <div 
-                  v-for="product in bestSellingProducts.slice(0, 3)" 
-                  :key="product.id"
-                  class="product-item"
-                >
-                  <img 
-                    :src="product.images?.[0] || '/placeholder-product.jpg'" 
-                    :alt="product.name"
-                    class="product-image"
-                  />
-                  <div class="product-info">
-                    <h4>{{ product.name }}</h4>
-                    <p>{{ product.reviewCount || 0 }} đánh giá</p>
-                  </div>
-                  <div class="product-rating">
-                    ⭐ {{ product.averageRating || 0 }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Low Stock Alert -->
-          <div class="insight-card alert" v-if="lowStockProducts.length > 0">
-            <h3 class="insight-title">⚠️ Cảnh báo tồn kho</h3>
-            <div class="insight-content">
-              <p class="alert-message">
-                {{ lowStockProducts.length }} sản phẩm sắp hết hàng
-              </p>
-              <div class="low-stock-list">
-                <div 
-                  v-for="product in lowStockProducts.slice(0, 3)" 
-                  :key="product.id"
-                  class="stock-item"
-                >
-                  <span class="product-name">{{ product.name }}</span>
-                  <span class="stock-count">{{ product.stockQuantity }} còn lại</span>
-                </div>
-              </div>
-              <router-link to="/seller/products?filter=low-stock" class="alert-action">
-                Xem tất cả →
-              </router-link>
-            </div>
-          </div>
-          
-          <!-- Tips & Recommendations -->
-          <div class="insight-card tips">
-            <h3 class="insight-title">💭 Gợi ý cải thiện</h3>
-            <div class="insight-content">
-              <div class="tips-list">
-                <div class="tip-item" v-if="stats.activeProducts === 0">
-                  <span class="tip-icon">📦</span>
-                  <span class="tip-text">Hãy tạo sản phẩm đầu tiên để bắt đầu bán hàng</span>
-                </div>
-                
-                <div class="tip-item" v-if="lowStockProducts.length > 0">
-                  <span class="tip-icon">📈</span>
-                  <span class="tip-text">Nhập thêm hàng cho sản phẩm sắp hết để không bỏ lỡ đơn hàng</span>
-                </div>
-                
-                <div class="tip-item" v-if="stats.activeProducts > 0 && stats.totalOrders === 0">
-                  <span class="tip-icon">🎯</span>
-                  <span class="tip-text">Tối ưu hóa tiêu đề và hình ảnh sản phẩm để thu hút khách hàng</span>
-                </div>
-                
-                <div class="tip-item" v-if="stats.pendingOrders > 5">
-                  <span class="tip-icon">⚡</span>
-                  <span class="tip-text">Xử lý nhanh các đơn hàng chờ để tăng độ hài lòng khách hàng</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -315,7 +177,7 @@ const lowStockProducts = computed(() => sellerStore.lowStockProducts)
 
 const bestSellingProducts = computed(() => {
   return sellerStore.activeProducts
-    .filter(p => p.reviewCount > 0)
+    .filter((p) => p.reviewCount > 0)
     .sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0))
     .slice(0, 3)
 })
@@ -337,46 +199,46 @@ const getActiveProductPercentage = () => {
 const formatMoney = (amount) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'VND'
+    currency: 'VND',
   }).format(amount || 0)
 }
 
 const formatDate = (dateString) => {
   if (!dateString) return ''
-  
+
   const date = new Date(dateString)
   const now = new Date()
   const diffTime = Math.abs(now - date)
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
+
   if (diffDays === 1) return 'Hôm qua'
   if (diffDays <= 7) return `${diffDays} ngày trước`
-  
+
   return date.toLocaleDateString('vi-VN', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
+    year: 'numeric',
   })
 }
 
 const getStatusClass = (status) => {
   const statusClasses = {
-    'PENDING': 'pending',
-    'PROCESSING': 'processing',
-    'SHIPPED': 'shipped',
-    'DELIVERED': 'delivered',
-    'CANCELLED': 'cancelled'
+    PENDING: 'pending',
+    PROCESSING: 'processing',
+    SHIPPED: 'shipped',
+    DELIVERED: 'delivered',
+    CANCELLED: 'cancelled',
   }
   return statusClasses[status] || 'pending'
 }
 
 const getStatusText = (status) => {
   const statusTexts = {
-    'PENDING': '🕐 Chờ xử lý',
-    'PROCESSING': '⚙️ Đang xử lý',
-    'SHIPPED': '🚚 Đã giao vận',
-    'DELIVERED': '✅ Đã giao',
-    'CANCELLED': '❌ Đã hủy'
+    PENDING: '🕐 Chờ xử lý',
+    PROCESSING: '⚙️ Đang xử lý',
+    SHIPPED: '🚚 Đã giao vận',
+    DELIVERED: '✅ Đã giao',
+    CANCELLED: '❌ Đã hủy',
   }
   return statusTexts[status] || status
 }
@@ -456,7 +318,7 @@ onMounted(async () => {
   align-items: center;
 }
 
-.refresh-btn, .create-product-btn {
+.refresh-btn {
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   font-weight: 600;
@@ -464,12 +326,6 @@ onMounted(async () => {
   cursor: pointer;
   text-decoration: none;
   font-size: 0.9rem;
-}
-
-.refresh-btn {
-  background: rgba(0, 212, 255, 0.2);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  color: var(--text-accent, #00d4ff);
 }
 
 .refresh-btn:hover:not(:disabled) {
@@ -480,19 +336,6 @@ onMounted(async () => {
 .refresh-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.create-product-btn {
-  background: var(--text-accent, #00d4ff);
-  border: none;
-  color: #1a1a2e;
-  font-weight: 700;
-}
-
-.create-product-btn:hover {
-  background: #00c4ef;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
 }
 
 /* Loading State */
@@ -571,10 +414,18 @@ onMounted(async () => {
   border-color: var(--text-accent, #00d4ff);
 }
 
-.stat-card.products::before { background: #667eea; }
-.stat-card.active::before { background: #10b981; }
-.stat-card.orders::before { background: #f59e0b; }
-.stat-card.revenue::before { background: #ef4444; }
+.stat-card.products::before {
+  background: #667eea;
+}
+.stat-card.active::before {
+  background: #10b981;
+}
+.stat-card.orders::before {
+  background: #f59e0b;
+}
+.stat-card.revenue::before {
+  background: #ef4444;
+}
 
 .stat-icon {
   font-size: 2.5rem;
@@ -594,7 +445,8 @@ onMounted(async () => {
   font-weight: 500;
 }
 
-.stat-trend, .stat-breakdown {
+.stat-trend,
+.stat-breakdown {
   margin-top: 1rem;
   font-size: 0.85rem;
 }
@@ -654,89 +506,6 @@ onMounted(async () => {
   color: #10b981;
 }
 
-/* Quick Actions Section */
-.actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-.action-card {
-  background: rgba(26, 26, 46, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  border-radius: 16px;
-  padding: 2rem;
-  text-decoration: none;
-  color: inherit;
-  transition: all 0.3s ease;
-  position: relative;
-  display: block;
-}
-
-.action-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
-  border-color: var(--text-accent, #00d4ff);
-}
-
-.action-card.primary {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(102, 126, 234, 0.1) 100%);
-  border-color: var(--text-accent, #00d4ff);
-}
-
-.action-icon {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-}
-
-.action-title {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--text-primary, #ffffff);
-  margin-bottom: 0.5rem;
-}
-
-.action-description {
-  color: var(--text-secondary, #a0aec0);
-  margin-bottom: 1rem;
-  line-height: 1.5;
-}
-
-.action-cta {
-  color: var(--text-accent, #00d4ff);
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.action-badge {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.action-badge.urgent {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  animation: pulse 2s infinite;
-}
-
-.action-trend {
-  margin-top: 1rem;
-}
-
-.trend-up {
-  color: #10b981;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
 /* Recent Orders Section */
 .section-header {
   display: flex;
@@ -788,7 +557,8 @@ onMounted(async () => {
   margin-bottom: 0.25rem;
 }
 
-.order-customer, .order-date {
+.order-customer,
+.order-date {
   font-size: 0.9rem;
   color: var(--text-secondary, #a0aec0);
   margin: 0;
@@ -860,168 +630,24 @@ onMounted(async () => {
   transform: scale(1.1);
 }
 
-/* Performance Insights Section */
-.insights-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 1.5rem;
-}
-
-.insight-card {
-  background: rgba(26, 26, 46, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  border-radius: 16px;
-  padding: 2rem;
-  transition: all 0.3s ease;
-}
-
-.insight-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 40px rgba(0, 212, 255, 0.1);
-}
-
-.insight-card.alert {
-  border-color: rgba(245, 158, 11, 0.5);
-  background: rgba(245, 158, 11, 0.05);
-}
-
-.insight-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary, #ffffff);
-  margin-bottom: 1rem;
-}
-
-.no-data {
-  text-align: center;
-  color: var(--text-secondary, #a0aec0);
-  padding: 2rem;
-}
-
-.product-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.product-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-}
-
-.product-image {
-  width: 50px;
-  height: 50px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.product-info {
-  flex: 1;
-}
-
-.product-info h4 {
-  margin: 0 0 0.25rem 0;
-  color: var(--text-primary, #ffffff);
-  font-size: 0.9rem;
-}
-
-.product-info p {
-  margin: 0;
-  color: var(--text-secondary, #a0aec0);
-  font-size: 0.8rem;
-}
-
-.product-rating {
-  color: #fbbf24;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.alert-message {
-  color: #f59e0b;
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
-
-.low-stock-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.stock-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
-}
-
-.product-name {
-  color: var(--text-primary, #ffffff);
-  font-size: 0.9rem;
-}
-
-.stock-count {
-  color: #f59e0b;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.alert-action {
-  color: #f59e0b;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.alert-action:hover {
-  color: #fbbf24;
-  transform: translateX(5px);
-}
-
-.tips-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.tip-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-}
-
-.tip-icon {
-  font-size: 1.2rem;
-  flex-shrink: 0;
-}
-
-.tip-text {
-  color: var(--text-secondary, #a0aec0);
-  line-height: 1.5;
-  font-size: 0.9rem;
-}
-
 /* Animations */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .spinning {
@@ -1049,14 +675,6 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 
-  .actions-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .insights-grid {
-    grid-template-columns: 1fr;
-  }
-
   .order-item {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -1077,12 +695,9 @@ onMounted(async () => {
     font-size: 1.2rem;
   }
 
-  .stat-card, .action-card, .insight-card {
-    padding: 1.5rem;
-  }
-
+  .stat-card,
   .order-item {
-    padding: 1rem;
+    padding: 1.5rem;
   }
 }
 </style>
@@ -1110,7 +725,8 @@ onMounted(async () => {
   font-size: 1rem;
 }
 
-.btn-create, .btn-create-first {
+.btn-create,
+.btn-create-first {
   background: var(--text-accent, #00d4ff);
   color: #1a1a2e;
   padding: 0.75rem 1.5rem;
@@ -1120,7 +736,8 @@ onMounted(async () => {
   transition: all 0.3s ease;
 }
 
-.btn-create:hover, .btn-create-first:hover {
+.btn-create:hover,
+.btn-create-first:hover {
   background: #00c4ef;
   transform: translateY(-2px);
 }
@@ -1228,7 +845,8 @@ onMounted(async () => {
   gap: 0.5rem;
 }
 
-.btn-edit, .btn-toggle {
+.btn-edit,
+.btn-toggle {
   padding: 0.5rem 1rem;
   border-radius: 6px;
   font-size: 0.9rem;
@@ -1291,7 +909,8 @@ onMounted(async () => {
   font-weight: 500;
 }
 
-.input-placeholder, .select-placeholder {
+.input-placeholder,
+.select-placeholder {
   height: 40px;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(0, 212, 255, 0.3);
@@ -1471,7 +1090,8 @@ onMounted(async () => {
   margin-bottom: 1rem;
 }
 
-.features-list, .features-grid {
+.features-list,
+.features-grid {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -1502,8 +1122,12 @@ onMounted(async () => {
 
 /* Animation */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Responsive */

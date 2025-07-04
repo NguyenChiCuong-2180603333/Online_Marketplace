@@ -4,9 +4,7 @@
     <div class="page-header">
       <h1>📦 Sản phẩm của tôi</h1>
       <p>Quản lý toàn bộ sản phẩm bạn đang bán</p>
-      <router-link to="/seller/products/create" class="btn btn-primary">
-        ➕ Tạo sản phẩm mới
-      </router-link>
+      <button @click="openCreateModal" class="btn btn-primary">➕ Tạo sản phẩm mới</button>
     </div>
 
     <!-- Stats Cards -->
@@ -44,21 +42,21 @@
     <!-- Filters & Search -->
     <div class="filters-section">
       <div class="search-bar">
-        <input 
+        <input
           v-model="searchQuery"
-          type="text" 
+          type="text"
           placeholder="🔍 Tìm kiếm sản phẩm..."
           @input="searchProducts"
         />
       </div>
-      
+
       <div class="filters">
         <select v-model="statusFilter" @change="filterProducts">
           <option value="">Tất cả trạng thái</option>
           <option value="active">Đang bán</option>
           <option value="inactive">Tạm ngưng</option>
         </select>
-        
+
         <select v-model="categoryFilter" @change="filterProducts">
           <option value="">Tất cả danh mục</option>
           <option v-for="category in categories" :key="category.id" :value="category.name">
@@ -75,14 +73,6 @@
           <option value="stock">Tồn kho</option>
         </select>
       </div>
-
-      <!-- Bulk Actions -->
-      <div v-if="selectedProducts.length > 0" class="bulk-actions">
-        <span class="selected-count">Đã chọn {{ selectedProducts.length }} sản phẩm</span>
-        <button @click="bulkActivate" class="btn btn-success">Kích hoạt</button>
-        <button @click="bulkDeactivate" class="btn btn-warning">Tạm ngưng</button>
-        <button @click="bulkDelete" class="btn btn-danger">Xóa</button>
-      </div>
     </div>
 
     <!-- Loading State -->
@@ -93,25 +83,11 @@
 
     <!-- Products Grid -->
     <div v-else-if="filteredProducts.length > 0" class="products-grid">
-      <div 
-        v-for="product in paginatedProducts" 
-        :key="product.id"
-        class="product-card"
-        :class="{ 'selected': selectedProducts.includes(product.id) }"
-      >
-        <!-- Selection Checkbox -->
-        <div class="product-checkbox">
-          <input 
-            type="checkbox" 
-            :value="product.id"
-            v-model="selectedProducts"
-          />
-        </div>
-
+      <div v-for="product in paginatedProducts" :key="product.id" class="product-card">
         <!-- Product Image -->
         <div class="product-image">
-          <img 
-            :src="product.images?.[0] || '/placeholder-product.jpg'" 
+          <img
+            :src="product.images?.[0] || '/placeholder-product.jpg'"
             :alt="product.name"
             @error="handleImageError"
           />
@@ -130,7 +106,7 @@
           </div>
 
           <p class="product-category">📂 {{ product.category }}</p>
-          
+
           <div class="product-metrics">
             <div class="metric">
               <span class="metric-label">Giá bán:</span>
@@ -157,30 +133,16 @@
 
           <!-- Quick Actions -->
           <div class="product-actions">
-            <router-link 
-              :to="`/seller/products/edit/${product.id}`" 
-              class="btn btn-edit"
-            >
-              ✏️ Sửa
-            </router-link>
-            <button 
+            <button @click="openEditModal(product)" class="btn btn-edit">✏️ Sửa</button>
+            <button
               @click="toggleProductStatus(product)"
               class="btn btn-toggle"
               :class="product.isActive ? 'btn-warning' : 'btn-success'"
             >
               {{ product.isActive ? '⏸️ Tạm ngưng' : '▶️ Kích hoạt' }}
             </button>
-            <button 
-              @click="duplicateProduct(product)"
-              class="btn btn-secondary"
-            >
+            <button @click="duplicateProduct(product)" class="btn btn-secondary">
               📋 Nhân bản
-            </button>
-            <button 
-              @click="deleteProduct(product)"
-              class="btn btn-danger"
-            >
-              🗑️ Xóa
             </button>
           </div>
         </div>
@@ -192,40 +154,131 @@
       <div class="empty-icon">📦</div>
       <h3>Chưa có sản phẩm nào</h3>
       <p>Bắt đầu bán hàng bằng cách tạo sản phẩm đầu tiên của bạn!</p>
-      <router-link to="/seller/products/create" class="btn btn-primary">
-        ➕ Tạo sản phẩm đầu tiên
-      </router-link>
+      <button @click="openCreateModal" class="btn btn-primary">➕ Tạo sản phẩm đầu tiên</button>
     </div>
 
     <!-- Pagination -->
     <div v-if="totalPages > 1" class="pagination">
-      <button 
-        @click="changePage(currentPage - 1)"
-        :disabled="currentPage === 1"
-        class="btn btn-outline"
-      >
-        ← Trước
-      </button>
-      
+      <button @click="currentPage--" :disabled="currentPage === 1" class="btn">← Trước</button>
+
       <div class="page-numbers">
-        <button 
+        <button
           v-for="page in visiblePages"
           :key="page"
-          @click="changePage(page)"
+          @click="currentPage = page"
           class="btn"
-          :class="{ 'btn-primary': page === currentPage, 'btn-outline': page !== currentPage }"
+          :class="{ 'btn-primary': page === currentPage }"
         >
           {{ page }}
         </button>
       </div>
-      
-      <button 
-        @click="changePage(currentPage + 1)"
-        :disabled="currentPage === totalPages"
-        class="btn btn-outline"
-      >
-        Tiếp →
+
+      <button @click="currentPage++" :disabled="currentPage === totalPages" class="btn">
+        Sau →
       </button>
+    </div>
+
+    <!-- Create/Edit Product Modal -->
+    <div v-if="showProductModal" class="modal-overlay" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>{{ isEditMode ? '✏️ Chỉnh sửa sản phẩm' : '➕ Thêm sản phẩm mới' }}</h3>
+          <button @click="closeModal" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="submitProductForm">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Tên sản phẩm *</label>
+                <input
+                  v-model="productForm.name"
+                  type="text"
+                  placeholder="Nhập tên sản phẩm..."
+                  required
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label>Danh mục *</label>
+                <select v-model="productForm.category" required class="form-select">
+                  <option value="">Chọn danh mục</option>
+                  <option v-for="category in categories" :key="category.id" :value="category.name">
+                    {{ category.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Giá (VNĐ) *</label>
+                <input
+                  v-model.number="productForm.price"
+                  type="number"
+                  min="0"
+                  step="1000"
+                  placeholder="0"
+                  required
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label>Số lượng tồn kho *</label>
+                <input
+                  v-model.number="productForm.stockQuantity"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  required
+                  class="form-input"
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Mô tả sản phẩm</label>
+              <textarea
+                v-model="productForm.description"
+                placeholder="Nhập mô tả chi tiết về sản phẩm..."
+                rows="4"
+                class="form-textarea"
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Hình ảnh sản phẩm</label>
+              <div class="image-upload">
+                <input
+                  @change="handleImageUpload"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  class="file-input"
+                  id="image-upload"
+                />
+                <label for="image-upload" class="upload-btn"> 📷 Chọn hình ảnh </label>
+                <p class="upload-hint">Có thể chọn nhiều hình ảnh</p>
+              </div>
+
+              <div v-if="productForm.images.length" class="image-preview">
+                <div v-for="(image, index) in productForm.images" :key="index" class="preview-item">
+                  <img :src="image" :alt="`Preview ${index + 1}`" />
+                  <button @click="removeImage(index)" type="button" class="remove-image">✕</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" @click="closeModal" class="btn btn-cancel">Hủy</button>
+              <button type="submit" :disabled="submitting" class="btn btn-primary">
+                {{
+                  submitting ? '⏳ Đang lưu...' : isEditMode ? '💾 Cập nhật' : '➕ Thêm sản phẩm'
+                }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -235,6 +288,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSellerStore } from '@/stores/seller'
 import { useNotificationStore } from '@/stores/notifications'
+import { categoryAPI } from '@/services/api'
 
 const router = useRouter()
 const sellerStore = useSellerStore()
@@ -242,6 +296,26 @@ const notificationStore = useNotificationStore()
 
 // Reactive data
 const loading = ref(true)
+
+// Modal form data
+const showProductModal = ref(false)
+const isEditMode = ref(false)
+const submitting = ref(false)
+const isDragOver = ref(false)
+const editingProductId = ref(null)
+
+// Product form
+const productForm = ref({
+  name: '',
+  description: '',
+  category: '',
+  brand: '',
+  price: 0,
+  stockQuantity: 0,
+  images: [],
+})
+
+// File input ref - removed since we don't need it anymore
 const searchQuery = ref('')
 const statusFilter = ref('')
 const categoryFilter = ref('')
@@ -251,13 +325,8 @@ const currentPage = ref(1)
 const itemsPerPage = ref(12)
 
 // Categories for filter
-const categories = ref([
-  { id: 1, name: 'Điện tử' },
-  { id: 2, name: 'Thời trang' },
-  { id: 3, name: 'Nhà cửa' },
-  { id: 4, name: 'Sách' },
-  { id: 5, name: 'Thể thao' }
-])
+const categories = ref([])
+const loadingCategories = ref(false)
 
 // Computed properties
 const products = computed(() => sellerStore.products)
@@ -269,24 +338,22 @@ const filteredProducts = computed(() => {
   // Search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(product => 
-      product.name.toLowerCase().includes(query) ||
-      product.category.toLowerCase().includes(query)
+    filtered = filtered.filter(
+      (product) =>
+        product.name.toLowerCase().includes(query) || product.category.toLowerCase().includes(query)
     )
   }
 
   // Status filter
   if (statusFilter.value) {
-    filtered = filtered.filter(product => 
+    filtered = filtered.filter((product) =>
       statusFilter.value === 'active' ? product.isActive : !product.isActive
     )
   }
 
   // Category filter
   if (categoryFilter.value) {
-    filtered = filtered.filter(product => 
-      product.category === categoryFilter.value
-    )
+    filtered = filtered.filter((product) => product.category === categoryFilter.value)
   }
 
   // Sort
@@ -325,11 +392,11 @@ const visiblePages = computed(() => {
   const maxVisible = 5
   let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
   let end = Math.min(totalPages.value, start + maxVisible - 1)
-  
+
   if (end - start + 1 < maxVisible) {
     start = Math.max(1, end - maxVisible + 1)
   }
-  
+
   for (let i = start; i <= end; i++) {
     pages.push(i)
   }
@@ -365,12 +432,12 @@ const toggleProductStatus = async (product) => {
     await sellerStore.toggleProductStatus(product.id)
     notificationStore.addNotification({
       type: 'success',
-      message: `Đã ${product.isActive ? 'tạm ngưng' : 'kích hoạt'} sản phẩm "${product.name}"`
+      message: `Đã ${product.isActive ? 'tạm ngưng' : 'kích hoạt'} sản phẩm "${product.name}"`,
     })
   } catch (error) {
     notificationStore.addNotification({
       type: 'error',
-      message: 'Có lỗi xảy ra khi cập nhật trạng thái sản phẩm'
+      message: 'Có lỗi xảy ra khi cập nhật trạng thái sản phẩm',
     })
   }
 }
@@ -380,18 +447,20 @@ const duplicateProduct = async (product) => {
     await sellerStore.duplicateProduct(product.id)
     notificationStore.addNotification({
       type: 'success',
-      message: `Đã nhân bản sản phẩm "${product.name}"`
+      message: `Đã nhân bản sản phẩm "${product.name}"`,
     })
   } catch (error) {
     notificationStore.addNotification({
       type: 'error',
-      message: 'Có lỗi xảy ra khi nhân bản sản phẩm'
+      message: 'Có lỗi xảy ra khi nhân bản sản phẩm',
     })
   }
 }
 
 const deleteProduct = async (product) => {
-  if (!confirm(`Bạn có chắc muốn xóa sản phẩm "${product.name}"? Hành động này không thể hoàn tác.`)) {
+  if (
+    !confirm(`Bạn có chắc muốn xóa sản phẩm "${product.name}"? Hành động này không thể hoàn tác.`)
+  ) {
     return
   }
 
@@ -399,65 +468,12 @@ const deleteProduct = async (product) => {
     await sellerStore.deleteProduct(product.id)
     notificationStore.addNotification({
       type: 'success',
-      message: `Đã xóa sản phẩm "${product.name}"`
+      message: `Đã xóa sản phẩm "${product.name}"`,
     })
   } catch (error) {
     notificationStore.addNotification({
       type: 'error',
-      message: 'Có lỗi xảy ra khi xóa sản phẩm'
-    })
-  }
-}
-
-// Bulk actions
-const bulkActivate = async () => {
-  try {
-    await sellerStore.bulkUpdateStatus(selectedProducts.value, true)
-    notificationStore.addNotification({
-      type: 'success',
-      message: `Đã kích hoạt ${selectedProducts.value.length} sản phẩm`
-    })
-    selectedProducts.value = []
-  } catch (error) {
-    notificationStore.addNotification({
-      type: 'error',
-      message: 'Có lỗi xảy ra khi cập nhật sản phẩm'
-    })
-  }
-}
-
-const bulkDeactivate = async () => {
-  try {
-    await sellerStore.bulkUpdateStatus(selectedProducts.value, false)
-    notificationStore.addNotification({
-      type: 'success',
-      message: `Đã tạm ngưng ${selectedProducts.value.length} sản phẩm`
-    })
-    selectedProducts.value = []
-  } catch (error) {
-    notificationStore.addNotification({
-      type: 'error',
-      message: 'Có lỗi xảy ra khi cập nhật sản phẩm'
-    })
-  }
-}
-
-const bulkDelete = async () => {
-  if (!confirm(`Bạn có chắc muốn xóa ${selectedProducts.value.length} sản phẩm? Hành động này không thể hoàn tác.`)) {
-    return
-  }
-
-  try {
-    await sellerStore.bulkDelete(selectedProducts.value)
-    notificationStore.addNotification({
-      type: 'success',
-      message: `Đã xóa ${selectedProducts.value.length} sản phẩm`
-    })
-    selectedProducts.value = []
-  } catch (error) {
-    notificationStore.addNotification({
-      type: 'error',
-      message: 'Có lỗi xảy ra khi xóa sản phẩm'
+      message: 'Có lỗi xảy ra khi xóa sản phẩm',
     })
   }
 }
@@ -466,7 +482,7 @@ const bulkDelete = async () => {
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'VND'
+    currency: 'VND',
   }).format(amount)
 }
 
@@ -484,14 +500,16 @@ const handleImageError = (event) => {
   event.target.src = '/placeholder-product.jpg'
 }
 
-// Lifecycle
 onMounted(async () => {
+  console.log('MyProducts mounted, fetching products...')
   try {
     await sellerStore.fetchProducts()
+    console.log('fetchProducts DONE')
   } catch (error) {
+    console.error('fetchProducts ERROR', error)
     notificationStore.addNotification({
       type: 'error',
-      message: 'Có lỗi xảy ra khi tải danh sách sản phẩm'
+      message: 'Có lỗi xảy ra khi tải danh sách sản phẩm',
     })
   } finally {
     loading.value = false
@@ -499,11 +517,138 @@ onMounted(async () => {
 })
 
 // Watchers
-watch(() => filteredProducts.value.length, () => {
-  if (currentPage.value > totalPages.value) {
-    currentPage.value = 1
+watch(
+  () => filteredProducts.value.length,
+  () => {
+    if (currentPage.value > totalPages.value) {
+      currentPage.value = 1
+    }
   }
-})
+)
+
+// Modal form methods
+const loadCategories = async () => {
+  loadingCategories.value = true
+  try {
+    const response = await categoryAPI.getAll()
+    categories.value = response.data || []
+  } catch (error) {
+    categories.value = []
+  } finally {
+    loadingCategories.value = false
+  }
+}
+
+const openCreateModal = async () => {
+  isEditMode.value = false
+  editingProductId.value = null
+  resetForm()
+  await loadCategories()
+  showProductModal.value = true
+}
+
+const openEditModal = async (product) => {
+  isEditMode.value = true
+  editingProductId.value = product.id
+  populateForm(product)
+  await loadCategories()
+  showProductModal.value = true
+}
+
+const closeModal = () => {
+  showProductModal.value = false
+  resetForm()
+}
+
+const resetForm = () => {
+  productForm.value = {
+    name: '',
+    description: '',
+    category: '',
+    brand: '',
+    price: 0,
+    stockQuantity: 0,
+    images: [],
+  }
+}
+
+const populateForm = (product) => {
+  productForm.value = {
+    name: product.name || '',
+    description: product.description || '',
+    category: product.category || '',
+    brand: product.brand || '',
+    price: product.price || 0,
+    stockQuantity: product.stockQuantity || 0,
+    images: product.images || [],
+  }
+}
+
+const submitProductForm = async () => {
+  submitting.value = true
+
+  try {
+    if (isEditMode.value) {
+      await sellerStore.updateProduct(editingProductId.value, productForm.value)
+      notificationStore.addNotification({
+        type: 'success',
+        message: 'Đã cập nhật sản phẩm thành công',
+      })
+    } else {
+      await sellerStore.createProduct(productForm.value)
+      notificationStore.addNotification({
+        type: 'success',
+        message: 'Đã tạo sản phẩm mới thành công',
+      })
+    }
+
+    closeModal()
+    await sellerStore.fetchProducts() // Refresh the list
+  } catch (error) {
+    notificationStore.addNotification({
+      type: 'error',
+      message: 'Có lỗi xảy ra khi lưu sản phẩm',
+    })
+  } finally {
+    submitting.value = false
+  }
+}
+
+// Image upload methods
+const handleImageUpload = async (event) => {
+  const files = Array.from(event.target.files)
+  const token = localStorage.getItem('token')
+  for (const file of files) {
+    if (file.type.startsWith('image/')) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`File ${file.name} quá lớn. Kích thước tối đa 5MB.`)
+        continue
+      }
+      const formData = new FormData()
+      formData.append('file', file)
+      try {
+        const res = await fetch('http://localhost:8080/api/upload/image', {
+          method: 'POST',
+          body: formData,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: 'include',
+        })
+        const data = await res.json()
+        if (data.imageUrl) {
+          productForm.value.images.push(data.imageUrl)
+        } else {
+          alert(`Lỗi upload ảnh: ${file.name}`)
+        }
+      } catch (e) {
+        alert(`Lỗi upload ảnh: ${file.name}`)
+      }
+    }
+  }
+}
+
+const removeImage = (index) => {
+  productForm.value.images.splice(index, 1)
+}
 </script>
 
 <style scoped>
@@ -608,20 +753,6 @@ watch(() => filteredProducts.value.length, () => {
   color: var(--text-primary, #ffffff);
 }
 
-.bulk-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(0, 212, 255, 0.1);
-  border-radius: 8px;
-}
-
-.selected-count {
-  color: var(--text-primary, #ffffff);
-  font-weight: 500;
-}
-
 /* Products Grid */
 .products-grid {
   display: grid;
@@ -643,23 +774,6 @@ watch(() => filteredProducts.value.length, () => {
   border-color: rgba(0, 212, 255, 0.5);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 212, 255, 0.1);
-}
-
-.product-card.selected {
-  border-color: var(--text-accent, #00d4ff);
-  background: rgba(0, 212, 255, 0.05);
-}
-
-.product-checkbox {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  z-index: 2;
-}
-
-.product-checkbox input {
-  width: 20px;
-  height: 20px;
 }
 
 .product-image {
@@ -922,8 +1036,12 @@ watch(() => filteredProducts.value.length, () => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Responsive */
@@ -953,10 +1071,225 @@ watch(() => filteredProducts.value.length, () => {
   .product-actions {
     flex-direction: column;
   }
+}
 
-  .bulk-actions {
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 12px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.modal-header h3 {
+  color: var(--text-accent);
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: color 0.3s ease;
+}
+
+.modal-close:hover {
+  color: var(--text-accent);
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--text-accent);
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+}
+
+.image-upload {
+  margin-bottom: 1rem;
+}
+
+.file-input {
+  display: none;
+}
+
+.upload-btn {
+  display: inline-block;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 212, 255, 0.2);
+  border: 1px solid var(--text-accent);
+  border-radius: 6px;
+  color: var(--text-accent);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.upload-btn:hover {
+  background: var(--text-accent);
+  color: white;
+}
+
+.upload-hint {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.image-preview {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.preview-item {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(239, 68, 68, 0.8);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  width: 20px;
+  height: 20px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.btn-cancel {
+  padding: 0.75rem 1.5rem;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cancel:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-primary {
+  padding: 0.75rem 1.5rem;
+  background: var(--text-accent);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.8);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive Modal */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
     flex-direction: column;
-    align-items: flex-start;
   }
 }
 </style>

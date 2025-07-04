@@ -59,8 +59,11 @@ public class ReviewService {
             throw new BadRequestException("Bạn đã đánh giá sản phẩm này rồi");
         }
 
-        // Kiểm tra user đã mua sản phẩm chưa (optional verification)
+        // Kiểm tra user đã mua sản phẩm chưa (bắt buộc phải mua và đã giao hàng)
         boolean hasOrderedProduct = hasUserOrderedProduct(userId, reviewRequest.getProductId());
+        if (!hasOrderedProduct) {
+            throw new BadRequestException("Bạn chỉ có thể đánh giá sản phẩm khi đã mua và đơn hàng đã giao thành công.");
+        }
 
         Review review = new Review();
         review.setProductId(reviewRequest.getProductId());
@@ -69,7 +72,7 @@ public class ReviewService {
         review.setUserAvatar(user.getAvatar());
         review.setRating(reviewRequest.getRating());
         review.setComment(reviewRequest.getComment());
-        review.setVerified(hasOrderedProduct);
+        review.setVerified(true); // Đã xác thực vì đã mua
         review.setOrderId(reviewRequest.getOrderId());
         review.setCreatedAt(LocalDateTime.now());
 

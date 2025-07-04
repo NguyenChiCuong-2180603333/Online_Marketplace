@@ -20,7 +20,7 @@
             <div class="items-list">
               <div
                 v-for="item in cartItems"
-                :key="item.id"
+                :key="item.productId"
                 class="cart-item space-card"
                 :class="{ removing: item.isRemoving }"
               >
@@ -29,7 +29,6 @@
                     :src="item.productImage || '/placeholder-product.jpg'"
                     :alt="item.productName"
                   />
-                  <div v-if="item.discount" class="discount-badge">-{{ item.discount }}%</div>
                 </div>
 
                 <div class="item-details">
@@ -39,26 +38,6 @@
                         {{ item.productName }}
                       </router-link>
                     </h3>
-                    <p class="item-category">{{ item.category?.name || 'Electronics' }}</p>
-
-                    <div class="item-features">
-                      <span
-                        v-for="feature in item.keyFeatures?.slice(0, 2)"
-                        :key="feature"
-                        class="feature-tag"
-                      >
-                        {{ feature }}
-                      </span>
-                    </div>
-
-                    <div class="item-seller">
-                      <span class="seller-info">
-                        🏪 {{ item.seller?.name || 'Cosmic Store' }}
-                      </span>
-                      <span class="shipping-info">
-                        🚀 Giao hàng từ {{ item.seller?.location || 'Thiên hà Milky Way' }}
-                      </span>
-                    </div>
                   </div>
 
                   <div class="item-actions">
@@ -77,13 +56,12 @@
                           @change="updateQuantity(item.productId, item.quantity)"
                           type="number"
                           min="1"
-                          :max="item.stock || 100"
                           class="quantity-input"
                           :disabled="loading"
                         />
                         <button
                           @click="updateQuantity(item.productId, item.quantity + 1)"
-                          :disabled="item.quantity >= (item.stock || 100) || loading"
+                          :disabled="loading"
                           class="quantity-btn"
                         >
                           +
@@ -93,12 +71,6 @@
 
                     <div class="item-price-section">
                       <div class="price-details">
-                        <span
-                          v-if="item.originalPrice && item.originalPrice > item.productPrice"
-                          class="original-price"
-                        >
-                          {{ formatCurrency(item.originalPrice) }}
-                        </span>
                         <span class="unit-price">{{ formatCurrency(item.productPrice) }}</span>
                       </div>
                       <div class="total-price">
@@ -128,33 +100,6 @@
               </div>
             </div>
           </div>
-
-          <!-- Saved for Later -->
-          <div v-if="savedItems.length > 0" class="saved-items">
-            <h3>💾 Đã lưu để mua sau ({{ savedItems.length }})</h3>
-            <div class="saved-items-list">
-              <div v-for="item in savedItems" :key="item.id" class="saved-item space-card">
-                <div class="saved-item-image">
-                  <img
-                    :src="item.product.images?.[0] || '/placeholder-product.jpg'"
-                    :alt="item.product.name"
-                  />
-                </div>
-                <div class="saved-item-info">
-                  <h4>{{ item.product.name }}</h4>
-                  <div class="saved-item-price">{{ formatCurrency(item.product.price) }}</div>
-                </div>
-                <div class="saved-item-actions">
-                  <button @click="moveToCart(item.id)" class="btn btn-secondary btn-small">
-                    🛒 Thêm vào giỏ
-                  </button>
-                  <button @click="deleteSavedItem(item.id)" class="btn btn-danger btn-small">
-                    🗑️
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- Cart Summary -->
@@ -166,13 +111,6 @@
               <div class="summary-row">
                 <span>Tạm tính ({{ totalItems }} sản phẩm):</span>
                 <span>{{ formatCurrency(subtotal) }}</span>
-              </div>
-
-              <div class="summary-row">
-                <span>Phí vận chuyển:</span>
-                <span class="shipping-fee">
-                  {{ shippingFee > 0 ? formatCurrency(shippingFee) : 'Miễn phí' }}
-                </span>
               </div>
 
               <div v-if="discount > 0" class="summary-row discount-row">
@@ -223,25 +161,6 @@
             >
               🚀 Tiến hành thanh toán
             </button>
-
-            <!-- Shipping Info -->
-            <div class="shipping-info">
-              <div class="shipping-option">
-                <div class="shipping-icon">🚀</div>
-                <div class="shipping-details">
-                  <h4>Giao hàng siêu tốc</h4>
-                  <p>Giao trong 24h với công nghệ teleport</p>
-                </div>
-              </div>
-
-              <div class="shipping-option">
-                <div class="shipping-icon">🛸</div>
-                <div class="shipping-details">
-                  <h4>Giao hàng không gian</h4>
-                  <p>Miễn phí cho đơn hàng trên {{ formatCurrency(freeShippingThreshold) }}</p>
-                </div>
-              </div>
-            </div>
 
             <!-- Security Info -->
             <div class="security-info">
@@ -294,8 +213,39 @@
         </div>
       </div>
 
+      <!-- Saved for Later -->
+      <div v-if="savedItems.length > 0" class="saved-items">
+        <h3>💾 Đã lưu để mua sau ({{ savedItems.length }})</h3>
+        <div class="saved-items-list">
+          <div v-for="product in savedItems" :key="product.id" class="saved-item space-card">
+            <div class="saved-item-image">
+              <img
+                :src="
+                  product.images && product.images.length > 0
+                    ? product.images[0]
+                    : '/placeholder-product.jpg'
+                "
+                :alt="product.name || 'Sản phẩm đã lưu'"
+              />
+            </div>
+            <div class="saved-item-info">
+              <h4>{{ product.name || 'Sản phẩm không tồn tại' }}</h4>
+              <div class="saved-item-price">{{ formatCurrency(product.price || 0) }}</div>
+            </div>
+            <div class="saved-item-actions">
+              <button @click="moveToCart(product.id)" class="btn btn-secondary btn-small">
+                🛒 Thêm vào giỏ
+              </button>
+              <button @click="deleteSavedItem(product.id)" class="btn btn-danger btn-small">
+                🗑️
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Empty Cart -->
-      <div v-else class="empty-cart">
+      <div v-if="cartItems.length === 0 && savedItems.length === 0" class="empty-cart">
         <div class="empty-cart-content space-card">
           <div class="empty-cart-animation">
             <div class="floating-cart">🛒</div>
@@ -359,8 +309,6 @@ export default {
     const promoLoading = ref(false)
     const promoMessage = ref('')
     const promoError = ref(false)
-    const freeShippingThreshold = ref(1000000) // 1M VND
-
     // ✅ FIX: Use real cart data from store
     const cartItems = computed(() => cartStore.items || [])
     const isEmpty = computed(() => cartStore.isEmpty)
@@ -374,17 +322,13 @@ export default {
     const totalItems = computed(() => cartStore.totalItems || 0)
     const subtotal = computed(() => cartStore.totalAmount || 0)
 
-    const shippingFee = computed(() => {
-      return subtotal.value >= freeShippingThreshold.value ? 0 : 50000
-    })
-
     const discount = computed(() => {
       // Calculate discount based on promo code or other factors
       return 0
     })
 
     const totalAmount = computed(() => {
-      return subtotal.value + shippingFee.value - discount.value
+      return subtotal.value - discount.value
     })
 
     const hasOutOfStockItems = computed(() => {
@@ -403,10 +347,9 @@ export default {
     const loadSavedItems = async () => {
       try {
         const response = await profileAPI.getSavedItems()
-        savedItems.value = response.data || []
+        savedItems.value = response.data?.savedItems || []
+        console.log('savedItems:', savedItems.value)
       } catch (error) {
-        console.error('Error loading saved items:', error)
-        // Fallback to empty array
         savedItems.value = []
       }
     }
@@ -509,21 +452,8 @@ export default {
 
       try {
         await profileAPI.saveForLater(productId)
-
-        const productObj = {
-          id: item.productId,
-          name: item.productName,
-          price: item.productPrice,
-          images: [item.productImage || '/placeholder-product.jpg'],
-        }
-
-        savedItems.value.push({
-          id: productId,
-          product: productObj,
-        })
-
         await removeItem(productId)
-
+        await loadSavedItems()
         alert('Đã lưu sản phẩm để mua sau')
       } catch (error) {
         console.error('Error saving item:', error)
@@ -531,19 +461,19 @@ export default {
       }
     }
 
-    const moveToCart = async (itemId) => {
-      const savedItem = savedItems.value.find((item) => item.id === itemId)
-      if (!savedItem) return
+    const moveToCart = async (productId) => {
+      const product = savedItems.value.find((p) => p.id === productId)
+      if (!product) return
 
       try {
         // Add to cart via store
-        await cartStore.addItem(savedItem.product.id, 1)
+        await cartStore.addItem(product.id, 1)
 
         // Remove from saved items via API
-        await profileAPI.removeFromSavedItems(itemId)
+        await profileAPI.removeFromSavedItems(productId)
 
         // Remove from saved items
-        const index = savedItems.value.findIndex((item) => item.id === itemId)
+        const index = savedItems.value.findIndex((p) => p.id === productId)
         if (index > -1) {
           savedItems.value.splice(index, 1)
         }
@@ -658,7 +588,6 @@ export default {
       totalItems,
       subtotal,
       totalAmount,
-      shippingFee,
       discount,
       hasOutOfStockItems,
 
@@ -668,7 +597,6 @@ export default {
       promoLoading,
       promoMessage,
       promoError,
-      freeShippingThreshold,
 
       // Additional data
       savedItems,
@@ -791,18 +719,6 @@ export default {
   object-fit: cover;
 }
 
-.discount-badge {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  background: var(--accent-gradient);
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 8px;
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
 .item-details {
   flex: 1;
   display: flex;
@@ -828,36 +744,6 @@ export default {
 
 .item-name a:hover {
   color: var(--text-accent);
-}
-
-.item-category {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
-}
-
-.item-features {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.feature-tag {
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--text-accent);
-  padding: 0.2rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  border: 1px solid rgba(0, 212, 255, 0.3);
-}
-
-.item-seller {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
 }
 
 .item-actions {
@@ -921,14 +807,6 @@ export default {
 
 .price-details {
   margin-bottom: 0.5rem;
-}
-
-.original-price {
-  display: block;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  text-decoration: line-through;
-  opacity: 0.7;
 }
 
 .unit-price {
@@ -1098,10 +976,6 @@ export default {
   margin-bottom: 0;
 }
 
-.shipping-fee {
-  color: #10b981;
-}
-
 .discount-row {
   color: #10b981;
 }
@@ -1217,38 +1091,6 @@ export default {
 .checkout-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.shipping-info {
-  margin-bottom: 1.5rem;
-}
-
-.shipping-option {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
-}
-
-.shipping-option:last-child {
-  border-bottom: none;
-}
-
-.shipping-icon {
-  font-size: 1.5rem;
-  flex: none;
-}
-
-.shipping-details h4 {
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-  font-size: 0.9rem;
-}
-
-.shipping-details p {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
 }
 
 .security-info {

@@ -20,13 +20,12 @@
             <label>Loại thông báo:</label>
             <select v-model="selectedType" @change="applyFilters" class="form-select">
               <option value="">Tất cả</option>
-              <option value="order">Đơn hàng</option>
-              <option value="product">Sản phẩm</option>
-              <option value="promotion">Khuyến mãi</option>
-              <option value="system">Hệ thống</option>
+              <option value="NEW_PRODUCT">Sản phẩm mới</option>
+              <option value="PROMOTION">Khuyến mãi</option>
+              <option value="ORDER_UPDATE">Cập nhật đơn hàng</option>
+              <option value="SYSTEM_UPDATE">Hệ thống</option>
             </select>
           </div>
-
           <div class="filter-group">
             <label>Trạng thái:</label>
             <select v-model="selectedStatus" @change="applyFilters" class="form-select">
@@ -35,12 +34,9 @@
               <option value="read">Đã đọc</option>
             </select>
           </div>
-
           <button @click="markAllAsRead" class="btn btn-secondary">
             ✅ Đánh dấu tất cả đã đọc
           </button>
-
-          <button @click="clearAllNotifications" class="btn btn-danger">🗑️ Xóa tất cả</button>
         </div>
       </div>
 
@@ -56,10 +52,6 @@
       <div v-else-if="filteredNotifications.length > 0" class="notifications-list">
         <div class="notifications-header">
           <h3>{{ filteredNotifications.length }} thông báo</h3>
-          <div class="notifications-actions">
-            <button @click="selectAll" class="action-btn">Chọn tất cả</button>
-            <button @click="deleteSelected" class="action-btn danger">Xóa đã chọn</button>
-          </div>
         </div>
 
         <div class="notifications-container">
@@ -69,17 +61,8 @@
             class="notification-item"
             :class="{
               unread: !notification.read,
-              selected: selectedNotifications.includes(notification.id),
             }"
           >
-            <div class="notification-checkbox">
-              <input
-                type="checkbox"
-                :checked="selectedNotifications.includes(notification.id)"
-                @change="toggleSelection(notification.id)"
-              />
-            </div>
-
             <div class="notification-icon">
               <span :class="getNotificationIcon(notification.type)">
                 {{ getNotificationEmoji(notification.type) }}
@@ -127,10 +110,6 @@
                   class="btn btn-secondary btn-sm"
                 >
                   Đánh dấu đã đọc
-                </button>
-
-                <button @click="deleteNotification(notification.id)" class="btn btn-danger btn-sm">
-                  Xóa
                 </button>
               </div>
             </div>
@@ -199,7 +178,6 @@ export default {
     const loading = ref(false)
     const error = ref(null)
     const notifications = ref([])
-    const selectedNotifications = ref([])
 
     // Filters
     const selectedType = ref('')
@@ -216,7 +194,6 @@ export default {
       if (selectedType.value) {
         filtered = filtered.filter((n) => n.type === selectedType.value)
       }
-
       if (selectedStatus.value === 'read') {
         filtered = filtered.filter((n) => n.read)
       } else if (selectedStatus.value === 'unread') {
@@ -275,11 +252,11 @@ export default {
       error.value = null
 
       try {
-        const response = await notificationAPI.getUserNotifications()
-        notifications.value = response.data || []
-      } catch (err) {
+        const res = await notificationAPI.getUserNotifications()
+        notifications.value = res.data || []
+      } catch (e) {
         error.value = 'Không thể tải thông báo'
-        console.error('Load notifications error:', err)
+        console.error('Error loading notifications:', e)
       } finally {
         loading.value = false
       }
@@ -313,60 +290,6 @@ export default {
         notifications.value.forEach((n) => (n.read = true))
       } catch (err) {
         console.error('Mark all as read error:', err)
-      }
-    }
-
-    const deleteNotification = async (notificationId) => {
-      try {
-        await notificationAPI.deleteNotification(notificationId)
-        notifications.value = notifications.value.filter((n) => n.id !== notificationId)
-        selectedNotifications.value = selectedNotifications.value.filter(
-          (id) => id !== notificationId
-        )
-      } catch (err) {
-        console.error('Delete notification error:', err)
-      }
-    }
-
-    const clearAllNotifications = async () => {
-      if (!confirm('Bạn có chắc muốn xóa tất cả thông báo?')) return
-
-      try {
-        await notificationAPI.deleteAllNotifications()
-        notifications.value = []
-        selectedNotifications.value = []
-      } catch (err) {
-        console.error('Clear all notifications error:', err)
-      }
-    }
-
-    const toggleSelection = (notificationId) => {
-      const index = selectedNotifications.value.indexOf(notificationId)
-      if (index > -1) {
-        selectedNotifications.value.splice(index, 1)
-      } else {
-        selectedNotifications.value.push(notificationId)
-      }
-    }
-
-    const selectAll = () => {
-      selectedNotifications.value = paginatedNotifications.value.map((n) => n.id)
-    }
-
-    const deleteSelected = async () => {
-      if (selectedNotifications.value.length === 0) return
-
-      if (!confirm(`Bạn có chắc muốn xóa ${selectedNotifications.value.length} thông báo đã chọn?`))
-        return
-
-      try {
-        await notificationAPI.deleteMultipleNotifications(selectedNotifications.value)
-        notifications.value = notifications.value.filter(
-          (n) => !selectedNotifications.value.includes(n.id)
-        )
-        selectedNotifications.value = []
-      } catch (err) {
-        console.error('Delete selected notifications error:', err)
       }
     }
 
@@ -448,7 +371,6 @@ export default {
       loading,
       error,
       notifications,
-      selectedNotifications,
       selectedType,
       selectedStatus,
       currentPage,
@@ -462,11 +384,6 @@ export default {
       clearFilters,
       markAsRead,
       markAllAsRead,
-      deleteNotification,
-      clearAllNotifications,
-      toggleSelection,
-      selectAll,
-      deleteSelected,
       handleNotificationAction,
       changePage,
       getNotificationIcon,
@@ -662,32 +579,6 @@ export default {
   margin: 0;
 }
 
-.notifications-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.action-btn {
-  padding: 0.5rem 1rem;
-  background: transparent;
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 6px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.85rem;
-}
-
-.action-btn:hover {
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--text-accent);
-}
-
-.action-btn.danger:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-}
-
 .notifications-container {
   display: flex;
   flex-direction: column;
@@ -714,23 +605,6 @@ export default {
 .notification-item.unread {
   background: rgba(0, 212, 255, 0.1);
   border-color: var(--text-accent);
-}
-
-.notification-item.selected {
-  background: rgba(255, 215, 0, 0.1);
-  border-color: #ffd700;
-}
-
-.notification-checkbox {
-  display: flex;
-  align-items: flex-start;
-  padding-top: 0.25rem;
-}
-
-.notification-checkbox input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--text-accent);
 }
 
 .notification-icon {

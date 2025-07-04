@@ -97,78 +97,23 @@
               </div>
 
               <div class="form-group">
-                <label for="address" class="form-label">Địa chỉ *</label>
-                <input
+                <label for="address" class="form-label">Địa chỉ đầy đủ *</label>
+                <textarea
                   id="address"
                   v-model="shippingInfo.address"
-                  type="text"
                   class="form-input"
                   :class="{ error: errors.address }"
-                  placeholder="Số nhà, tên đường"
+                  rows="3"
+                  placeholder="Ví dụ: 123 Đường ABC, Phường 1, Quận 1, TP. Hồ Chí Minh"
                   required
-                />
+                ></textarea>
+                <div class="address-hint">
+                  <span class="hint-icon">💡</span>
+                  <span class="hint-text"
+                    >Nhập đầy đủ: Số nhà, tên đường, phường/xã, quận/huyện, thành phố</span
+                  >
+                </div>
                 <span v-if="errors.address" class="error-message">{{ errors.address }}</span>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="city" class="form-label">Thành phố *</label>
-                  <select
-                    id="city"
-                    v-model="shippingInfo.city"
-                    class="form-input"
-                    :class="{ error: errors.city }"
-                    @change="loadDistricts"
-                    required
-                  >
-                    <option value="">Chọn thành phố</option>
-                    <option v-for="city in cities" :key="city.code" :value="city.code">
-                      {{ city.name }}
-                    </option>
-                  </select>
-                  <span v-if="errors.city" class="error-message">{{ errors.city }}</span>
-                </div>
-
-                <div class="form-group">
-                  <label for="district" class="form-label">Quận/Huyện *</label>
-                  <select
-                    id="district"
-                    v-model="shippingInfo.district"
-                    class="form-input"
-                    :class="{ error: errors.district }"
-                    :disabled="!shippingInfo.city"
-                    @change="loadWards"
-                    required
-                  >
-                    <option value="">Chọn quận/huyện</option>
-                    <option
-                      v-for="district in districts"
-                      :key="district.code"
-                      :value="district.code"
-                    >
-                      {{ district.name }}
-                    </option>
-                  </select>
-                  <span v-if="errors.district" class="error-message">{{ errors.district }}</span>
-                </div>
-
-                <div class="form-group">
-                  <label for="ward" class="form-label">Phường/Xã *</label>
-                  <select
-                    id="ward"
-                    v-model="shippingInfo.ward"
-                    class="form-input"
-                    :class="{ error: errors.ward }"
-                    :disabled="!shippingInfo.district"
-                    required
-                  >
-                    <option value="">Chọn phường/xã</option>
-                    <option v-for="ward in wards" :key="ward.code" :value="ward.code">
-                      {{ ward.name }}
-                    </option>
-                  </select>
-                  <span v-if="errors.ward" class="error-message">{{ errors.ward }}</span>
-                </div>
               </div>
 
               <div class="form-group">
@@ -187,20 +132,57 @@
                 <h3>🚀 Phương thức giao hàng</h3>
                 <div class="delivery-list">
                   <div
-                    v-for="option in deliveryOptions"
+                    v-for="option in availableDeliveryOptions"
                     :key="option.id"
                     class="delivery-option"
-                    :class="{ selected: selectedDelivery === option.id }"
-                    @click="selectedDelivery = option.id"
+                    :class="{
+                      selected: selectedDelivery === option.id,
+                      disabled: !option.available,
+                    }"
+                    @click="option.available && (selectedDelivery = option.id)"
                   >
                     <div class="delivery-icon">{{ option.icon }}</div>
                     <div class="delivery-info">
                       <h4>{{ option.name }}</h4>
                       <p>{{ option.description }}</p>
                       <div class="delivery-time">{{ option.time }}</div>
+                      <div class="delivery-partner">
+                        <span class="partner-label">Đối tác:</span>
+                        <span class="partner-name">{{ option.partners }}</span>
+                      </div>
+                      <div class="delivery-conditions">
+                        <div
+                          v-for="condition in option.conditions"
+                          :key="condition"
+                          class="condition-item"
+                        >
+                          <span class="condition-icon">ℹ️</span>
+                          <span class="condition-text">{{ condition }}</span>
+                        </div>
+                      </div>
+                      <div v-if="!option.available" class="unavailable-reason">
+                        <span class="reason-icon">⚠️</span>
+                        <span class="reason-text">
+                          {{
+                            option.id === 'express'
+                              ? 'Chỉ áp dụng cho TP.HCM, Hà Nội và đơn hàng từ 200k'
+                              : option.id === 'free'
+                              ? 'Chỉ áp dụng cho đơn hàng từ 500k'
+                              : 'Tạm thời không khả dụng'
+                          }}
+                        </span>
+                      </div>
                     </div>
                     <div class="delivery-price">
-                      {{ option.price > 0 ? formatCurrency(option.price) : 'Miễn phí' }}
+                      <div v-if="option.finalPrice > option.price" class="price-breakdown">
+                        <span class="original-price">{{ formatCurrency(option.price) }}</span>
+                        <span class="surcharge"
+                          >+{{ formatCurrency(option.finalPrice - option.price) }} phụ phí</span
+                        >
+                      </div>
+                      <div class="final-price">
+                        {{ option.finalPrice > 0 ? formatCurrency(option.finalPrice) : 'Miễn phí' }}
+                      </div>
                     </div>
                     <div class="delivery-radio">
                       <input
@@ -208,8 +190,43 @@
                         :value="option.id"
                         v-model="selectedDelivery"
                         :id="`delivery-${option.id}`"
+                        :disabled="!option.available"
                       />
                     </div>
+                  </div>
+                </div>
+
+                <!-- Delivery Summary -->
+                <div class="delivery-summary">
+                  <div class="summary-item">
+                    <span class="summary-label">Tạm tính:</span>
+                    <span class="summary-value">{{ formatCurrency(subtotal) }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">Phí giao hàng:</span>
+                    <span class="summary-value">{{ getDeliveryPrice() }}</span>
+                  </div>
+                  <div
+                    v-if="
+                      deliveryPrice > 0 &&
+                      getDynamicDeliveryPrice(selectedDelivery) >
+                        deliveryOptions.find((opt) => opt.id === selectedDelivery)?.price
+                    "
+                    class="summary-item surcharge-item"
+                  >
+                    <span class="summary-label">Phụ phí vùng xa:</span>
+                    <span class="summary-value"
+                      >+{{
+                        formatCurrency(
+                          deliveryPrice -
+                            deliveryOptions.find((opt) => opt.id === selectedDelivery)?.price
+                        )
+                      }}</span
+                    >
+                  </div>
+                  <div class="summary-item total">
+                    <span class="summary-label">Tổng cộng:</span>
+                    <span class="summary-value">{{ formatCurrency(totalAmount) }}</span>
                   </div>
                 </div>
               </div>
@@ -246,147 +263,63 @@
                 </button>
               </div>
 
-              <!-- Credit Card Payment -->
+              <!-- Stripe Card Payment -->
               <div v-if="selectedPayment === 'card'" class="payment-form">
                 <form @submit.prevent="processPayment">
                   <div class="form-group">
-                    <label for="cardNumber" class="form-label">Số thẻ *</label>
-                    <input
-                      id="cardNumber"
-                      v-model="paymentInfo.cardNumber"
-                      type="text"
-                      class="form-input"
-                      placeholder="1234 5678 9012 3456"
-                      maxlength="19"
-                      @input="formatCardNumber"
-                      required
-                    />
+                    <label class="form-label">Thông tin thẻ *</label>
+                    <div id="stripe-card-element" class="stripe-card-element"></div>
+                    <span v-if="cardError" class="error-message">{{ cardError }}</span>
                   </div>
-
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label for="expiryDate" class="form-label">Ngày hết hạn *</label>
-                      <input
-                        id="expiryDate"
-                        v-model="paymentInfo.expiryDate"
-                        type="text"
-                        class="form-input"
-                        placeholder="MM/YY"
-                        maxlength="5"
-                        @input="formatExpiryDate"
-                        required
-                      />
-                    </div>
-
-                    <div class="form-group">
-                      <label for="cvv" class="form-label">CVV *</label>
-                      <input
-                        id="cvv"
-                        v-model="paymentInfo.cvv"
-                        type="text"
-                        class="form-input"
-                        placeholder="123"
-                        maxlength="4"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="cardName" class="form-label">Tên trên thẻ *</label>
-                    <input
-                      id="cardName"
-                      v-model="paymentInfo.cardName"
-                      type="text"
-                      class="form-input"
-                      placeholder="NGUYEN VAN A"
-                      required
-                    />
-                  </div>
-
                   <!-- Security Info -->
                   <div class="security-notice">
                     <div class="security-icon">🔒</div>
                     <div class="security-text">
-                      <strong>Thanh toán bảo mật</strong>
+                      <strong>Thanh toán bảo mật qua Stripe</strong>
                       <p>
-                        Thông tin thẻ của bạn được mã hóa 256-bit SSL và không được lưu trữ trên hệ
-                        thống của chúng tôi
+                        Thông tin thẻ của bạn được mã hóa và xử lý an toàn qua Stripe. Chúng tôi
+                        không lưu trữ thông tin thẻ.
                       </p>
                     </div>
+                  </div>
+                  <div class="form-actions">
+                    <button type="button" @click="goToPreviousStep" class="btn btn-secondary">
+                      ← Quay lại thông tin
+                    </button>
+                    <button
+                      type="submit"
+                      class="btn btn-primary"
+                      :disabled="processing || !cardComplete"
+                    >
+                      {{
+                        processing
+                          ? '🔄 Đang xử lý...'
+                          : `💳 Thanh toán ${formatCurrency(totalAmount)}`
+                      }}
+                    </button>
                   </div>
                 </form>
               </div>
 
-              <!-- E-wallet Payment -->
-              <div v-if="selectedPayment === 'ewallet'" class="payment-form">
-                <div class="ewallet-options">
-                  <div
-                    v-for="wallet in ewalletOptions"
-                    :key="wallet.id"
-                    class="ewallet-option"
-                    :class="{ selected: selectedEwallet === wallet.id }"
-                    @click="selectedEwallet = wallet.id"
-                  >
-                    <div class="ewallet-logo">{{ wallet.icon }}</div>
-                    <div class="ewallet-info">
-                      <h4>{{ wallet.name }}</h4>
-                      <p>{{ wallet.description }}</p>
-                    </div>
-                    <div class="ewallet-radio">
-                      <input
-                        type="radio"
-                        :value="wallet.id"
-                        v-model="selectedEwallet"
-                        :id="`ewallet-${wallet.id}`"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Bank Transfer -->
-              <div v-if="selectedPayment === 'bank'" class="payment-form">
-                <div class="bank-info">
-                  <h3>🏦 Thông tin chuyển khoản</h3>
-                  <div class="bank-details">
-                    <div class="bank-item">
-                      <span class="bank-label">Ngân hàng:</span>
-                      <span class="bank-value">Ngân hàng Vũ trụ (COSMIC BANK)</span>
-                    </div>
-                    <div class="bank-item">
-                      <span class="bank-label">Số tài khoản:</span>
-                      <span class="bank-value">1234567890123456</span>
-                      <button @click="copyBankAccount" class="copy-btn">📋</button>
-                    </div>
-                    <div class="bank-item">
-                      <span class="bank-label">Chủ tài khoản:</span>
-                      <span class="bank-value">COSMIC MARKETPLACE</span>
-                    </div>
-                    <div class="bank-item">
-                      <span class="bank-label">Nội dung chuyển khoản:</span>
-                      <span class="bank-value">{{ orderCode }}</span>
-                      <button @click="copyOrderCode" class="copy-btn">📋</button>
-                    </div>
-                  </div>
-                  <div class="bank-note">
+              <!-- COD Payment -->
+              <div v-if="selectedPayment === 'cod'" class="payment-form">
+                <div class="cod-info">
+                  <div class="cod-icon">💵</div>
+                  <div class="cod-text">
+                    <strong>Thanh toán khi nhận hàng (COD)</strong>
                     <p>
-                      <strong>Lưu ý:</strong> Vui lòng chuyển khoản đúng số tiền và nội dung để đơn
-                      hàng được xử lý tự động.
+                      Bạn sẽ thanh toán trực tiếp cho nhân viên giao hàng khi nhận được sản phẩm.
                     </p>
                   </div>
                 </div>
-              </div>
-
-              <div class="form-actions">
-                <button type="button" @click="goToPreviousStep" class="btn btn-secondary">
-                  ← Quay lại thông tin
-                </button>
-                <button @click="processPayment" class="btn btn-primary" :disabled="processing">
-                  {{
-                    processing ? '🔄 Đang xử lý...' : `💳 Thanh toán ${formatCurrency(totalAmount)}`
-                  }}
-                </button>
+                <div class="form-actions">
+                  <button type="button" @click="goToPreviousStep" class="btn btn-secondary">
+                    ← Quay lại thông tin
+                  </button>
+                  <button @click="processPayment" class="btn btn-primary" :disabled="processing">
+                    {{ processing ? '🔄 Đang xử lý...' : 'Xác nhận đặt hàng' }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -466,15 +399,15 @@
               >
                 <div class="item-image">
                   <img
-                    :src="item.product?.images?.[0] || '/placeholder-product.jpg'"
-                    :alt="item.product?.name || ''"
+                    :src="item.productImage || '/placeholder-product.jpg'"
+                    :alt="item.productName || ''"
                   />
                   <span class="item-quantity">{{ item.quantity }}</span>
                 </div>
                 <div class="item-details">
-                  <h4>{{ item.product?.name || 'Sản phẩm không xác định' }}</h4>
+                  <h4>{{ item.productName || 'Sản phẩm không xác định' }}</h4>
                   <div class="item-price">
-                    {{ formatCurrency((item.product?.price || 0) * item.quantity) }}
+                    {{ formatCurrency((item.productPrice || 0) * item.quantity) }}
                   </div>
                 </div>
               </div>
@@ -523,10 +456,15 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
 import { orderAPI, paymentAPI, productAPI } from '@/services/api'
+import { loadStripe } from '@stripe/stripe-js'
+
+let stripe = null
+let elements = null
+let cardElement = null
 
 export default {
   name: 'Checkout',
@@ -548,9 +486,6 @@ export default {
       email: '',
       phone: '',
       address: '',
-      city: '',
-      district: '',
-      ward: '',
       notes: '',
     })
 
@@ -564,17 +499,8 @@ export default {
     const errors = ref({})
     const selectedDelivery = ref('standard')
     const selectedPayment = ref('card')
-    const selectedEwallet = ref('momo')
 
     // Mock data
-    const cities = ref([
-      { code: 'HCM', name: 'TP. Hồ Chí Minh' },
-      { code: 'HN', name: 'Hà Nội' },
-      { code: 'DN', name: 'Đà Nẵng' },
-    ])
-
-    const districts = ref([])
-    const wards = ref([])
 
     const deliveryOptions = ref([
       {
@@ -582,16 +508,22 @@ export default {
         name: 'Giao hàng siêu tốc',
         description: 'Giao trong 2-4 giờ',
         time: '2-4 giờ',
-        price: 100000,
+        price: 30000,
         icon: '🚀',
+        conditions: ['Chỉ áp dụng cho TP.HCM, Hà Nội', 'Đơn hàng tối thiểu 200k'],
+        partners: 'Grab Express, GoViet',
+        available: true,
       },
       {
         id: 'standard',
         name: 'Giao hàng tiêu chuẩn',
         description: 'Giao trong 1-2 ngày',
         time: '1-2 ngày',
-        price: 50000,
+        price: 20000,
         icon: '🚚',
+        conditions: ['Áp dụng toàn quốc'],
+        partners: 'Giao Hang Nhanh, Viettel Post',
+        available: true,
       },
       {
         id: 'free',
@@ -600,34 +532,15 @@ export default {
         time: '3-5 ngày',
         price: 0,
         icon: '🛸',
+        conditions: ['Đơn hàng từ 500k trở lên'],
+        partners: 'Giao Hang Tiet Kiem, GHTK',
+        available: true,
       },
     ])
 
     const paymentMethods = ref([
-      { id: 'card', name: 'Thẻ tín dụng/ghi nợ', icon: '💳' },
-      { id: 'ewallet', name: 'Ví điện tử', icon: '📱' },
-      { id: 'bank', name: 'Chuyển khoản ngân hàng', icon: '🏦' },
-    ])
-
-    const ewalletOptions = ref([
-      {
-        id: 'momo',
-        name: 'MoMo',
-        description: 'Thanh toán qua ví MoMo',
-        icon: '🟣',
-      },
-      {
-        id: 'zalopay',
-        name: 'ZaloPay',
-        description: 'Thanh toán qua ZaloPay',
-        icon: '🔵',
-      },
-      {
-        id: 'vnpay',
-        name: 'VNPay',
-        description: 'Thanh toán qua VNPay',
-        icon: '🟢',
-      },
+      { id: 'card', name: 'Thẻ tín dụng/ghi nợ (Stripe)', icon: '💳' },
+      { id: 'cod', name: 'Thanh toán khi nhận hàng (COD)', icon: '💵' },
     ])
 
     // Lấy orderItems từ cartStore (giỏ hàng thực tế)
@@ -638,18 +551,88 @@ export default {
     // Computed properties
     const subtotal = computed(() => {
       return orderItems.value.reduce(
-        (total, item) => total + (item.product?.price || 0) * item.quantity,
+        (total, item) => total + (item.productPrice || 0) * item.quantity,
         0
       )
     })
 
     const deliveryPrice = computed(() => {
-      const option = deliveryOptions.value.find((opt) => opt.id === selectedDelivery.value)
-      return option ? option.price : 0
+      return getDynamicDeliveryPrice(selectedDelivery.value)
     })
 
     const totalAmount = computed(() => {
       return subtotal.value + deliveryPrice.value - discount.value
+    })
+
+    // Delivery availability checks
+    const canUseExpress = computed(() => {
+      const address = shippingInfo.value.address.toLowerCase()
+      const total = subtotal.value
+      return (
+        (address.includes('tp.hcm') ||
+          address.includes('tp hcm') ||
+          address.includes('tphcm') ||
+          address.includes('tp. hồ chí minh') ||
+          address.includes('tp ho chi minh') ||
+          address.includes('hồ chí minh') ||
+          address.includes('ho chi minh') ||
+          address.includes('sài gòn') ||
+          address.includes('hà nội')) &&
+        total >= 200000
+      )
+    })
+
+    const canUseFreeShipping = computed(() => {
+      return subtotal.value >= 500000
+    })
+
+    // Dynamic delivery price calculation
+    const getDynamicDeliveryPrice = (optionId) => {
+      const option = deliveryOptions.value.find((opt) => opt.id === optionId)
+      if (!option) return 0
+
+      let price = option.price
+      const address = shippingInfo.value.address.toLowerCase()
+
+      // Surcharge for remote areas
+      if (
+        address.includes('miền núi') ||
+        address.includes('tây nguyên') ||
+        address.includes('đồng bằng sông cửu long') ||
+        address.includes('miền trung')
+      ) {
+        price += 15000
+      }
+
+      // Special surcharge for islands
+      if (
+        address.includes('phú quốc') ||
+        address.includes('côn đảo') ||
+        address.includes('cù lao')
+      ) {
+        price += 30000
+      }
+
+      return price
+    }
+
+    // Available delivery options based on conditions
+    const availableDeliveryOptions = computed(() => {
+      return deliveryOptions.value.map((option) => {
+        let available = option.available
+
+        if (option.id === 'express') {
+          available = canUseExpress.value
+        } else if (option.id === 'free') {
+          available = canUseFreeShipping.value
+        }
+
+        return {
+          ...option,
+          available,
+          finalPrice: getDynamicDeliveryPrice(option.id),
+        }
+      })
     })
 
     // Methods
@@ -658,35 +641,6 @@ export default {
         style: 'currency',
         currency: 'VND',
       }).format(amount)
-    }
-
-    const loadDistricts = () => {
-      // Mock loading districts based on city
-      if (shippingInfo.value.city === 'HCM') {
-        districts.value = [
-          { code: 'Q1', name: 'Quận 1' },
-          { code: 'Q3', name: 'Quận 3' },
-          { code: 'Q7', name: 'Quận 7' },
-        ]
-      } else {
-        districts.value = [
-          { code: 'BA', name: 'Ba Đình' },
-          { code: 'HK', name: 'Hoàn Kiếm' },
-        ]
-      }
-      shippingInfo.value.district = ''
-      shippingInfo.value.ward = ''
-      wards.value = []
-    }
-
-    const loadWards = () => {
-      // Mock loading wards based on district
-      wards.value = [
-        { code: 'P1', name: 'Phường 1' },
-        { code: 'P2', name: 'Phường 2' },
-        { code: 'P3', name: 'Phường 3' },
-      ]
-      shippingInfo.value.ward = ''
     }
 
     const validateShippingInfo = () => {
@@ -714,18 +668,8 @@ export default {
 
       if (!shippingInfo.value.address.trim()) {
         errors.value.address = 'Vui lòng nhập địa chỉ'
-      }
-
-      if (!shippingInfo.value.city) {
-        errors.value.city = 'Vui lòng chọn thành phố'
-      }
-
-      if (!shippingInfo.value.district) {
-        errors.value.district = 'Vui lòng chọn quận/huyện'
-      }
-
-      if (!shippingInfo.value.ward) {
-        errors.value.ward = 'Vui lòng chọn phường/xã'
+      } else if (shippingInfo.value.address.trim().length < 20) {
+        errors.value.address = 'Địa chỉ phải có ít nhất 20 ký tự và bao gồm đầy đủ thông tin'
       }
 
       if (Object.keys(errors.value).length === 0) {
@@ -733,45 +677,19 @@ export default {
       }
     }
 
-    const formatCardNumber = (event) => {
-      let value = event.target.value.replace(/\D/g, '')
-      value = value.replace(/(\d{4})(?=\d)/g, '$1 ')
-      paymentInfo.value.cardNumber = value
-    }
-
-    const formatExpiryDate = (event) => {
-      let value = event.target.value.replace(/\D/g, '')
-      if (value.length >= 2) {
-        value = value.substring(0, 2) + '/' + value.substring(2, 4)
-      }
-      paymentInfo.value.expiryDate = value
-    }
-
-    const copyBankAccount = () => {
-      navigator.clipboard.writeText('1234567890123456')
-      alert('Đã sao chép số tài khoản!')
-    }
-
-    const copyOrderCode = () => {
-      navigator.clipboard.writeText(orderCode.value)
-      alert('Đã sao chép mã đơn hàng!')
-    }
+    const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+    const cardComplete = ref(false)
+    const cardError = ref('')
+    const cardMounted = ref(false)
 
     const processPayment = async () => {
       if (selectedPayment.value === 'card') {
-        if (
-          !paymentInfo.value.cardNumber ||
-          !paymentInfo.value.expiryDate ||
-          !paymentInfo.value.cvv ||
-          !paymentInfo.value.cardName
-        ) {
-          alert('Vui lòng điền đầy đủ thông tin thẻ')
+        if (!cardComplete.value) {
+          alert('Vui lòng nhập đầy đủ thông tin thẻ')
           return
         }
       }
-
       processing.value = true
-
       try {
         // Create order first
         const orderData = {
@@ -781,9 +699,6 @@ export default {
             email: shippingInfo.value.email,
             phone: shippingInfo.value.phone,
             address: shippingInfo.value.address,
-            city: shippingInfo.value.city,
-            district: shippingInfo.value.district,
-            ward: shippingInfo.value.ward,
             notes: shippingInfo.value.notes,
             deliveryMethod: selectedDelivery.value,
           }),
@@ -793,63 +708,42 @@ export default {
             email: shippingInfo.value.email,
             phone: shippingInfo.value.phone,
             address: shippingInfo.value.address,
-            city: shippingInfo.value.city,
-            district: shippingInfo.value.district,
-            ward: shippingInfo.value.ward,
           }),
+          paymentMethod: selectedPayment.value,
+          shippingFee: deliveryPrice.value,
         }
-
-        console.log('🔄 Creating order...')
-        const orderResponse = await orderAPI.create(
-          orderData.shippingAddress,
-          orderData.billingAddress
-        )
+        const orderResponse = await orderAPI.create(orderData)
         const order = orderResponse.data
-
-        console.log('✅ Order created:', order)
-
-        // Store the created order
+        console.log('Order response:', order)
         createdOrder.value = order
-        orderCode.value = order.orderCode || order.id // Use real order code from API
-
-        // Process payment based on selected method
+        orderCode.value = order.orderCode || order.id
         if (selectedPayment.value === 'card') {
-          // Create payment intent for card payment
-          const paymentIntentResponse = await paymentAPI.createPaymentIntent(
-            order.id,
+          // Gọi backend để tạo PaymentIntent
+          const paymentIntentRes = await paymentAPI.createPaymentIntent(
+            order.id || order.orderId,
             totalAmount.value
           )
-
-          console.log('✅ Payment intent created:', paymentIntentResponse.data)
-
-          // Confirm payment (in real implementation, this would integrate with payment gateway)
-          const confirmResponse = await paymentAPI.confirmPayment(
-            paymentIntentResponse.data.paymentIntentId
-          )
-
-          console.log('✅ Payment confirmed:', confirmResponse.data)
-        } else if (selectedPayment.value === 'ewallet') {
-          // Handle e-wallet payment
-          const paymentIntentResponse = await paymentAPI.createPaymentIntent(
-            order.id,
-            totalAmount.value
-          )
-
-          console.log('✅ E-wallet payment intent created:', paymentIntentResponse.data)
-        } else if (selectedPayment.value === 'bank') {
-          // Handle bank transfer
-          const paymentIntentResponse = await paymentAPI.createPaymentIntent(
-            order.id,
-            totalAmount.value
-          )
-
-          console.log('✅ Bank transfer payment intent created:', paymentIntentResponse.data)
+          const clientSecret = paymentIntentRes.data.clientSecret
+          stripe = await stripePromise
+          const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: {
+              card: cardElement,
+              billing_details: {
+                name: shippingInfo.value.firstName + ' ' + shippingInfo.value.lastName,
+                email: shippingInfo.value.email,
+              },
+            },
+          })
+          if (error) {
+            alert('Thanh toán thất bại: ' + error.message)
+            processing.value = false
+            return
+          }
+          alert('Thanh toán Stripe thành công!')
+        } else if (selectedPayment.value === 'cod') {
+          alert('Đặt hàng thành công! Bạn sẽ thanh toán khi nhận hàng.')
         }
-
-        // Clear cart after successful payment
         await cartStore.clearCart()
-
-        // Go to success step
         currentStep.value = 4
       } catch (error) {
         console.error('❌ Payment error:', error)
@@ -876,8 +770,8 @@ export default {
     }
 
     const getDeliveryPrice = () => {
-      const option = deliveryOptions.value.find((opt) => opt.id === selectedDelivery.value)
-      return option && option.price > 0 ? formatCurrency(option.price) : 'Miễn phí'
+      const price = getDynamicDeliveryPrice(selectedDelivery.value)
+      return price > 0 ? formatCurrency(price) : 'Miễn phí'
     }
 
     const getPaymentMethodName = () => {
@@ -896,6 +790,64 @@ export default {
       return ''
     }
 
+    // Watch selectedPayment để mount lại Stripe Card Element khi chọn thẻ
+    watch(selectedPayment, async (val, oldVal) => {
+      if (currentStep.value === 3 && val === 'card') {
+        await nextTick()
+        if (document.getElementById('stripe-card-element')) {
+          stripe = await stripePromise
+          if (!elements) elements = stripe.elements()
+          if (!cardElement) {
+            cardElement = elements.create('card')
+            cardElement.on('change', (event) => {
+              cardComplete.value = event.complete
+              cardError.value = event.error ? event.error.message : ''
+            })
+          }
+          try {
+            cardElement.unmount()
+          } catch (e) {}
+          cardElement.mount('#stripe-card-element')
+          cardMounted.value = true
+        }
+      } else if (val !== 'card' && cardElement && cardMounted.value) {
+        try {
+          cardElement.unmount()
+        } catch (e) {}
+        cardMounted.value = false
+      }
+    })
+
+    // Watch currentStep để mount lại Stripe Card Element khi chuyển sang bước thanh toán
+    watch(currentStep, async (val, oldVal) => {
+      if (val === 3 && selectedPayment.value === 'card') {
+        await nextTick()
+        if (document.getElementById('stripe-card-element')) {
+          stripe = await stripePromise
+          if (!elements) elements = stripe.elements()
+          if (!cardElement) {
+            cardElement = elements.create('card', {
+              style: {
+                base: {
+                  color: '#ffffff',
+                  fontSize: '16px',
+                },
+              },
+            })
+            cardElement.on('change', (event) => {
+              cardComplete.value = event.complete
+              cardError.value = event.error ? event.error.message : ''
+            })
+          }
+          try {
+            cardElement.unmount()
+          } catch (e) {}
+          cardElement.mount('#stripe-card-element')
+          cardMounted.value = true
+        }
+      }
+    })
+
     // Lifecycle
     onMounted(async () => {
       await cartStore.loadCart()
@@ -911,6 +863,20 @@ export default {
           }
         }
       }
+      // Mount Stripe Card Element khi vào bước thanh toán
+      if (!cardMounted.value && document.getElementById('stripe-card-element')) {
+        stripe = await stripePromise
+        elements = stripe.elements()
+        if (!cardElement) {
+          cardElement = elements.create('card')
+          cardElement.on('change', (event) => {
+            cardComplete.value = event.complete
+            cardError.value = event.error ? event.error.message : ''
+          })
+        }
+        cardElement.mount('#stripe-card-element')
+        cardMounted.value = true
+      }
     })
 
     return {
@@ -924,32 +890,29 @@ export default {
       errors,
       selectedDelivery,
       selectedPayment,
-      selectedEwallet,
-      cities,
-      districts,
-      wards,
+
       deliveryOptions,
+      availableDeliveryOptions,
+      canUseExpress,
+      canUseFreeShipping,
       paymentMethods,
-      ewalletOptions,
       orderItems,
       discount,
       subtotal,
       deliveryPrice,
       totalAmount,
       formatCurrency,
-      loadDistricts,
-      loadWards,
+      getDynamicDeliveryPrice,
       validateShippingInfo,
-      formatCardNumber,
-      formatExpiryDate,
-      copyBankAccount,
-      copyOrderCode,
       processPayment,
       goToNextStep,
       goToPreviousStep,
       getDeliveryPrice,
       getPaymentMethodName,
       getEstimatedDelivery,
+      cardComplete,
+      cardError,
+      cardMounted,
     }
   },
 }
@@ -1124,6 +1087,28 @@ export default {
   color: rgba(184, 198, 219, 0.6);
 }
 
+.address-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+}
+
+.hint-icon {
+  font-size: 1rem;
+  color: var(--text-accent);
+}
+
+.hint-text {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 .error-message {
   color: #ef4444;
   font-size: 0.8rem;
@@ -1165,6 +1150,17 @@ export default {
   background: rgba(0, 212, 255, 0.1);
 }
 
+.delivery-option.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.delivery-option.disabled:hover {
+  border-color: rgba(0, 212, 255, 0.3);
+  background: rgba(0, 0, 0, 0.1);
+}
+
 .delivery-icon {
   font-size: 1.5rem;
   flex: none;
@@ -1194,12 +1190,133 @@ export default {
 .delivery-price {
   font-weight: 600;
   color: var(--text-accent);
-  min-width: 100px;
+  min-width: 120px;
   text-align: right;
+}
+
+.price-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.original-price {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.surcharge {
+  font-size: 0.75rem;
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.final-price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-accent);
+}
+
+.delivery-partner {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.partner-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.partner-name {
+  color: var(--text-primary);
+  margin-left: 0.25rem;
+}
+
+.delivery-conditions {
+  margin-top: 0.5rem;
+}
+
+.condition-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.condition-icon {
+  font-size: 0.7rem;
+}
+
+.condition-text {
+  color: var(--text-secondary);
+}
+
+.unavailable-reason {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+}
+
+.reason-icon {
+  font-size: 0.8rem;
+}
+
+.reason-text {
+  color: #ef4444;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .delivery-radio {
   flex: none;
+}
+
+/* Delivery Summary */
+.delivery-summary {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(26, 26, 46, 0.5);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.summary-item:last-child {
+  margin-bottom: 0;
+}
+
+.summary-item.surcharge-item {
+  color: #f59e0b;
+  font-size: 0.9rem;
+}
+
+.summary-item.total {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 212, 255, 0.2);
+  margin-top: 0.75rem;
+}
+
+.summary-item.total .summary-value {
+  color: var(--text-accent);
+  font-size: 1.2rem;
 }
 
 .form-actions {
@@ -1278,124 +1395,29 @@ export default {
   margin: 0;
 }
 
-.ewallet-options {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.ewallet-option {
+.cod-info {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem;
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.ewallet-option:hover,
-.ewallet-option.selected {
-  border-color: var(--text-accent);
-  background: rgba(0, 212, 255, 0.1);
-}
-
-.ewallet-logo {
-  width: 50px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
 }
-
-.ewallet-info {
-  flex: 1;
+.cod-icon {
+  font-size: 2rem;
+  color: #10b981;
 }
-
-.ewallet-info h4 {
-  color: var(--text-primary);
+.cod-text strong {
+  color: #10b981;
+  display: block;
   margin-bottom: 0.25rem;
 }
-
-.ewallet-info p {
+.cod-text p {
   color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.ewallet-radio {
-  flex: none;
-}
-
-.bank-info {
-  background: rgba(26, 26, 46, 0.5);
-  border-radius: 12px;
-  padding: 1.5rem;
-}
-
-.bank-info h3 {
-  color: var(--text-accent);
-  margin-bottom: 1.5rem;
-}
-
-.bank-details {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.bank-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-}
-
-.bank-label {
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.bank-value {
-  color: var(--text-primary);
-  font-weight: 600;
-  flex: 1;
-  text-align: right;
-  margin-right: 0.5rem;
-}
-
-.copy-btn {
-  background: var(--aurora-gradient);
-  border: none;
-  color: white;
-  padding: 0.4rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.8rem;
-}
-
-.copy-btn:hover {
-  transform: scale(1.05);
-}
-
-.bank-note {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.bank-note p {
-  color: #f59e0b;
+  font-size: 0.95rem;
   margin: 0;
-  font-size: 0.9rem;
 }
 
 .success-content {
@@ -1767,13 +1789,13 @@ export default {
     font-size: 1.2rem;
   }
 
-  .bank-item {
+  .cod-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
 
-  .bank-value {
+  .cod-value {
     text-align: left;
     margin-right: 0;
     word-break: break-all;
@@ -1786,5 +1808,15 @@ export default {
   .success-icon {
     font-size: 3rem;
   }
+}
+
+.stripe-card-element {
+  padding: 0.75rem 1rem;
+  background: rgba(26, 26, 46, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
 }
 </style>

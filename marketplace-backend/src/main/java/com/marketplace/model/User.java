@@ -39,11 +39,15 @@ public class User {
     private String birthday; // Ngày sinh
     private String address; // Địa chỉ
 
-    @Pattern(regexp = "USER|ADMIN", message = "Role must be USER or ADMIN")
-    private String role = "USER"; // USER or ADMIN
+    @Pattern(regexp = "USER|ADMIN|SELLER", message = "Role must be USER, ADMIN or SELLER")
+    private String role = "USER"; // USER, ADMIN or SELLER
     private boolean enabled = true; // Cho phép khóa tài khoản
+    private boolean isVip = false; // VIP status
+    private boolean isVerified = false; // Email verification status
+    private LocalDateTime lastLogin; // Last login time
     private List<String> purchaseHistory = new ArrayList<>(); // Lịch sử mua hàng
     private List<String> productsSold = new ArrayList<>(); // Sản phẩm đã đăng bán
+    private List<String> savedItems = new ArrayList<>(); // Danh sách sản phẩm lưu lại sau
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -99,11 +103,23 @@ public class User {
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
 
+    public boolean isVip() { return isVip; }
+    public void setVip(boolean vip) { this.isVip = vip; }
+
+    public boolean isVerified() { return isVerified; }
+    public void setVerified(boolean verified) { this.isVerified = verified; }
+
+    public LocalDateTime getLastLogin() { return lastLogin; }
+    public void setLastLogin(LocalDateTime lastLogin) { this.lastLogin = lastLogin; }
+
     public List<String> getPurchaseHistory() { return purchaseHistory; }
     public void setPurchaseHistory(List<String> purchaseHistory) { this.purchaseHistory = purchaseHistory; }
 
     public List<String> getProductsSold() { return productsSold; }
     public void setProductsSold(List<String> productsSold) { this.productsSold = productsSold; }
+
+    public List<String> getSavedItems() { return savedItems; }
+    public void setSavedItems(List<String> savedItems) { this.savedItems = savedItems; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

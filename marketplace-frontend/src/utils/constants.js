@@ -1,31 +1,25 @@
-
 export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
   TIMEOUT: 30000, // 30 seconds
   RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000 // 1 second
+  RETRY_DELAY: 1000, // 1 second
 }
-
 
 export const USER_ROLES = {
   ADMIN: 'admin',
-  MANAGER: 'manager', 
+  MANAGER: 'manager',
   STAFF: 'staff',
   CUSTOMER: 'customer',
-  USER: 'user'
+  USER: 'user',
 }
-
 
 export const ORDER_STATUS = {
-  PENDING: 'pending',
-  CONFIRMED: 'confirmed',
-  PROCESSING: 'processing',
-  SHIPPING: 'shipping',
-  DELIVERED: 'delivered',
-  CANCELLED: 'cancelled',
-  REFUNDED: 'refunded'
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  SHIPPED: 'SHIPPED',
+  DELIVERED: 'DELIVERED',
+  CANCELLED: 'CANCELLED',
 }
-
 
 export const ORDER_STATUS_COLORS = {
   [ORDER_STATUS.PENDING]: '#ffcd3c',
@@ -34,9 +28,8 @@ export const ORDER_STATUS_COLORS = {
   [ORDER_STATUS.SHIPPING]: '#ff6b35',
   [ORDER_STATUS.DELIVERED]: '#00ff88',
   [ORDER_STATUS.CANCELLED]: '#e94560',
-  [ORDER_STATUS.REFUNDED]: '#b8c6db'
+  [ORDER_STATUS.REFUNDED]: '#b8c6db',
 }
-
 
 export const PAYMENT_METHODS = {
   CASH: 'cash',
@@ -46,7 +39,7 @@ export const PAYMENT_METHODS = {
   E_WALLET: 'e_wallet',
   MOMO: 'momo',
   ZALOPAY: 'zalopay',
-  VNPAY: 'vnpay'
+  VNPAY: 'vnpay',
 }
 
 export const PRODUCT_CATEGORIES = {
@@ -59,17 +52,15 @@ export const PRODUCT_CATEGORIES = {
   AUTOMOTIVE: 'automotive',
   FOOD: 'food',
   TOYS: 'toys',
-  OTHER: 'other'
+  OTHER: 'other',
 }
-
 
 export const PAGINATION = {
   DEFAULT_PAGE_SIZE: 12,
   MAX_PAGE_SIZE: 100,
   PAGE_SIZE_OPTIONS: [6, 12, 24, 48],
-  ADMIN_PAGE_SIZE: 20
+  ADMIN_PAGE_SIZE: 20,
 }
-
 
 export const FILE_UPLOAD = {
   MAX_SIZE: 5 * 1024 * 1024, // 5MB
@@ -78,29 +69,27 @@ export const FILE_UPLOAD = {
   IMAGE_QUALITY: 0.8,
   MAX_IMAGE_WIDTH: 1920,
   MAX_IMAGE_HEIGHT: 1080,
-  THUMBNAIL_SIZE: 300
+  THUMBNAIL_SIZE: 300,
 }
 
-
 export const VALIDATION_RULES = {
-  EMAIL: /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/,
+  EMAIL:
+    /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/,
   PHONE_VN: /^(0|\+84)[3-9]\d{8}$/,
   PASSWORD_MIN_LENGTH: 8,
   USERNAME_MIN_LENGTH: 3,
   USERNAME_MAX_LENGTH: 50,
   NAME_MAX_LENGTH: 100,
   DESCRIPTION_MAX_LENGTH: 1000,
-  ADDRESS_MAX_LENGTH: 255
+  ADDRESS_MAX_LENGTH: 255,
 }
-
 
 export const SEARCH_CONFIG = {
   MIN_SEARCH_LENGTH: 2,
   DEBOUNCE_DELAY: 300, // milliseconds
   MAX_SUGGESTIONS: 10,
-  RECENT_SEARCHES_LIMIT: 5
+  RECENT_SEARCHES_LIMIT: 5,
 }
-
 
 export const SORT_OPTIONS = {
   PRODUCTS: [
@@ -111,24 +100,23 @@ export const SORT_OPTIONS = {
     { value: 'name_asc', label: 'Tên A-Z' },
     { value: 'name_desc', label: 'Tên Z-A' },
     { value: 'popularity', label: 'Phổ biến nhất' },
-    { value: 'rating', label: 'Đánh giá cao nhất' }
+    { value: 'rating', label: 'Đánh giá cao nhất' },
   ],
   ORDERS: [
     { value: 'created_at_desc', label: 'Mới nhất' },
     { value: 'created_at_asc', label: 'Cũ nhất' },
     { value: 'total_amount_desc', label: 'Giá trị cao nhất' },
     { value: 'total_amount_asc', label: 'Giá trị thấp nhất' },
-    { value: 'status', label: 'Trạng thái' }
+    { value: 'status', label: 'Trạng thái' },
   ],
   USERS: [
     { value: 'created_at_desc', label: 'Mới nhất' },
     { value: 'created_at_asc', label: 'Cũ nhất' },
     { value: 'name_asc', label: 'Tên A-Z' },
     { value: 'name_desc', label: 'Tên Z-A' },
-    { value: 'email_asc', label: 'Email A-Z' }
-  ]
+    { value: 'email_asc', label: 'Email A-Z' },
+  ],
 }
-
 
 export const STORAGE_KEYS = {
   TOKEN: 'marketplace_token',
@@ -137,9 +125,8 @@ export const STORAGE_KEYS = {
   THEME: 'marketplace_theme',
   LANGUAGE: 'marketplace_language',
   RECENT_SEARCHES: 'marketplace_recent_searches',
-  USER_PREFERENCES: 'marketplace_preferences'
+  USER_PREFERENCES: 'marketplace_preferences',
 }
-
 
 export const ERROR_MESSAGES = {
   NETWORK_ERROR: 'Lỗi kết nối mạng. Vui lòng thử lại.',
@@ -156,9 +143,8 @@ export const ERROR_MESSAGES = {
   STOCK_INSUFFICIENT: 'Số lượng trong kho không đủ.',
   PASSWORD_WEAK: 'Mật khẩu phải có ít nhất 8 ký tự.',
   EMAIL_INVALID: 'Email không hợp lệ.',
-  PHONE_INVALID: 'Số điện thoại không hợp lệ.'
+  PHONE_INVALID: 'Số điện thoại không hợp lệ.',
 }
-
 
 export const SUCCESS_MESSAGES = {
   LOGIN_SUCCESS: 'Đăng nhập thành công!',
@@ -172,14 +158,14 @@ export const SUCCESS_MESSAGES = {
   PAYMENT_SUCCESS: 'Thanh toán thành công!',
   EMAIL_SENT: 'Email đã được gửi thành công!',
   PASSWORD_CHANGED: 'Đổi mật khẩu thành công!',
-  PROFILE_UPDATED: 'Cập nhật hồ sơ thành công!'
+  PROFILE_UPDATED: 'Cập nhật hồ sơ thành công!',
 }
 
 export const NOTIFICATION_TYPES = {
   SUCCESS: 'success',
   ERROR: 'error',
   WARNING: 'warning',
-  INFO: 'info'
+  INFO: 'info',
 }
 
 export const SPACE_COLORS = {
@@ -194,21 +180,21 @@ export const SPACE_COLORS = {
   ORANGE: '#ff6b35',
   YELLOW: '#ffcd3c',
   WHITE: '#ffffff',
-  GRAY: '#b8c6db'
+  GRAY: '#b8c6db',
 }
 
 export const ANIMATION = {
   FAST: 200,
   NORMAL: 300,
   SLOW: 500,
-  VERY_SLOW: 1000
+  VERY_SLOW: 1000,
 }
 
 export const BREAKPOINTS = {
   MOBILE: 768,
   TABLET: 1024,
   DESKTOP: 1200,
-  WIDE: 1400
+  WIDE: 1400,
 }
 
 export const HTTP_STATUS = {
@@ -222,20 +208,20 @@ export const HTTP_STATUS = {
   CONFLICT: 409,
   UNPROCESSABLE_ENTITY: 422,
   INTERNAL_SERVER_ERROR: 500,
-  SERVICE_UNAVAILABLE: 503
+  SERVICE_UNAVAILABLE: 503,
 }
 
 export const DATE_FORMATS = {
   SHORT: 'DD/MM/YYYY',
   LONG: 'DD/MM/YYYY HH:mm',
   TIME: 'HH:mm',
-  FULL: 'dddd, DD/MM/YYYY HH:mm:ss'
+  FULL: 'dddd, DD/MM/YYYY HH:mm:ss',
 }
 
 export const CURRENCY = {
   CODE: 'VND',
   SYMBOL: '₫',
-  LOCALE: 'vi-VN'
+  LOCALE: 'vi-VN',
 }
 
 export const FEATURES = {
@@ -243,9 +229,9 @@ export const FEATURES = {
   ENABLE_WISHLIST: true,
   ENABLE_NOTIFICATIONS: true,
   ENABLE_CHAT: false,
-  ENABLE_DARK_MODE: false, 
+  ENABLE_DARK_MODE: false,
   ENABLE_PWA: false,
-  ENABLE_ANALYTICS: false
+  ENABLE_ANALYTICS: false,
 }
 
 export const ADMIN_CONFIG = {
@@ -257,8 +243,8 @@ export const ADMIN_CONFIG = {
     SPACE_COLORS.ORANGE,
     SPACE_COLORS.PINK,
     SPACE_COLORS.YELLOW,
-    SPACE_COLORS.PURPLE
-  ]
+    SPACE_COLORS.PURPLE,
+  ],
 }
 
 export const DEFAULTS = {
@@ -268,5 +254,87 @@ export const DEFAULTS = {
   META_DESCRIPTION: 'Discover amazing products in our space-themed marketplace',
   ITEMS_PER_PAGE: PAGINATION.DEFAULT_PAGE_SIZE,
   LANGUAGE: 'vi',
-  TIMEZONE: 'Asia/Ho_Chi_Minh'
+  TIMEZONE: 'Asia/Ho_Chi_Minh',
+}
+
+// Status Labels for different roles
+export const STATUS_LABELS = {
+  // Admin perspective (system-wide view)
+  ADMIN: {
+    [ORDER_STATUS.PENDING]: 'Chờ xử lý',
+    [ORDER_STATUS.PROCESSING]: 'Đang xử lý',
+    [ORDER_STATUS.SHIPPED]: 'Đang giao',
+    [ORDER_STATUS.DELIVERED]: 'Đã giao',
+    [ORDER_STATUS.CANCELLED]: 'Đã hủy',
+  },
+
+  // Seller perspective (order management)
+  SELLER: {
+    [ORDER_STATUS.PENDING]: 'Chờ xử lý',
+    [ORDER_STATUS.PROCESSING]: 'Đang xử lý',
+    [ORDER_STATUS.SHIPPED]: 'Đã gửi hàng',
+    [ORDER_STATUS.DELIVERED]: 'Đã giao hàng',
+    [ORDER_STATUS.CANCELLED]: 'Đã hủy',
+  },
+
+  // Customer perspective (order tracking)
+  CUSTOMER: {
+    [ORDER_STATUS.PENDING]: 'Chờ xử lý',
+    [ORDER_STATUS.PROCESSING]: 'Đang xử lý',
+    [ORDER_STATUS.SHIPPED]: 'Đang giao',
+    [ORDER_STATUS.DELIVERED]: 'Đã giao',
+    [ORDER_STATUS.CANCELLED]: 'Đã hủy',
+  },
+}
+
+// Status Colors
+export const STATUS_COLORS = {
+  [ORDER_STATUS.PENDING]: '#f59e0b', // Orange
+  [ORDER_STATUS.PROCESSING]: '#3b82f6', // Blue
+  [ORDER_STATUS.SHIPPED]: '#8b5cf6', // Purple
+  [ORDER_STATUS.DELIVERED]: '#10b981', // Green
+  [ORDER_STATUS.CANCELLED]: '#ef4444', // Red
+}
+
+// Status Icons
+export const STATUS_ICONS = {
+  [ORDER_STATUS.PENDING]: '⏳',
+  [ORDER_STATUS.PROCESSING]: '🔄',
+  [ORDER_STATUS.SHIPPED]: '🚚',
+  [ORDER_STATUS.DELIVERED]: '✅',
+  [ORDER_STATUS.CANCELLED]: '❌',
+}
+
+// Helper functions
+export const getStatusLabel = (status, role = 'CUSTOMER') => {
+  return STATUS_LABELS[role]?.[status] || status
+}
+
+export const getStatusColor = (status) => {
+  return STATUS_COLORS[status] || '#6b7280'
+}
+
+export const getStatusIcon = (status) => {
+  return STATUS_ICONS[status] || '📋'
+}
+
+// Status workflow
+export const STATUS_WORKFLOW = [
+  ORDER_STATUS.PENDING,
+  ORDER_STATUS.PROCESSING,
+  ORDER_STATUS.SHIPPED,
+  ORDER_STATUS.DELIVERED,
+]
+
+// Check if status can be updated to target status
+export const canUpdateStatus = (currentStatus, targetStatus) => {
+  const currentIndex = STATUS_WORKFLOW.indexOf(currentStatus)
+  const targetIndex = STATUS_WORKFLOW.indexOf(targetStatus)
+
+  // Can only move forward in workflow (except for CANCELLED)
+  if (targetStatus === ORDER_STATUS.CANCELLED) {
+    return currentStatus !== ORDER_STATUS.DELIVERED
+  }
+
+  return targetIndex === currentIndex + 1
 }

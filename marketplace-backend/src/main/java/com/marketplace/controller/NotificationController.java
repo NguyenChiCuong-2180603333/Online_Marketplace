@@ -163,4 +163,17 @@ public class NotificationController {
         }
         return null;
     }
+    @PutMapping("/admin/{notificationId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Notification> updateNotification(
+            @PathVariable String notificationId,
+            @Valid @RequestBody NotificationRequest notificationRequest) {
+        try {
+            Notification updated = notificationService.updateNotification(notificationId, notificationRequest);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            e.printStackTrace(); // Log lỗi chi tiết ra console
+            throw e;
+        }
+    }
 }

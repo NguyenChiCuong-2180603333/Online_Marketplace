@@ -191,15 +191,15 @@ const router = createRouter({
             breadcrumb: 'Người dùng',
           },
         },
-        {
-          path: 'analytics',
-          name: 'AdminAnalytics',
-          component: () => import('@/views/admin/Analytics.vue'),
-          meta: {
-            title: 'Analytics - Admin',
-            breadcrumb: 'Analytics',
-          },
-        },
+        // {
+        //   path: 'analytics',
+        //   name: 'AdminAnalytics',
+        //   component: () => import('@/views/admin/Analytics.vue'),
+        //   meta: {
+        //     title: 'Analytics - Admin',
+        //     breadcrumb: 'Analytics',
+        //   },
+        // },
         {
           path: 'categories',
           name: 'AdminCategories',
@@ -265,27 +265,7 @@ const router = createRouter({
             requiresSeller: true,
           },
         },
-        {
-          path: 'products/create',
-          name: 'CreateProduct',
-          component: () => import('@/views/seller/ProductForm.vue'),
-          meta: {
-            title: 'Tạo sản phẩm mới - Seller',
-            breadcrumb: 'Tạo sản phẩm',
-            requiresSeller: true,
-          },
-        },
-        {
-          path: 'products/edit/:id',
-          name: 'EditProduct',
-          component: () => import('@/views/seller/ProductForm.vue'),
-          meta: {
-            title: 'Chỉnh sửa sản phẩm - Seller',
-            breadcrumb: 'Chỉnh sửa sản phẩm',
-            requiresSeller: true,
-          },
-          props: true,
-        },
+
         {
           path: 'orders',
           name: 'SellerOrders',
@@ -351,7 +331,7 @@ router.beforeEach(async (to, from, next) => {
   // 🆕 PRIORITY: Handle seller routes with special guard
   if (to.path.startsWith('/seller') || to.meta.requiresSeller) {
     console.log('🎯 Applying seller guard for:', to.path)
-    
+
     // Use the dedicated seller guard
     return sellerGuard(to, from, next)
   }
@@ -361,7 +341,7 @@ router.beforeEach(async (to, from, next) => {
     console.log('❌ Not authenticated, redirecting to login')
     next({
       path: '/login',
-      query: { redirect: to.fullPath }
+      query: { redirect: to.fullPath },
     })
     return
   }
@@ -388,14 +368,14 @@ router.beforeEach(async (to, from, next) => {
 // 🆕 Add global error handler
 router.onError((error) => {
   console.error('🚨 Router error:', error)
-  
+
   // Handle chunk loading errors (when JS files fail to load)
   if (error.message.includes('Loading chunk')) {
     console.log('🔄 Chunk loading failed, reloading page...')
     window.location.reload()
     return
   }
-  
+
   // Handle other router errors
   router.push('/').catch(() => {
     // Fallback if even home page fails

@@ -10,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,21 +47,20 @@ public class RecommendationController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getRecommendationsForUser(
             @RequestParam(defaultValue = "20") int limit) {
-
-        // 🔑 Lấy user ID từ JWT token
         String userId = getCurrentUserId();
-
-        // 🤖 Gọi AI recommendation engine
-        List<Product> recommendations = recommendationService.getRecommendationsForUser(userId, limit);
-
-        // 📊 Chuẩn bị response data
+        List<Product> recommendations;
+        try {
+            recommendations = recommendationService.getRecommendationsForUser(userId, limit);
+        } catch (Exception e) {
+            System.err.println("[ERROR] RecommendationController: " + e.getMessage());
+            recommendations = Collections.emptyList();
+        }
         Map<String, Object> response = new HashMap<>();
         response.put("recommendations", recommendations);  // Danh sách sản phẩm đề xuất
         response.put("count", recommendations.size());     // Số lượng
         response.put("userId", userId);                    // User ID để debug
         response.put("algorithm", "hybrid");               // Algorithm đã sử dụng
         response.put("timestamp", System.currentTimeMillis()); // Thời gian tạo
-
         return ResponseEntity.ok(response);
     }
 

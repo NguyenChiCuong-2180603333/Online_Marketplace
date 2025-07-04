@@ -7,11 +7,9 @@
           <span class="trending-icon">🔥</span>
           Đang Hot nhất
         </h2>
-        <p class="section-subtitle">
-          Sản phẩm được yêu thích và mua nhiều nhất tuần này
-        </p>
+        <p class="section-subtitle">Sản phẩm được yêu thích và mua nhiều nhất tuần này</p>
       </div>
-      
+
       <!-- Trending Stats -->
       <div class="trending-stats">
         <div class="stat-item">
@@ -50,9 +48,7 @@
         <span class="error-icon">⚠️</span>
         <h3>Không thể tải sản phẩm trending</h3>
         <p>{{ error }}</p>
-        <button @click="loadTrendingProducts" class="retry-btn">
-          Thử lại
-        </button>
+        <button @click="loadTrendingProducts" class="retry-btn">Thử lại</button>
       </div>
     </div>
 
@@ -78,8 +74,8 @@
 
       <!-- Products Grid -->
       <div class="trending-grid">
-        <div 
-          v-for="(product, index) in trendingProducts" 
+        <div
+          v-for="(product, index) in trendingProducts"
           :key="product.id"
           class="trending-product-card"
           @click="handleProductClick(product, index)"
@@ -92,22 +88,20 @@
 
           <!-- Product Image -->
           <div class="product-image-container">
-            <img 
-              :src="product.imageUrl || '/api/placeholder/product'" 
+            <img
+              :src="product.images?.[0] || '/api/placeholder/product'"
               :alt="product.name"
               class="product-image"
               @error="handleImageError"
               loading="lazy"
             />
-            
+
             <!-- Trending badges -->
             <div class="trending-badges">
               <span v-if="product.isRising" class="badge badge-rising" title="Đang tăng">
                 📈 +{{ product.growthRate }}%
               </span>
-              <span v-if="product.isHot" class="badge badge-hot" title="Rất hot">
-                🔥 HOT
-              </span>
+              <span v-if="product.isHot" class="badge badge-hot" title="Rất hot"> 🔥 HOT </span>
               <span v-if="product.discount > 0" class="badge badge-discount">
                 -{{ product.discount }}%
               </span>
@@ -115,18 +109,14 @@
 
             <!-- Quick view overlay -->
             <div class="quick-overlay">
-              <button 
-                @click.stop="quickView(product)"
-                class="quick-view-btn"
-                title="Xem nhanh"
-              >
+              <button @click.stop="quickView(product)" class="quick-view-btn" title="Xem nhanh">
                 👁️ Xem nhanh
               </button>
-              
-              <button 
+
+              <button
                 @click.stop="addToWishlist(product)"
                 class="wishlist-btn"
-                :class="{ 'active': isInWishlist(product.id) }"
+                :class="{ active: isInWishlist(product.id) }"
                 title="Yêu thích"
               >
                 {{ isInWishlist(product.id) ? '❤️' : '🤍' }}
@@ -154,8 +144,10 @@
               <span class="current-price">
                 {{ formatPrice(product.price) }}
               </span>
-              <span v-if="product.originalPrice && product.originalPrice > product.price" 
-                    class="original-price">
+              <span
+                v-if="product.originalPrice && product.originalPrice > product.price"
+                class="original-price"
+              >
                 {{ formatPrice(product.originalPrice) }}
               </span>
             </div>
@@ -163,9 +155,12 @@
             <!-- Rating & reviews -->
             <div class="product-rating" v-if="product.rating || product.reviewCount">
               <div class="stars">
-                <span v-for="star in 5" :key="star" 
-                      class="star"
-                      :class="{ 'filled': star <= (product.rating || 0) }">
+                <span
+                  v-for="star in 5"
+                  :key="star"
+                  class="star"
+                  :class="{ filled: star <= (product.rating || 0) }"
+                >
                   ⭐
                 </span>
               </div>
@@ -194,7 +189,7 @@
             </div>
 
             <!-- Action button -->
-            <button 
+            <button
               @click.stop="handleAddToCart(product)"
               class="add-to-cart-btn"
               :disabled="!product.inStock"
@@ -219,12 +214,8 @@
           <h4>🎯 Nhận đề xuất cá nhân hóa?</h4>
           <p>Đăng ký để nhận được đề xuất sản phẩm phù hợp với sở thích riêng của bạn!</p>
           <div class="prompt-actions">
-            <router-link to="/register" class="btn btn-primary">
-              🚀 Đăng ký ngay
-            </router-link>
-            <router-link to="/login" class="btn btn-secondary">
-              Đăng nhập
-            </router-link>
+            <router-link to="/register" class="btn btn-primary"> 🚀 Đăng ký ngay </router-link>
+            <router-link to="/login" class="btn btn-secondary"> Đăng nhập </router-link>
           </div>
         </div>
       </div>
@@ -244,79 +235,78 @@ export default {
     // Số lượng sản phẩm hiển thị
     limit: {
       type: Number,
-      default: 12
+      default: 12,
     },
-    
+
     // Tự động refresh
     autoRefresh: {
       type: Boolean,
-      default: true
+      default: true,
     },
-    
+
     // Interval tự động refresh (minutes)
     refreshInterval: {
       type: Number,
-      default: 10
+      default: 10,
     },
-    
+
     // Custom CSS class
     containerClass: {
       type: String,
-      default: ''
-    }
+      default: '',
+    },
   },
-  
+
   emits: ['product-click', 'add-to-cart', 'quick-view'],
-  
+
   setup(props, { emit }) {
     const router = useRouter()
     const userStore = useUserStore()
-    
+
     // Reactive state
     const trendingProducts = ref([])
     const loading = ref(false)
     const error = ref(null)
     const lastUpdated = ref(new Date())
     const nextRefreshIn = ref(props.refreshInterval * 60 * 1000)
-    
+
     // Mock trending stats
     const totalViews = ref(2547391)
     const totalPurchases = ref(148726)
-    
+
     // Auto refresh
     let refreshTimer = null
     let countdownTimer = null
-    
+
     // Computed properties
     const autoRefreshEnabled = computed(() => {
       return props.autoRefresh && refreshTimer
     })
-    
+
     const hasMoreProducts = computed(() => {
       return trendingProducts.value.length >= props.limit
     })
-    
+
     // Load trending products
     const loadTrendingProducts = async () => {
       loading.value = true
       error.value = null
-      
+
       try {
         const response = await recommendationService.getTrendingRecommendations(props.limit)
-        
+
         trendingProducts.value = response.trending || []
         lastUpdated.value = new Date()
-        
+
         // Enhance with mock trending data
         enhanceWithTrendingData()
-        
+
         // Track trending products loaded
         recommendationService.trackInteraction(null, 'TRENDING_PRODUCTS_LOADED', {
           count: trendingProducts.value.length,
           source: 'home_page_trending',
-          userType: 'anonymous'
+          userType: 'anonymous',
         })
-        
       } catch (err) {
         console.error('Error loading trending products:', err)
         error.value = err.response?.data?.message || 'Không thể tải sản phẩm trending'
@@ -325,7 +315,7 @@ export default {
         loading.value = false
       }
     }
-    
+
     // Enhance products with trending data
     const enhanceWithTrendingData = () => {
       trendingProducts.value = trendingProducts.value.map((product, index) => ({
@@ -336,101 +326,99 @@ export default {
         growthRate: Math.floor(Math.random() * 200 + 50),
         totalViews: Math.floor(Math.random() * 10000 + 1000),
         totalSales: Math.floor(Math.random() * 500 + 50),
-        totalWishlisted: Math.floor(Math.random() * 200 + 20)
+        totalWishlisted: Math.floor(Math.random() * 200 + 20),
       }))
     }
-    
+
     // Handle product click
     const handleProductClick = async (product, index) => {
       // Track trending product click
       await recommendationService.trackClick(product.id, 'trending_products')
-      
+
       // Additional tracking for position
       await recommendationService.trackInteraction(product.id, 'TRENDING_PRODUCT_CLICK', {
         position: index + 1,
         trendingScore: product.trendingScore,
-        source: 'trending_section'
+        source: 'trending_section',
       })
-      
+
       // Emit event
       emit('product-click', { product, index })
-      
+
       // Navigate to product detail
       router.push(`/products/${product.id}`)
     }
-    
+
     // Handle add to cart
     const handleAddToCart = async (product) => {
       try {
         // Track add to cart from trending
         await recommendationService.trackAddToCart(product.id, 1)
-        
+
         // Additional trending conversion tracking
         await recommendationService.trackInteraction(product.id, 'TRENDING_CONVERSION', {
           trendingScore: product.trendingScore,
-          source: 'trending_section'
+          source: 'trending_section',
         })
-        
+
         // Emit event
         emit('add-to-cart', product)
-        
+
         // Show success feedback
         console.log('Added to cart from trending:', product.name)
-        
       } catch (error) {
         console.error('Error adding trending product to cart:', error)
       }
     }
-    
+
     // Quick view functionality
     const quickView = (product) => {
       // Track quick view action
       recommendationService.trackInteraction(product.id, 'QUICK_VIEW', {
-        source: 'trending_products'
+        source: 'trending_products',
       })
-      
+
       // Emit event
       emit('quick-view', product)
-      
+
       // TODO: Implement quick view modal or navigate to product
       router.push(`/products/${product.id}`)
     }
-    
+
     // Add to wishlist
     const addToWishlist = async (product) => {
       try {
         // Track wishlist action
         await recommendationService.trackInteraction(product.id, 'ADD_TO_WISHLIST', {
-          source: 'trending_products'
+          source: 'trending_products',
         })
-        
+
         console.log('Added to wishlist from trending:', product.name)
-        
       } catch (error) {
         console.error('Error adding to wishlist:', error)
       }
     }
-    
+
     // View all trending
     const viewAllTrending = () => {
       // Track view all action
       recommendationService.trackInteraction(null, 'VIEW_ALL_TRENDING', {
-        currentCount: trendingProducts.value.length
+        currentCount: trendingProducts.value.length,
       })
-      
+
       router.push('/products?sort=trending')
     }
-    
+
     // Auto refresh functionality
     const startAutoRefresh = () => {
       if (!props.autoRefresh) return
-      
+
       // Main refresh timer
       refreshTimer = setInterval(() => {
         loadTrendingProducts()
         nextRefreshIn.value = props.refreshInterval * 60 * 1000
       }, props.refreshInterval * 60 * 1000)
-      
+
       // Countdown timer
       countdownTimer = setInterval(() => {
         nextRefreshIn.value -= 1000
@@ -439,7 +427,7 @@ export default {
         }
       }, 1000)
     }
-    
+
     const stopAutoRefresh = () => {
       if (refreshTimer) {
         clearInterval(refreshTimer)
@@ -450,15 +438,15 @@ export default {
         countdownTimer = null
       }
     }
-    
+
     // Helper functions
     const formatPrice = (price) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
       }).format(price)
     }
-    
+
     const formatNumber = (number) => {
       if (number >= 1000000) {
         return (number / 1000000).toFixed(1) + 'M'
@@ -468,59 +456,59 @@ export default {
       }
       return number.toString()
     }
-    
+
     const formatRelativeTime = (date) => {
       const now = new Date()
       const diff = now - date
       const minutes = Math.floor(diff / 60000)
-      
+
       if (minutes < 1) return 'vừa xong'
       if (minutes < 60) return `${minutes} phút trước`
-      
+
       const hours = Math.floor(minutes / 60)
       if (hours < 24) return `${hours} giờ trước`
-      
+
       const days = Math.floor(hours / 24)
       return `${days} ngày trước`
     }
-    
+
     const truncate = (text, length) => {
       if (!text) return ''
       return text.length > length ? text.slice(0, length) + '...' : text
     }
-    
+
     const handleImageError = (event) => {
       event.target.src = '/api/placeholder/product'
     }
-    
+
     const isInWishlist = (productId) => {
-      return userStore.wishlist?.some(item => item.id === productId) || false
+      return userStore.wishlist?.some((item) => item.id === productId) || false
     }
-    
+
     const getRankClass = (index) => {
       if (index === 0) return 'rank-gold'
       if (index === 1) return 'rank-silver'
       if (index === 2) return 'rank-bronze'
       return 'rank-normal'
     }
-    
+
     const getRankLabel = (index) => {
       if (index === 0) return '👑'
       if (index === 1) return '🥈'
       if (index === 2) return '🥉'
       return '⭐'
     }
-    
+
     // Lifecycle
     onMounted(() => {
       loadTrendingProducts()
       startAutoRefresh()
     })
-    
+
     onUnmounted(() => {
       stopAutoRefresh()
     })
-    
+
     return {
       // State
       trendingProducts,
@@ -530,11 +518,11 @@ export default {
       nextRefreshIn,
       totalViews,
       totalPurchases,
-      
+
       // Computed
       autoRefreshEnabled,
       hasMoreProducts,
-      
+
       // Methods
       loadTrendingProducts,
       handleProductClick,
@@ -542,7 +530,7 @@ export default {
       quickView,
       addToWishlist,
       viewAllTrending,
-      
+
       // Helpers
       formatPrice,
       formatNumber,
@@ -551,9 +539,9 @@ export default {
       handleImageError,
       isInWishlist,
       getRankClass,
-      getRankLabel
+      getRankLabel,
     }
-  }
+  },
 }
 </script>
 
@@ -593,8 +581,13 @@ export default {
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 .section-subtitle {
@@ -634,15 +627,24 @@ export default {
 .loading-title,
 .loading-subtitle {
   height: 1.5rem;
-  background: linear-gradient(90deg, rgba(255,165,0,0.1) 25%, rgba(255,165,0,0.2) 50%, rgba(255,165,0,0.1) 75%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 165, 0, 0.1) 25%,
+    rgba(255, 165, 0, 0.2) 50%,
+    rgba(255, 165, 0, 0.1) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
   margin-bottom: 0.5rem;
 }
 
-.loading-title { width: 40%; }
-.loading-subtitle { width: 60%; }
+.loading-title {
+  width: 40%;
+}
+.loading-subtitle {
+  width: 60%;
+}
 
 .loading-grid {
   display: grid;
@@ -663,7 +665,12 @@ export default {
   left: 1rem;
   width: 30px;
   height: 30px;
-  background: linear-gradient(90deg, rgba(255,165,0,0.1) 25%, rgba(255,165,0,0.2) 50%, rgba(255,165,0,0.1) 75%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 165, 0, 0.1) 25%,
+    rgba(255, 165, 0, 0.2) 50%,
+    rgba(255, 165, 0, 0.1) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 50%;
@@ -673,7 +680,12 @@ export default {
 .loading-image {
   width: 100%;
   height: 200px;
-  background: linear-gradient(90deg, rgba(255,165,0,0.1) 25%, rgba(255,165,0,0.2) 50%, rgba(255,165,0,0.1) 75%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 165, 0, 0.1) 25%,
+    rgba(255, 165, 0, 0.2) 50%,
+    rgba(255, 165, 0, 0.1) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -684,20 +696,35 @@ export default {
 
 .loading-line {
   height: 1rem;
-  background: linear-gradient(90deg, rgba(255,165,0,0.1) 25%, rgba(255,165,0,0.2) 50%, rgba(255,165,0,0.1) 75%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 165, 0, 0.1) 25%,
+    rgba(255, 165, 0, 0.2) 50%,
+    rgba(255, 165, 0, 0.1) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
   margin-bottom: 0.5rem;
 }
 
-.loading-line.short { width: 60%; }
-.loading-line.medium { width: 80%; }
-.loading-line.long { width: 100%; }
+.loading-line.short {
+  width: 60%;
+}
+.loading-line.medium {
+  width: 80%;
+}
+.loading-line.long {
+  width: 100%;
+}
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 /* Error & Empty States */
@@ -1130,23 +1157,23 @@ export default {
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .trending-stats {
     flex-direction: row;
     align-self: stretch;
     justify-content: space-between;
     text-align: left;
   }
-  
+
   .trending-grid {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 1rem;
   }
-  
+
   .section-title {
     font-size: 1.5rem;
   }
-  
+
   .prompt-actions {
     flex-direction: column;
     align-items: center;
@@ -1157,19 +1184,19 @@ export default {
   .trending-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .trending-products {
     margin: 1rem 0;
   }
-  
+
   .section-title {
     font-size: 1.3rem;
   }
-  
+
   .product-info {
     padding: 1rem;
   }
-  
+
   .trending-stats-mini {
     gap: 0.5rem;
   }

@@ -1,84 +1,14 @@
 <template>
   <div id="app" class="space-bg">
     <!-- Navigation -->
-    <nav class="navbar">
-      <div class="container">
-        <div class="flex items-center justify-between">
-          <!-- Logo -->
-          <router-link to="/" class="flex items-center space-x-2">
-            <div class="logo-icon">🌌</div>
-            <h1 class="text-xl font-bold text-accent">Cosmic Marketplace</h1>
-          </router-link>
-
-          <!-- Navigation Links -->
-          <div class="flex items-center space-x-4">
-            <router-link to="/" class="nav-link">Trang chủ</router-link>
-            <router-link to="/products" class="nav-link">Sản phẩm</router-link>
-            <router-link to="/categories" class="nav-link">Danh mục</router-link>
-            
-            <template v-if="isAuthenticated">
-              <router-link to="/cart" class="nav-link relative">
-                🛒 Giỏ hàng
-                <span v-if="cartItemsCount > 0" class="cart-badge">{{ cartItemsCount }}</span>
-              </router-link>
-              <router-link to="/orders" class="nav-link">Đơn hàng</router-link>
-              
-              <div class="relative user-menu">
-                <button @click="showUserMenu = !showUserMenu" class="nav-link">
-                  👨‍🚀 {{ userName }}
-                </button>
-                <div v-if="showUserMenu" class="user-dropdown space-card">
-                  <router-link to="/profile" class="dropdown-item">Hồ sơ</router-link>
-                  <router-link v-if="!isAdmin" to="/seller/dashboard" class="dropdown-item">Bán hàng</router-link>
-                  <router-link v-if="isAdmin" to="/admin" class="dropdown-item">Quản trị</router-link>
-                  <button @click="handleLogout" class="dropdown-item text-danger">Đăng xuất</button>
-                </div>
-              </div>
-            </template>
-            
-            <template v-else>
-              <router-link to="/login" class="btn btn-secondary">Đăng nhập</router-link>
-              <router-link to="/register" class="btn btn-primary">Đăng ký</router-link>
-            </template>
-          </div>
-        </div>
-      </div>
-    </nav>
-
+    <Header />
     <!-- Main Content -->
     <main class="main-content">
       <router-view />
     </main>
 
     <!-- Footer -->
-    <footer class="footer">
-      <div class="container">
-        <div class="footer-content">
-          <div class="footer-section">
-            <h3>🌌 Cosmic Marketplace</h3>
-            <p>Khám phá vũ trụ mua sắm trực tuyến</p>
-          </div>
-          <div class="footer-section">
-            <h4>Liên kết</h4>
-            <ul>
-              <li><router-link to="/about">Giới thiệu</router-link></li>
-              <li><router-link to="/contact">Liên hệ</router-link></li>
-              <li><router-link to="/help">Trợ giúp</router-link></li>
-            </ul>
-          </div>
-          <div class="footer-section">
-            <h4>Hỗ trợ</h4>
-            <ul>
-              <li><a href="tel:+84123456789">📞 0123 456 789</a></li>
-              <li><a href="mailto:support@cosmic.com">📧 support@cosmic.com</a></li>
-            </ul>
-          </div>
-        </div>
-        <div class="footer-bottom">
-          <p>&copy; 2025 Cosmic Marketplace. Mọi quyền được bảo lưu.</p>
-        </div>
-      </div>
-    </footer>
+    <Footer />
 
     <!-- Loading Overlay -->
     <div v-if="loading" class="loading-overlay">
@@ -92,19 +22,22 @@
 </template>
 
 <script>
-import { computed, ref, onMounted  } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import { useRouter } from 'vue-router'
 import NotificationContainer from '@/components/NotificationContainer.vue'
+import Header from '@/components/Header.vue'
+import Footer from '@/components/Footer.vue'
 
 export default {
   name: 'App',
+  components: { Header, NotificationContainer, Footer },
   setup() {
     const authStore = useAuthStore()
     const cartStore = useCartStore()
     const router = useRouter()
-    
+
     const showUserMenu = ref(false)
     const loading = ref(false)
 
@@ -122,13 +55,13 @@ export default {
         console.error('Logout error:', error)
       }
     }
-    
+
     onMounted(() => {
       authStore.initializeFromStorage()
 
-    if (isAuthenticated.value) {
-      cartStore.loadCart()
-    }
+      if (isAuthenticated.value) {
+        cartStore.loadCart()
+      }
     })
 
     return {
@@ -140,9 +73,9 @@ export default {
       isAdmin,
       userName,
       cartItemsCount,
-      handleLogout
+      handleLogout,
     }
-  }
+  },
 }
 </script>
 
@@ -153,8 +86,13 @@ export default {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 .space-x-2 > * + * {
@@ -286,7 +224,7 @@ export default {
     flex-direction: column;
     gap: 16px;
   }
-  
+
   .footer-content {
     grid-template-columns: 1fr;
     text-align: center;

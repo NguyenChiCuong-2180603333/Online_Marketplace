@@ -3,6 +3,7 @@ package com.marketplace.controller;
 import com.marketplace.dto.ProductRequest;
 import com.marketplace.model.Product;
 import com.marketplace.service.ProductService;
+import com.marketplace.security.JwtTokenProvider;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/products")
@@ -20,6 +22,9 @@ public class ProductController {
 
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts(
@@ -44,9 +49,9 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable String id) {
-        Product product = productService.getProductById(id);
-        return ResponseEntity.ok(product);
+    public ResponseEntity<Map<String, Object>> getProductById(@PathVariable String id) {
+        Map<String, Object> result = productService.getProductWithSellerById(id);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/featured")
@@ -87,6 +92,21 @@ public class ProductController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/{id}/toggle-status")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<Product> toggleProductStatus(@PathVariable String id) {
+        String sellerId = getCurrentUserId();
+        Product product = productService.getProductById(id);
+        
+        // Chỉ seller hoặc admin mới được toggle status
+        if (!product.getSellerId().equals(sellerId)) {
+            throw new RuntimeException("You can only toggle status of your own products");
+        }
+        
+        Product updatedProduct = productService.toggleProductStatus(id);
+        return ResponseEntity.ok(updatedProduct);
+    }
+
     @GetMapping("/seller/{sellerId}")
     public ResponseEntity<List<Product>> getProductsBySeller(@PathVariable String sellerId) {
         List<Product> products = productService.getProductsBySeller(sellerId);
@@ -97,29 +117,16 @@ public class ProductController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated() &&
                 !authentication.getPrincipal().equals("anonymousUser")) {
-
-            // Extract user ID from JWT token
             String token = getJwtFromCurrentRequest();
             if (token != null) {
                 try {
-                    // Import JwtTokenProvider if needed
-                    org.springframework.context.ApplicationContext context =
-                            org.springframework.web.context.support.WebApplicationContextUtils
-                                    .getWebApplicationContext(((org.springframework.web.context.request.ServletRequestAttributes)
-                                            org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes())
-                                            .getRequest().getServletContext());
-
-                    if (context != null) {
-                        com.marketplace.security.JwtTokenProvider jwtProvider = context.getBean(com.marketplace.security.JwtTokenProvider.class);
-                        return jwtProvider.getUserIdFromToken(token);
-                    }
+                    return jwtTokenProvider.getUserIdFromToken(token);
                 } catch (Exception e) {
-                    // Fall back to mock for now
+                    // Log error if needed
                 }
             }
         }
-        // Return mock user ID for testing - sẽ fix sau
-        return "mockUserId123";
+        throw new RuntimeException("Cannot extract userId from JWT");
     }
 
     private String getJwtFromCurrentRequest() {

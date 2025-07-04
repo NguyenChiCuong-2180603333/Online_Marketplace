@@ -52,9 +52,7 @@
               <p class="customer-email">{{ order.customerEmail }}</p>
               <p class="customer-phone">{{ order.customerPhone }}</p>
             </div>
-            <button @click="openCustomerChat" class="btn-contact">
-              💬 Liên hệ
-            </button>
+            <button @click="openCustomerChat" class="btn-contact">💬 Liên hệ</button>
           </div>
         </div>
       </div>
@@ -125,9 +123,9 @@
               {{ getStatusLabel(order.status) }}
             </span>
           </div>
-          
+
           <div class="status-actions">
-            <button 
+            <button
               v-if="canUpdateTo('PROCESSING')"
               @click="updateStatus('PROCESSING')"
               :disabled="updating"
@@ -135,8 +133,8 @@
             >
               ▶️ Bắt đầu xử lý
             </button>
-            
-            <button 
+
+            <button
               v-if="canUpdateTo('SHIPPED')"
               @click="showShippingModal = true"
               :disabled="updating"
@@ -144,8 +142,8 @@
             >
               🚚 Đánh dấu đã gửi
             </button>
-            
-            <button 
+
+            <button
               v-if="canUpdateTo('DELIVERED')"
               @click="updateStatus('DELIVERED')"
               :disabled="updating"
@@ -153,8 +151,8 @@
             >
               ✅ Đánh dấu đã giao
             </button>
-            
-            <button 
+
+            <button
               v-if="canCancel()"
               @click="showCancelModal = true"
               :disabled="updating"
@@ -171,8 +169,8 @@
             <h4>📅 Lịch sử trạng thái</h4>
           </div>
           <div class="timeline">
-            <div 
-              v-for="statusItem in statusHistory" 
+            <div
+              v-for="statusItem in statusHistory"
               :key="statusItem.timestamp"
               class="timeline-item"
               :class="{ active: statusItem.status === order.status }"
@@ -191,21 +189,23 @@
       <!-- Order Notes & Communication -->
       <div class="section order-communication">
         <h3>💬 Ghi chú & Tin nhắn</h3>
-        
+
         <!-- Messages List -->
         <div class="messages-list">
           <div v-if="messages.length === 0" class="no-messages">
             <p>Chưa có tin nhắn nào cho đơn hàng này</p>
           </div>
           <div v-else>
-            <div 
-              v-for="message in messages" 
+            <div
+              v-for="message in messages"
               :key="message.id"
               class="message-item"
               :class="{ 'seller-message': message.sender === 'seller' }"
             >
               <div class="message-header">
-                <span class="sender">{{ message.sender === 'seller' ? 'Bạn' : order.customerName }}</span>
+                <span class="sender">{{
+                  message.sender === 'seller' ? 'Bạn' : order.customerName
+                }}</span>
                 <span class="message-time">{{ formatDate(message.timestamp) }}</span>
               </div>
               <div class="message-content">{{ message.content }}</div>
@@ -216,7 +216,7 @@
         <!-- Send Message -->
         <div class="send-message">
           <div class="message-input-wrapper">
-            <textarea 
+            <textarea
               v-model="newMessage"
               placeholder="Nhập tin nhắn cho khách hàng..."
               rows="3"
@@ -224,7 +224,7 @@
             ></textarea>
             <div class="message-actions">
               <div class="message-templates">
-                <button 
+                <button
                   v-for="template in messageTemplates"
                   :key="template.id"
                   @click="useTemplate(template.content)"
@@ -233,7 +233,7 @@
                   {{ template.name }}
                 </button>
               </div>
-              <button 
+              <button
                 @click="sendMessage"
                 :disabled="!newMessage.trim() || sendingMessage"
                 class="btn-send-message"
@@ -248,18 +248,10 @@
       <!-- Action Buttons -->
       <div class="section action-buttons">
         <div class="button-group">
-          <button @click="printShippingLabel" class="action-btn print">
-            🖨️ In nhãn giao hàng
-          </button>
-          <button @click="printInvoice" class="action-btn invoice">
-            📄 In hóa đơn
-          </button>
-          <button @click="exportOrderDetails" class="action-btn export">
-            💾 Xuất thông tin
-          </button>
-          <button @click="duplicateOrder" class="action-btn duplicate">
-            📋 Tạo đơn tương tự
-          </button>
+          <button @click="printShippingLabel" class="action-btn print">🖨️ In nhãn giao hàng</button>
+          <button @click="printInvoice" class="action-btn invoice">📄 In hóa đơn</button>
+          <button @click="exportOrderDetails" class="action-btn export">💾 Xuất thông tin</button>
+          <button @click="duplicateOrder" class="action-btn duplicate">📋 Tạo đơn tương tự</button>
         </div>
       </div>
     </div>
@@ -271,7 +263,11 @@
         <form @submit.prevent="confirmShipping">
           <div class="form-group">
             <label>Mã vận đơn:</label>
-            <input v-model="shippingInfo.trackingNumber" type="text" placeholder="Nhập mã vận đơn" />
+            <input
+              v-model="shippingInfo.trackingNumber"
+              type="text"
+              placeholder="Nhập mã vận đơn"
+            />
           </div>
           <div class="form-group">
             <label>Đơn vị vận chuyển:</label>
@@ -285,11 +281,17 @@
           </div>
           <div class="form-group">
             <label>Ghi chú:</label>
-            <textarea v-model="shippingInfo.note" rows="3" placeholder="Ghi chú về việc giao hàng..."></textarea>
+            <textarea
+              v-model="shippingInfo.note"
+              rows="3"
+              placeholder="Ghi chú về việc giao hàng..."
+            ></textarea>
           </div>
           <div class="modal-actions">
             <button type="button" @click="showShippingModal = false" class="btn-cancel">Hủy</button>
-            <button type="submit" :disabled="!shippingInfo.trackingNumber" class="btn-confirm">Xác nhận</button>
+            <button type="submit" :disabled="!shippingInfo.trackingNumber" class="btn-confirm">
+              Xác nhận
+            </button>
           </div>
         </form>
       </div>
@@ -314,11 +316,17 @@
           </div>
           <div class="form-group">
             <label>Ghi chú:</label>
-            <textarea v-model="cancelInfo.note" rows="3" placeholder="Mô tả chi tiết lý do hủy..."></textarea>
+            <textarea
+              v-model="cancelInfo.note"
+              rows="3"
+              placeholder="Mô tả chi tiết lý do hủy..."
+            ></textarea>
           </div>
           <div class="modal-actions">
             <button type="button" @click="showCancelModal = false" class="btn-cancel">Đóng</button>
-            <button type="submit" :disabled="!cancelInfo.reason" class="btn-confirm danger">Xác nhận hủy</button>
+            <button type="submit" :disabled="!cancelInfo.reason" class="btn-confirm danger">
+              Xác nhận hủy
+            </button>
           </div>
         </form>
       </div>
@@ -329,12 +337,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useSellerStore } from '@/stores/seller'
+import { getStatusLabel, getStatusColor } from '@/utils/constants'
 
 const props = defineProps({
   order: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const emit = defineEmits(['close', 'status-updated', 'message-sent'])
@@ -352,20 +361,40 @@ const showCancelModal = ref(false)
 const shippingInfo = ref({
   trackingNumber: '',
   carrier: 'ghn',
-  note: ''
+  note: '',
 })
 
 const cancelInfo = ref({
   reason: '',
-  note: ''
+  note: '',
 })
 
 // Message templates
 const messageTemplates = ref([
-  { id: 1, name: 'Đã xác nhận', content: 'Cảm ơn bạn đã đặt hàng! Chúng tôi đã xác nhận đơn hàng và sẽ xử lý trong thời gian sớm nhất.' },
-  { id: 2, name: 'Đang chuẩn bị', content: 'Đơn hàng của bạn đang được chuẩn bị. Chúng tôi sẽ cập nhật thông tin giao hàng sớm nhất có thể.' },
-  { id: 3, name: 'Đã gửi hàng', content: 'Đơn hàng của bạn đã được gửi đi. Mã vận đơn: [TRACKING_NUMBER]. Vui lòng theo dõi tình trạng giao hàng.' },
-  { id: 4, name: 'Cảm ơn', content: 'Cảm ơn bạn đã mua hàng! Hy vọng bạn hài lòng với sản phẩm. Đừng quên để lại đánh giá nhé!' }
+  {
+    id: 1,
+    name: 'Đã xác nhận',
+    content:
+      'Cảm ơn bạn đã đặt hàng! Chúng tôi đã xác nhận đơn hàng và sẽ xử lý trong thời gian sớm nhất.',
+  },
+  {
+    id: 2,
+    name: 'Đang chuẩn bị',
+    content:
+      'Đơn hàng của bạn đang được chuẩn bị. Chúng tôi sẽ cập nhật thông tin giao hàng sớm nhất có thể.',
+  },
+  {
+    id: 3,
+    name: 'Đã gửi hàng',
+    content:
+      'Đơn hàng của bạn đã được gửi đi. Mã vận đơn: [TRACKING_NUMBER]. Vui lòng theo dõi tình trạng giao hàng.',
+  },
+  {
+    id: 4,
+    name: 'Cảm ơn',
+    content:
+      'Cảm ơn bạn đã mua hàng! Hy vọng bạn hài lòng với sản phẩm. Đừng quên để lại đánh giá nhé!',
+  },
 ])
 
 // Computed
@@ -373,21 +402,25 @@ const statusHistory = computed(() => {
   // Mock status history - replace with real data
   return [
     { status: 'PENDING', timestamp: props.order.createdAt, note: 'Đơn hàng được tạo' },
-    ...(props.order.status !== 'PENDING' ? [{ 
-      status: props.order.status, 
-      timestamp: props.order.updatedAt,
-      note: `Cập nhật trạng thái thành ${getStatusLabel(props.order.status)}`
-    }] : [])
+    ...(props.order.status !== 'PENDING'
+      ? [
+          {
+            status: props.order.status,
+            timestamp: props.order.updatedAt,
+            note: `Cập nhật trạng thái thành ${getStatusLabel(props.order.status)}`,
+          },
+        ]
+      : []),
   ]
 })
 
 // Methods
 const getStatusLabel = (status) => {
-  return sellerStore.getStatusLabel(status)
+  return getStatusLabel(status, 'SELLER')
 }
 
 const getStatusColor = (status) => {
-  return sellerStore.getStatusColor(status)
+  return getStatusColor(status)
 }
 
 const formatDate = (dateString) => {
@@ -397,23 +430,23 @@ const formatDate = (dateString) => {
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'VND'
+    currency: 'VND',
   }).format(amount)
 }
 
 const canUpdateTo = (status) => {
   const currentStatus = props.order.status
   const statusFlow = {
-    'PENDING': ['PROCESSING'],
-    'PROCESSING': ['SHIPPED'],
-    'SHIPPED': ['DELIVERED']
+    PENDING: ['PROCESSING'],
+    PROCESSING: ['SHIPPED'],
+    SHIPPED: ['DELIVERED'],
   }
   return statusFlow[currentStatus]?.includes(status) || false
 }
@@ -424,7 +457,7 @@ const canCancel = () => {
 
 const updateStatus = async (newStatus) => {
   if (updating.value) return
-  
+
   try {
     updating.value = true
     await sellerStore.updateOrderStatus(props.order.id, newStatus)
@@ -475,7 +508,7 @@ const loadMessages = async () => {
 
 const sendMessage = async () => {
   if (!newMessage.value.trim() || sendingMessage.value) return
-  
+
   try {
     sendingMessage.value = true
     const message = await sellerStore.sendOrderMessage(props.order.id, newMessage.value.trim())
@@ -526,7 +559,7 @@ const printShippingLabel = () => {
       <p><strong>Ngày:</strong> ${formatDate(props.order.createdAt)}</p>
     </div>
   `
-  
+
   const printWindow = window.open('', '_blank')
   printWindow.document.write(`
     <html>
@@ -546,11 +579,11 @@ const exportOrderDetails = () => {
   // Export order details to file
   const orderData = {
     ...props.order,
-    exportedAt: new Date().toISOString()
+    exportedAt: new Date().toISOString(),
   }
-  
+
   const dataStr = JSON.stringify(orderData, null, 2)
-  const dataBlob = new Blob([dataStr], {type: 'application/json'})
+  const dataBlob = new Blob([dataStr], { type: 'application/json' })
   const url = URL.createObjectURL(dataBlob)
   const link = document.createElement('a')
   link.href = url
@@ -712,7 +745,8 @@ onMounted(() => {
   color: #ffffff;
 }
 
-.customer-email, .customer-phone {
+.customer-email,
+.customer-phone {
   margin: 0.25rem 0;
   color: #a0aec0;
   font-size: 0.875rem;
@@ -761,7 +795,8 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
-.btn-copy, .btn-map {
+.btn-copy,
+.btn-map {
   padding: 0.5rem;
   background: rgba(107, 114, 128, 0.3);
   border: 1px solid rgba(107, 114, 128, 0.5);
@@ -772,7 +807,8 @@ onMounted(() => {
   transition: all 0.2s ease;
 }
 
-.btn-copy:hover, .btn-map:hover {
+.btn-copy:hover,
+.btn-map:hover {
   background: rgba(107, 114, 128, 0.5);
   color: #ffffff;
 }
@@ -918,10 +954,22 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
-.status-btn.processing { background: #3b82f6; color: white; }
-.status-btn.shipped { background: #8b5cf6; color: white; }
-.status-btn.delivered { background: #10b981; color: white; }
-.status-btn.cancel { background: #ef4444; color: white; }
+.status-btn.processing {
+  background: #3b82f6;
+  color: white;
+}
+.status-btn.shipped {
+  background: #8b5cf6;
+  color: white;
+}
+.status-btn.delivered {
+  background: #10b981;
+  color: white;
+}
+.status-btn.cancel {
+  background: #ef4444;
+  color: white;
+}
 
 .status-btn:hover {
   transform: translateY(-2px);
@@ -1139,28 +1187,28 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
-.action-btn.print { 
-  background: rgba(245, 158, 11, 0.1); 
+.action-btn.print {
+  background: rgba(245, 158, 11, 0.1);
   border-color: rgba(245, 158, 11, 0.5);
-  color: #f59e0b; 
+  color: #f59e0b;
 }
 
-.action-btn.invoice { 
-  background: rgba(139, 92, 246, 0.1); 
+.action-btn.invoice {
+  background: rgba(139, 92, 246, 0.1);
   border-color: rgba(139, 92, 246, 0.5);
-  color: #8b5cf6; 
+  color: #8b5cf6;
 }
 
-.action-btn.export { 
-  background: rgba(16, 185, 129, 0.1); 
+.action-btn.export {
+  background: rgba(16, 185, 129, 0.1);
   border-color: rgba(16, 185, 129, 0.5);
-  color: #10b981; 
+  color: #10b981;
 }
 
-.action-btn.duplicate { 
-  background: rgba(107, 114, 128, 0.1); 
+.action-btn.duplicate {
+  background: rgba(107, 114, 128, 0.1);
   border-color: rgba(107, 114, 128, 0.5);
-  color: #6b7280; 
+  color: #6b7280;
 }
 
 .action-btn:hover {
@@ -1169,7 +1217,8 @@ onMounted(() => {
 }
 
 /* Modals */
-.shipping-modal-overlay, .cancel-modal-overlay {
+.shipping-modal-overlay,
+.cancel-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -1182,7 +1231,8 @@ onMounted(() => {
   z-index: 1001;
 }
 
-.shipping-modal, .cancel-modal {
+.shipping-modal,
+.cancel-modal {
   background: rgba(26, 26, 46, 0.95);
   border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 12px;
@@ -1192,7 +1242,8 @@ onMounted(() => {
   color: #ffffff;
 }
 
-.shipping-modal h3, .cancel-modal h3 {
+.shipping-modal h3,
+.cancel-modal h3 {
   margin: 0 0 1rem 0;
   color: #00d4ff;
 }
@@ -1208,7 +1259,9 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.form-group input, .form-group select, .form-group textarea {
+.form-group input,
+.form-group select,
+.form-group textarea {
   width: 100%;
   padding: 0.75rem;
   background: rgba(16, 16, 24, 0.8);
@@ -1260,43 +1313,43 @@ onMounted(() => {
     width: 95%;
     max-height: 95vh;
   }
-  
+
   .modal-header {
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .summary-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .address-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .customer-card {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .item-card {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .status-actions {
     flex-direction: column;
   }
-  
+
   .button-group {
     flex-direction: column;
   }
-  
+
   .message-actions {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .message-templates {
     justify-content: center;
   }

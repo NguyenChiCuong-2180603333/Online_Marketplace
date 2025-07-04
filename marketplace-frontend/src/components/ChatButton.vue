@@ -4,10 +4,10 @@
     <button
       @click="toggleChat"
       class="chat-button"
-      :class="{ 
-        'active': showChatWindow,
+      :class="{
+        active: showChatWindow,
         'has-unread': unreadCount > 0,
-        'connecting': connecting
+        connecting: connecting,
       }"
       :title="buttonTooltip"
     >
@@ -17,12 +17,12 @@
         <span v-else-if="showChatWindow" class="close-icon">❌</span>
         <span v-else class="chat-icon">💬</span>
       </div>
-      
+
       <!-- Unread Badge -->
       <div v-if="unreadCount > 0 && !showChatWindow" class="unread-badge">
         {{ unreadCount > 99 ? '99+' : unreadCount }}
       </div>
-      
+
       <!-- Connection Status -->
       <div class="connection-status" :class="connectionStatusClass">
         <div class="status-dot"></div>
@@ -80,7 +80,7 @@
         >
           👋 Chào bán
         </button>
-        
+
         <button
           @click="sendQuickMessage('Sản phẩm này còn hàng không ạ?')"
           class="quick-action-btn"
@@ -88,7 +88,7 @@
         >
           📦 Còn hàng?
         </button>
-        
+
         <button
           @click="sendQuickMessage('Có thể thương lượng giá được không?')"
           class="quick-action-btn"
@@ -116,58 +116,59 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { chatAPI } from '@/services/api'
-import websocketService from '@/services/websocketService'
+import websocketService from '@/services/websocket'
 import ChatWindow from './ChatWindow.vue'
 
 export default {
   name: 'ChatButton',
   components: {
-    ChatWindow
+    ChatWindow,
   },
-  
+
   props: {
     // Seller information
     sellerId: {
       type: String,
-      required: true
+      required: true,
     },
-    
+
     // Product context (optional)
     productId: {
       type: String,
-      default: null
+      default: null,
     },
-    
+
     productName: {
       type: String,
-      default: null
+      default: null,
     },
-    
+
     // Position of the button
     position: {
       type: String,
       default: 'bottom-right', // bottom-right, bottom-left, top-right, top-left
-      validator: (value) => ['bottom-right', 'bottom-left', 'top-right', 'top-left'].includes(value)
+      validator: (value) =>
+        ['bottom-right', 'bottom-left', 'top-right', 'top-left'].includes(value),
     },
-    
+
     // Auto-open chat
     autoOpen: {
       type: Boolean,
-      default: false
+      default: false,
     },
-    
+
     // Show quick actions
     enableQuickActions: {
       type: Boolean,
-      default: true
-    }
+      default: true,
+    },
   },
-  
+
   emits: ['chat-opened', 'chat-closed', 'message-sent', 'conversation-created'],
-  
+
   setup(props, { emit }) {
     const authStore = useAuthStore()
-    
+
     // Reactive state
     const showChatWindow = ref(false)
     const showSellerPreview = ref(false)
@@ -177,42 +178,40 @@ export default {
     const conversationId = ref(null)
     const sellerInfo = ref(null)
     const unreadCount = ref(0)
-    
+
     // Loading states
     const loadingSellerInfo = ref(false)
     const creatingConversation = ref(false)
-    
+
     // Computed properties
     const shouldShowButton = computed(() => {
-      return authStore.isAuthenticated && 
-             props.sellerId && 
-             props.sellerId !== authStore.user?.id
+      return authStore.isAuthenticated && props.sellerId && props.sellerId !== authStore.user?.id
     })
-    
+
     const buttonTooltip = computed(() => {
       if (connecting.value) return 'Đang kết nối...'
       if (showChatWindow.value) return 'Đóng chat'
       if (sellerInfo.value?.isOnline) return `Chat với ${sellerInfo.value.name} (đang online)`
       return `Chat với ${sellerInfo.value?.name || 'người bán'}`
     })
-    
+
     const connectionStatusClass = computed(() => {
       if (connecting.value) return 'connecting'
       if (websocketService.connected) return 'connected'
       return 'disconnected'
     })
-    
+
     // Load seller information
     const loadSellerInfo = async () => {
       if (!props.sellerId || loadingSellerInfo.value) return
-      
+
       loadingSellerInfo.value = true
-      
+
       try {
         // TODO: Replace with actual seller API
         // const response = await sellerAPI.getById(props.sellerId)
         // sellerInfo.value = response.data
-        
+
         // Mock seller info for now
         sellerInfo.value = {
           id: props.sellerId,
@@ -222,9 +221,8 @@ export default {
           responseTime: '15 phút',
           isOnline: Math.random() > 0.3, // Mock online status
           totalProducts: 245,
-          completedOrders: 1532
+          completedOrders: 1532,
         }
-        
       } catch (error) {
         console.error('Error loading seller info:', error)
         sellerInfo.value = {
@@ -233,31 +231,30 @@ export default {
           avatar: '/placeholder-avatar.jpg',
           rating: 0,
           responseTime: '1h',
-          isOnline: false
+          isOnline: false,
         }
       } finally {
         loadingSellerInfo.value = false
       }
     }
-    
+
     // Get or create conversation
     const getOrCreateConversation = async () => {
       if (conversationId.value || creatingConversation.value) return conversationId.value
-      
+
       creatingConversation.value = true
-      
+
       try {
         const response = await chatAPI.createConversation(props.sellerId, props.productId)
         conversationId.value = response.data.id
-        
+
         emit('conversation-created', {
           conversationId: conversationId.value,
           sellerId: props.sellerId,
-          productId: props.productId
+          productId: props.productId,
         })
-        
+
         return conversationId.value
-        
       } catch (error) {
         console.error('Error creating conversation:', error)
         connectionError.value = 'Không thể tạo cuộc hội thoại'
@@ -266,22 +263,21 @@ export default {
         creatingConversation.value = false
       }
     }
-    
+
     // Connect to WebSocket
     const connectWebSocket = async () => {
       if (websocketService.connected || connecting.value) return
-      
+
       connecting.value = true
       connectionError.value = null
-      
+
       try {
         const token = localStorage.getItem('token')
         if (!token) {
           throw new Error('No authentication token')
         }
-        
+
         await websocketService.connect(authStore.user.id, token)
-        
       } catch (error) {
         console.error('WebSocket connection failed:', error)
         connectionError.value = 'Không thể kết nối chat'
@@ -289,7 +285,7 @@ export default {
         connecting.value = false
       }
     }
-    
+
     // Toggle chat window
     const toggleChat = async () => {
       if (showChatWindow.value) {
@@ -298,93 +294,90 @@ export default {
         await openChat()
       }
     }
-    
+
     // Open chat window
     const openChat = async () => {
       try {
         // Ensure WebSocket connection
         await connectWebSocket()
-        
+
         // Get or create conversation
         await getOrCreateConversation()
-        
+
         // Open chat window
         showChatWindow.value = true
         showQuickActions.value = false
-        
+
         // Reset unread count
         unreadCount.value = 0
-        
+
         emit('chat-opened', {
           conversationId: conversationId.value,
           sellerId: props.sellerId,
-          productId: props.productId
+          productId: props.productId,
         })
-        
       } catch (error) {
         console.error('Error opening chat:', error)
         connectionError.value = 'Không thể mở chat'
       }
     }
-    
+
     // Close chat window
     const closeChat = () => {
       showChatWindow.value = false
-      
+
       // Show quick actions after a delay
       setTimeout(() => {
         if (!showChatWindow.value && props.enableQuickActions) {
           showQuickActions.value = true
         }
       }, 500)
-      
+
       emit('chat-closed', {
         conversationId: conversationId.value,
-        sellerId: props.sellerId
+        sellerId: props.sellerId,
       })
     }
-    
+
     // Send quick message
     const sendQuickMessage = async (message) => {
       try {
         // Ensure conversation exists
         await getOrCreateConversation()
-        
+
         // Send message via WebSocket
         if (websocketService.connected) {
           await websocketService.sendMessage(conversationId.value, message, 'TEXT')
-          
+
           emit('message-sent', {
             conversationId: conversationId.value,
             content: message,
-            messageType: 'TEXT'
+            messageType: 'TEXT',
           })
-          
+
           // Open chat window to see the conversation
           showChatWindow.value = true
           showQuickActions.value = false
-          
         } else {
           throw new Error('WebSocket not connected')
         }
-        
       } catch (error) {
         console.error('Error sending quick message:', error)
         connectionError.value = 'Không thể gửi tin nhắn'
       }
     }
-    
+
     // Retry connection
     const retryConnection = async () => {
       connectionError.value = null
       await connectWebSocket()
     }
-    
+
     // Handle button hover
     const handleButtonHover = (hovering) => {
       if (!showChatWindow.value) {
         showSellerPreview.value = hovering
-        
+
         if (!hovering) {
           // Show quick actions after preview disappears
           setTimeout(() => {
@@ -397,53 +390,59 @@ export default {
         }
       }
     }
-    
+
     // Event handlers
     const handleMessageSent = (data) => {
       emit('message-sent', data)
     }
-    
+
     const handleConversationCreated = (data) => {
       conversationId.value = data.conversationId
       emit('conversation-created', data)
     }
-    
+
     const handleUnreadCountChanged = (count) => {
       unreadCount.value = count
     }
-    
+
     // Watch for seller changes
-    watch(() => props.sellerId, (newSellerId) => {
-      if (newSellerId) {
-        conversationId.value = null
-        loadSellerInfo()
+    watch(
+      () => props.sellerId,
+      (newSellerId) => {
+        if (newSellerId) {
+          conversationId.value = null
+          loadSellerInfo()
+        }
       }
-    })
-    
+    )
+
     // Auto-open functionality
-    watch(() => props.autoOpen, (shouldAutoOpen) => {
-      if (shouldAutoOpen && !showChatWindow.value) {
-        setTimeout(() => openChat(), 1000)
+    watch(
+      () => props.autoOpen,
+      (shouldAutoOpen) => {
+        if (shouldAutoOpen && !showChatWindow.value) {
+          setTimeout(() => openChat(), 1000)
+        }
       }
-    })
-    
+    )
+
     // Lifecycle
     onMounted(() => {
       if (props.sellerId) {
         loadSellerInfo()
-        
+
         // Auto-connect WebSocket in background
         if (authStore.isAuthenticated) {
           connectWebSocket()
         }
-        
+
         // Setup button hover events
         const chatButton = document.querySelector('.chat-button')
         if (chatButton) {
           chatButton.addEventListener('mouseenter', () => handleButtonHover(true))
           chatButton.addEventListener('mouseleave', () => handleButtonHover(false))
         }
-        
+
         // Auto-open if requested
         if (props.autoOpen) {
           setTimeout(() => openChat(), 1000)
@@ -454,14 +453,14 @@ export default {
         }
       }
     })
-    
+
     onUnmounted(() => {
       // Clean up WebSocket subscriptions
       if (conversationId.value) {
         websocketService.leaveConversation(conversationId.value)
       }
     })
-    
+
     return {
       // State
       showChatWindow,
@@ -472,12 +471,12 @@ export default {
       conversationId,
       sellerInfo,
       unreadCount,
-      
+
       // Computed
       shouldShowButton,
       buttonTooltip,
       connectionStatusClass,
-      
+
       // Methods
       toggleChat,
       openChat,
@@ -486,9 +485,9 @@ export default {
       retryConnection,
       handleMessageSent,
       handleConversationCreated,
-      handleUnreadCountChanged
+      handleUnreadCountChanged,
     }
-  }
+  },
 }
 </script>
 
@@ -541,8 +540,13 @@ export default {
 }
 
 @keyframes pulse-unread {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 .button-icon {
@@ -555,8 +559,12 @@ export default {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Unread Badge */
@@ -579,9 +587,19 @@ export default {
 }
 
 @keyframes bounce {
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-5px); }
-  60% { transform: translateY(-3px); }
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-5px);
+  }
+  60% {
+    transform: translateY(-3px);
+  }
 }
 
 /* Connection Status */
@@ -614,8 +632,13 @@ export default {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Seller Preview */
@@ -829,26 +852,26 @@ export default {
     bottom: 1.5rem;
     right: 1.5rem;
   }
-  
+
   .chat-button {
     width: 55px;
     height: 55px;
   }
-  
+
   .button-icon {
     font-size: 1.3rem;
   }
-  
+
   .chat-window {
     width: 320px;
     height: 450px;
   }
-  
+
   .seller-preview {
     max-width: 250px;
     padding: 0.75rem;
   }
-  
+
   .quick-action-btn {
     font-size: 0.75rem;
     padding: 0.4rem 0.8rem;
@@ -860,21 +883,21 @@ export default {
     bottom: 1rem;
     right: 1rem;
   }
-  
+
   .chat-window {
     width: calc(100vw - 2rem);
     height: 400px;
   }
-  
+
   .seller-preview {
     max-width: 220px;
     padding: 0.5rem;
   }
-  
+
   .seller-details h4 {
     font-size: 0.9rem;
   }
-  
+
   .quick-actions {
     gap: 0.3rem;
   }

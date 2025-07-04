@@ -4,22 +4,21 @@
     <div class="section-header">
       <div class="header-content">
         <h2 class="section-title">
-          <span class="ai-badge">🤖 AI</span>
           Đề xuất cho bạn
         </h2>
         <p class="section-subtitle" v-if="!loading && recommendations.length > 0">
           Được cá nhân hóa dựa trên sở thích của bạn
         </p>
       </div>
-      
+
       <!-- Refresh button -->
-      <button 
-        @click="refreshRecommendations" 
+      <button
+        @click="refreshRecommendations"
         :disabled="loading"
         class="refresh-btn"
         title="Làm mới đề xuất"
       >
-        <span class="refresh-icon" :class="{ 'spinning': loading }">🔄</span>
+        <span class="refresh-icon" :class="{ spinning: loading }">🔄</span>
       </button>
     </div>
 
@@ -43,9 +42,7 @@
         <span class="error-icon">⚠️</span>
         <h3>Không thể tải đề xuất</h3>
         <p>{{ error }}</p>
-        <button @click="loadRecommendations" class="retry-btn">
-          Thử lại
-        </button>
+        <button @click="loadRecommendations" class="retry-btn">Thử lại</button>
       </div>
     </div>
 
@@ -55,9 +52,7 @@
         <span class="empty-icon">🎯</span>
         <h3>Chưa có đề xuất</h3>
         <p>Hãy khám phá thêm sản phẩm để nhận được đề xuất cá nhân hóa!</p>
-        <router-link to="/products" class="explore-btn">
-          Khám phá ngay
-        </router-link>
+        <router-link to="/products" class="explore-btn"> Khám phá ngay </router-link>
       </div>
     </div>
 
@@ -66,8 +61,7 @@
       <!-- Algorithm info (for debugging) -->
       <div v-if="showDebugInfo && algorithmInfo" class="debug-info">
         <small>
-          📊 Algorithm: {{ algorithmInfo.algorithm }} | 
-          Count: {{ algorithmInfo.count }} |
+          📊 Algorithm: {{ algorithmInfo.algorithm }} | Count: {{ algorithmInfo.count }} |
           <span v-if="algorithmInfo.timestamp">
             Updated: {{ formatTime(algorithmInfo.timestamp) }}
           </span>
@@ -76,34 +70,34 @@
 
       <!-- Products grid -->
       <div class="products-grid">
-        <div 
-          v-for="(product, index) in recommendations" 
+        <div
+          v-for="(product, index) in recommendations"
           :key="product.id"
           class="product-card"
           @click="handleProductClick(product, index)"
         >
           <!-- Product image -->
           <div class="product-image-container">
-            <img 
-              :src="product.imageUrl || '/api/placeholder/product'" 
+            <img
+              :src="product.images?.[0] || '/api/placeholder/product'"
               :alt="product.name"
               class="product-image"
               @error="handleImageError"
               loading="lazy"
             />
-            
+
             <!-- Quick actions overlay -->
             <div class="quick-actions">
-              <button 
+              <button
                 @click.stop="addToWishlist(product)"
                 class="quick-action-btn wishlist-btn"
-                :class="{ 'active': isInWishlist(product.id) }"
+                :class="{ active: isInWishlist(product.id) }"
                 title="Thêm vào yêu thích"
               >
                 ❤️
               </button>
-              
-              <button 
+
+              <button
                 @click.stop="quickAddToCart(product)"
                 class="quick-action-btn cart-btn"
                 title="Thêm vào giỏ hàng"
@@ -113,9 +107,7 @@
             </div>
 
             <!-- Discount badge -->
-            <div v-if="product.discount > 0" class="discount-badge">
-              -{{ product.discount }}%
-            </div>
+            <div v-if="product.discount > 0" class="discount-badge">-{{ product.discount }}%</div>
 
             <!-- AI recommendation reason -->
             <div class="ai-reason" v-if="getRecommendationReason(product, index)">
@@ -140,8 +132,10 @@
               <span class="current-price">
                 {{ formatPrice(product.price) }}
               </span>
-              <span v-if="product.originalPrice && product.originalPrice > product.price" 
-                    class="original-price">
+              <span
+                v-if="product.originalPrice && product.originalPrice > product.price"
+                class="original-price"
+              >
                 {{ formatPrice(product.originalPrice) }}
               </span>
             </div>
@@ -149,9 +143,12 @@
             <!-- Rating & reviews -->
             <div class="product-rating" v-if="product.rating || product.reviewCount">
               <div class="stars">
-                <span v-for="star in 5" :key="star" 
-                      class="star"
-                      :class="{ 'filled': star <= (product.rating || 0) }">
+                <span
+                  v-for="star in 5"
+                  :key="star"
+                  class="star"
+                  :class="{ filled: star <= (product.rating || 0) }"
+                >
                   ⭐
                 </span>
               </div>
@@ -173,11 +170,7 @@
 
       <!-- View more button -->
       <div v-if="canLoadMore" class="view-more-container">
-        <button 
-          @click="loadMore" 
-          :disabled="loadingMore"
-          class="view-more-btn"
-        >
+        <button @click="loadMore" :disabled="loadingMore" class="view-more-btn">
           <span v-if="loadingMore" class="loading-spinner">⏳</span>
           {{ loadingMore ? 'Đang tải...' : 'Xem thêm đề xuất' }}
         </button>
@@ -199,41 +192,41 @@ export default {
     // Số lượng sản phẩm hiển thị ban đầu
     limit: {
       type: Number,
-      default: 12
+      default: 12,
     },
-    
+
     // Hiển thị debug info
     showDebugInfo: {
       type: Boolean,
-      default: false
+      default: false,
     },
-    
+
     // Có cho phép load more không
     enableLoadMore: {
       type: Boolean,
-      default: true
+      default: true,
     },
-    
+
     // Custom CSS class
     containerClass: {
       type: String,
-      default: ''
+      default: '',
     },
-    
+
     // Auto refresh interval (minutes)
     autoRefreshInterval: {
       type: Number,
-      default: 30
-    }
+      default: 30,
+    },
   },
-  
+
   emits: ['product-click', 'add-to-cart', 'add-to-wishlist'],
-  
+
   setup(props, { emit }) {
     const router = useRouter()
     const authStore = useAuthStore()
     const userStore = useUserStore()
-    
+
     // Reactive state
     const recommendations = ref([])
     const loading = ref(false)
@@ -241,37 +234,38 @@ export default {
     const error = ref(null)
     const algorithmInfo = ref(null)
     const currentLimit = ref(props.limit)
-    
+
     // Computed properties
     const canLoadMore = computed(() => {
-      return props.enableLoadMore && 
-             recommendations.value.length >= currentLimit.value &&
-             recommendations.value.length < 100 // Reasonable limit
+      return (
+        props.enableLoadMore &&
+        recommendations.value.length >= currentLimit.value &&
+        recommendations.value.length < 100
+      ) // Reasonable limit
     })
-    
+
     // Load recommendations
     const loadRecommendations = async (showLoader = true) => {
       if (showLoader) loading.value = true
       error.value = null
-      
+
       try {
         const response = await recommendationService.getPersonalRecommendations(currentLimit.value)
-        
+
         recommendations.value = response.recommendations || []
         algorithmInfo.value = {
           algorithm: response.algorithm,
           count: response.count,
-          timestamp: response.timestamp
+          timestamp: response.timestamp,
         }
-        
+
         // Track đã load recommendations
         if (recommendations.value.length > 0) {
           recommendationService.trackInteraction(null, 'RECOMMENDATIONS_LOADED', {
             count: recommendations.value.length,
-            algorithm: response.algorithm
+            algorithm: response.algorithm,
           })
         }
-        
       } catch (err) {
         console.error('Error loading recommendations:', err)
         error.value = err.response?.data?.message || 'Có lỗi khi tải đề xuất'
@@ -280,117 +274,114 @@ export default {
         loading.value = false
       }
     }
-    
+
     // Load more recommendations
     const loadMore = async () => {
       if (loadingMore.value) return
-      
+
       loadingMore.value = true
       const newLimit = currentLimit.value + props.limit
-      
+
       try {
         const response = await recommendationService.getPersonalRecommendations(newLimit)
         recommendations.value = response.recommendations || []
         currentLimit.value = newLimit
-        
+
         algorithmInfo.value = {
           algorithm: response.algorithm,
           count: response.count,
-          timestamp: response.timestamp
+          timestamp: response.timestamp,
         }
-        
       } catch (err) {
         console.error('Error loading more recommendations:', err)
       } finally {
         loadingMore.value = false
       }
     }
-    
+
     // Refresh recommendations
     const refreshRecommendations = async () => {
       currentLimit.value = props.limit
       await loadRecommendations(true)
     }
-    
+
     // Handle product click
     const handleProductClick = async (product, index) => {
       // Track click
       await recommendationService.trackClick(product.id, 'recommendation_card')
-      
+
       // Emit event
       emit('product-click', { product, index })
-      
+
       // Navigate to product detail
       router.push(`/products/${product.id}`)
     }
-    
+
     // Quick add to cart
     const quickAddToCart = async (product) => {
       try {
         // Add to cart logic here (call cart store)
         await recommendationService.trackAddToCart(product.id, 1)
-        
+
         emit('add-to-cart', product)
-        
+
         // Show success notification
         // TODO: Add notification system
-        
       } catch (err) {
         console.error('Error adding to cart:', err)
       }
     }
-    
+
     // Add to wishlist
     const addToWishlist = async (product) => {
       try {
         // Add to wishlist logic here
         await recommendationService.trackInteraction(product.id, 'ADD_TO_WISHLIST')
-        
+
         emit('add-to-wishlist', product)
-        
       } catch (err) {
         console.error('Error adding to wishlist:', err)
       }
     }
-    
+
     // Helper functions
     const formatPrice = (price) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
       }).format(price)
     }
-    
+
     const formatTime = (timestamp) => {
       return new Date(timestamp).toLocaleTimeString('vi-VN')
     }
-    
+
     const truncate = (text, length) => {
       if (!text) return ''
       return text.length > length ? text.slice(0, length) + '...' : text
     }
-    
+
     const handleImageError = (event) => {
       event.target.src = '/api/placeholder/product'
     }
-    
+
     const isInWishlist = (productId) => {
-      return userStore.wishlist.some(item => item.id === productId)
+      return userStore.wishlist.some((item) => item.id === productId)
     }
-    
+
     const getRecommendationReason = (product, index) => {
       const reasons = [
         '🎯 Phù hợp với sở thích',
         '🔥 Đang trending',
         '⭐ Đánh giá cao',
-        '💝 Yêu thích của người dùng khác'
+        '💝 Yêu thích của người dùng khác',
       ]
       return reasons[index % reasons.length]
     }
-    
+
     // Auto refresh
     let refreshInterval = null
-    
+
     const setupAutoRefresh = () => {
       if (props.autoRefreshInterval > 0) {
         refreshInterval = setInterval(() => {
@@ -398,25 +389,25 @@ export default {
         }, props.autoRefreshInterval * 60 * 1000)
       }
     }
-    
+
     const clearAutoRefresh = () => {
       if (refreshInterval) {
         clearInterval(refreshInterval)
         refreshInterval = null
       }
     }
-    
+
     // Lifecycle
     onMounted(() => {
       loadRecommendations()
       setupAutoRefresh()
     })
-    
+
     // Cleanup
     const cleanup = () => {
       clearAutoRefresh()
     }
-    
+
     // Return reactive data and methods
     return {
       // State
@@ -426,7 +417,7 @@ export default {
       error,
       algorithmInfo,
       canLoadMore,
-      
+
       // Methods
       loadRecommendations,
       loadMore,
@@ -434,7 +425,7 @@ export default {
       handleProductClick,
       quickAddToCart,
       addToWishlist,
-      
+
       // Helpers
       formatPrice,
       formatTime,
@@ -442,15 +433,15 @@ export default {
       handleImageError,
       isInWishlist,
       getRecommendationReason,
-      
+
       // Cleanup
-      cleanup
+      cleanup,
     }
   },
-  
+
   beforeUnmount() {
     this.cleanup()
-  }
+  },
 }
 </script>
 
@@ -467,7 +458,8 @@ export default {
   align-items: center;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid var(--primary-gradient, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+  border-bottom: 2px solid
+    var(--primary-gradient, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
 }
 
 .header-content {
@@ -530,8 +522,12 @@ export default {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Loading State */
@@ -549,7 +545,7 @@ export default {
   background: white;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .skeleton-image {
@@ -575,13 +571,23 @@ export default {
   margin-bottom: 0.5rem;
 }
 
-.skeleton-title { width: 80%; }
-.skeleton-price { width: 60%; }
-.skeleton-rating { width: 70%; }
+.skeleton-title {
+  width: 80%;
+}
+.skeleton-price {
+  width: 60%;
+}
+.skeleton-rating {
+  width: 70%;
+}
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 /* Error State */
@@ -658,7 +664,7 @@ export default {
   background: white;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   cursor: pointer;
   position: relative;
@@ -666,7 +672,7 @@ export default {
 
 .product-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .product-image-container {
@@ -705,7 +711,7 @@ export default {
   height: 40px;
   border-radius: 50%;
   border: none;
-  background: rgba(255,255,255,0.9);
+  background: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -867,16 +873,16 @@ export default {
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .section-title {
     font-size: 1.5rem;
   }
-  
+
   .products-grid {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 1rem;
   }
-  
+
   .product-card {
     margin-bottom: 0.5rem;
   }
@@ -886,11 +892,11 @@ export default {
   .products-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .recommended-products {
     margin: 1rem 0;
   }
-  
+
   .section-title {
     font-size: 1.3rem;
   }

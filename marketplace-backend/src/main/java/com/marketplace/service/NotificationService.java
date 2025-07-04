@@ -162,4 +162,26 @@ public class NotificationService {
             default -> "cập nhật trạng thái";
         };
     }
+
+    public Notification updateNotification(String notificationId, NotificationRequest request) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + notificationId));
+    
+        // Chỉ cho phép cập nhật các trường cơ bản
+        notification.setTitle(request.getTitle());
+        notification.setMessage(request.getMessage());
+        notification.setType(request.getType());
+        notification.setRelatedId(request.getRelatedId());
+    
+        // Nếu là thông báo cho user cụ thể, cập nhật userId
+        if (request.getUserId() != null && !request.getUserId().isEmpty()) {
+            notification.setUserId(request.getUserId());
+            notification.setGlobal(false);
+        } else {
+            notification.setUserId(null);
+            notification.setGlobal(true);
+        }
+    
+        return notificationRepository.save(notification);
+    }
 }

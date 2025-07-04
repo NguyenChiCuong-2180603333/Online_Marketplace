@@ -5,6 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.marketplace.security.UserPrincipal;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -211,7 +214,13 @@ public class DashboardController {
     }
 
     private String getCurrentUserId() {
-        // Implementation similar to other controllers
-        return "mockUserId123"; // Replace with actual JWT extraction
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof UserPrincipal) {
+                return ((UserPrincipal) principal).getId();
+            }
+        }
+        throw new RuntimeException("Cannot get current user id");
     }
 }

@@ -6,19 +6,15 @@
         <span class="similarity-icon">🔗</span>
         Sản phẩm tương tự
       </h3>
-      
+
       <div class="header-actions">
         <!-- Algorithm indicator -->
         <div v-if="algorithmInfo" class="algorithm-badge" :title="getAlgorithmDescription()">
           {{ getAlgorithmLabel() }}
         </div>
-        
+
         <!-- View all button -->
-        <button 
-          v-if="hasMoreProducts"
-          @click="viewAllSimilar"
-          class="view-all-btn"
-        >
+        <button v-if="hasMoreProducts" @click="viewAllSimilar" class="view-all-btn">
           Xem tất cả
         </button>
       </div>
@@ -43,9 +39,7 @@
       <div class="error-content">
         <span class="error-icon">⚠️</span>
         <p class="error-message">{{ error }}</p>
-        <button @click="loadSimilarProducts" class="retry-btn">
-          Thử lại
-        </button>
+        <button @click="loadSimilarProducts" class="retry-btn">Thử lại</button>
       </div>
     </div>
 
@@ -57,186 +51,156 @@
       </div>
     </div>
 
-    <!-- Products Horizontal Scroll -->
-    <div v-else class="products-container">
-      <!-- Similarity score info (optional debug) -->
-      <div v-if="showSimilarityScores && algorithmInfo" class="similarity-info">
-        <small>
-          📊 Thuật toán: {{ algorithmInfo.algorithm }} | 
-          Tìm thấy {{ algorithmInfo.count }} sản phẩm tương tự
-        </small>
-      </div>
+    <!-- Products Grid (3 columns, wrap) -->
+    <div v-else class="products-grid">
+      <div
+        v-for="(product, index) in paginatedProducts"
+        :key="product.id"
+        class="similar-product-card"
+        @click="handleProductClick(product, index + (currentPage - 1) * pageSize)"
+      >
+        <!-- Product Image -->
+        <div class="product-image-wrapper">
+          <img
+            :src="product.images?.[0] || '/api/placeholder/product'"
+            :alt="product.name"
+            class="product-image"
+            @error="handleImageError"
+            loading="lazy"
+          />
 
-      <!-- Horizontal scrolling container -->
-      <div class="products-scroll-container">
-        <div class="products-scroll" ref="productsScrollRef">
-          <div 
-            v-for="(product, index) in displayProducts" 
-            :key="product.id"
-            class="similar-product-card"
-            @click="handleProductClick(product, index)"
+          <!-- Similarity badge -->
+          <div class="similarity-badge" v-if="getSimilarityScore(product, index)">
+            {{ getSimilarityScore(product, index) }}% phù hợp
+          </div>
+
+          <!-- Quick add to compare -->
+          <button
+            @click.stop="addToCompare(product)"
+            class="compare-btn"
+            :class="{ active: isInCompare(product.id) }"
+            title="So sánh sản phẩm"
           >
-            <!-- Product Image -->
-            <div class="product-image-wrapper">
-              <img 
-                :src="product.imageUrl || '/api/placeholder/product'" 
-                :alt="product.name"
-                class="product-image"
-                @error="handleImageError"
-                loading="lazy"
-              />
-              
-              <!-- Similarity badge -->
-              <div class="similarity-badge" v-if="getSimilarityScore(product, index)">
-                {{ getSimilarityScore(product, index) }}% phù hợp
-              </div>
+            ⚖️
+          </button>
 
-              <!-- Quick add to compare -->
-              <button 
-                @click.stop="addToCompare(product)"
-                class="compare-btn"
-                :class="{ 'active': isInCompare(product.id) }"
-                title="So sánh sản phẩm"
+          <!-- Discount badge -->
+          <div v-if="product.discount > 0" class="discount-badge">-{{ product.discount }}%</div>
+        </div>
+
+        <!-- Product Info -->
+        <div class="product-info">
+          <!-- Category tag -->
+          <div class="category-tag" v-if="product.category">
+            {{ product.category }}
+          </div>
+
+          <!-- Product name -->
+          <h4 class="product-name" :title="product.name">
+            {{ truncate(product.name, 40) }}
+          </h4>
+
+          <!-- Pricing -->
+          <div class="product-pricing">
+            <span class="current-price">
+              {{ formatPrice(product.price) }}
+            </span>
+            <span
+              v-if="product.originalPrice && product.originalPrice > product.price"
+              class="original-price"
+            >
+              {{ formatPrice(product.originalPrice) }}
+            </span>
+          </div>
+
+          <!-- Rating -->
+          <div class="product-rating" v-if="product.averageRating || product.reviewCount">
+            <div class="stars-mini">
+              <span
+                v-for="star in 5"
+                :key="star"
+                class="star-mini"
+                :class="{ filled: star <= (product.averageRating || 0) }"
               >
-                ⚖️
-              </button>
-
-              <!-- Discount badge -->
-              <div v-if="product.discount > 0" class="discount-badge">
-                -{{ product.discount }}%
-              </div>
+                ⭐
+              </span>
             </div>
+            <span class="rating-text-mini">
+              {{ (product.averageRating || 0).toFixed(1) }}
+              <span v-if="product.reviewCount" class="review-count-mini">
+                ({{ formatReviewCount(product.reviewCount) }})
+              </span>
+            </span>
+          </div>
 
-            <!-- Product Info -->
-            <div class="product-info">
-              <!-- Category tag -->
-              <div class="category-tag" v-if="product.category">
-                {{ product.category }}
-              </div>
-
-              <!-- Product name -->
-              <h4 class="product-name" :title="product.name">
-                {{ truncate(product.name, 40) }}
-              </h4>
-
-              <!-- Pricing -->
-              <div class="product-pricing">
-                <span class="current-price">
-                  {{ formatPrice(product.price) }}
-                </span>
-                <span v-if="product.originalPrice && product.originalPrice > product.price" 
-                      class="original-price">
-                  {{ formatPrice(product.originalPrice) }}
-                </span>
-              </div>
-
-              <!-- Rating -->
-              <div class="product-rating" v-if="product.rating || product.reviewCount">
-                <div class="stars-mini">
-                  <span v-for="star in 5" :key="star" 
-                        class="star-mini"
-                        :class="{ 'filled': star <= (product.rating || 0) }">
-                    ⭐
-                  </span>
-                </div>
-                <span class="rating-text-mini">
-                  {{ (product.rating || 0).toFixed(1) }}
-                  <span v-if="product.reviewCount" class="review-count-mini">
-                    ({{ formatReviewCount(product.reviewCount) }})
-                  </span>
-                </span>
-              </div>
-
-              <!-- Similarity reasons -->
-              <div class="similarity-reasons" v-if="getSimilarityReasons(product, index)">
-                <div class="reasons-list">
-                  <span 
-                    v-for="reason in getSimilarityReasons(product, index)" 
-                    :key="reason"
-                    class="reason-tag"
-                  >
-                    {{ reason }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Action buttons -->
-              <div class="product-actions">
-                <button 
-                  @click.stop="quickAddToCart(product)"
-                  class="add-to-cart-btn"
-                  :disabled="isAddingToCart"
-                >
-                  <span v-if="isAddingToCart">⏳</span>
-                  <span v-else>🛒</span>
-                  {{ isAddingToCart ? 'Đang thêm...' : 'Thêm' }}
-                </button>
-                
-                <button 
-                  @click.stop="toggleWishlist(product)"
-                  class="wishlist-btn"
-                  :class="{ 'active': isInWishlist(product.id) }"
-                >
-                  {{ isInWishlist(product.id) ? '❤️' : '🤍' }}
-                </button>
-              </div>
+          <!-- Similarity reasons -->
+          <div class="similarity-reasons" v-if="getSimilarityReasons(product, index)">
+            <div class="reasons-list">
+              <span
+                v-for="reason in getSimilarityReasons(product, index)"
+                :key="reason"
+                class="reason-tag"
+              >
+                {{ reason }}
+              </span>
             </div>
           </div>
-        </div>
 
-        <!-- Scroll navigation buttons -->
-        <button 
-          v-if="canScrollLeft"
-          @click="scrollLeft"
-          class="scroll-btn scroll-left"
-          title="Cuộn trái"
-        >
-          ◀
-        </button>
-        
-        <button 
-          v-if="canScrollRight"
-          @click="scrollRight"
-          class="scroll-btn scroll-right"
-          title="Cuộn phải"
-        >
-          ▶
-        </button>
-      </div>
+          <!-- Action buttons -->
+          <div class="product-actions">
+            <button
+              @click.stop="quickAddToCart(product)"
+              class="add-to-cart-btn"
+              :disabled="isAddingToCart"
+            >
+              <span v-if="isAddingToCart">⏳</span>
+              <span v-else>🛒</span>
+              {{ isAddingToCart ? 'Đang thêm...' : 'Thêm' }}
+            </button>
 
-      <!-- Compare panel (if products selected) -->
-      <div v-if="compareProducts.length > 0" class="compare-panel">
-        <div class="compare-header">
-          <span class="compare-title">
-            So sánh ({{ compareProducts.length }}/{{ maxCompareProducts }})
-          </span>
-          <button @click="clearCompare" class="clear-compare-btn">
-            Xóa tất cả
-          </button>
-        </div>
-        
-        <div class="compare-products">
-          <div 
-            v-for="product in compareProducts" 
-            :key="product.id"
-            class="compare-product-item"
-          >
-            <img :src="product.imageUrl" :alt="product.name" class="compare-product-image" />
-            <span class="compare-product-name">{{ truncate(product.name, 20) }}</span>
-            <button @click="removeFromCompare(product.id)" class="remove-compare-btn">
-              ❌
+            <button
+              @click.stop="toggleWishlist(product)"
+              class="wishlist-btn"
+              :class="{ active: isInWishlist(product.id) }"
+            >
+              {{ isInWishlist(product.id) ? '❤️' : '🤍' }}
             </button>
           </div>
         </div>
-        
-        <button 
-          v-if="compareProducts.length >= 2"
-          @click="goToComparePage"
-          class="compare-action-btn"
-        >
-          So sánh ngay
-        </button>
       </div>
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="pageCount > 1" class="pagination">
+      <button :disabled="currentPage === 1" @click="currentPage--">&lt;</button>
+      <span>Trang {{ currentPage }} / {{ pageCount }}</span>
+      <button :disabled="currentPage === pageCount" @click="currentPage++">&gt;</button>
+    </div>
+
+    <!-- Compare panel (if products selected) -->
+    <div v-if="compareProducts.length > 0" class="compare-panel">
+      <div class="compare-header">
+        <span class="compare-title">
+          So sánh ({{ compareProducts.length }}/{{ maxCompareProducts }})
+        </span>
+        <button @click="clearCompare" class="clear-compare-btn">Xóa tất cả</button>
+      </div>
+
+      <div class="compare-products">
+        <div v-for="product in compareProducts" :key="product.id" class="compare-product-item">
+          <img :src="product.imageUrl" :alt="product.name" class="compare-product-image" />
+          <span class="compare-product-name">{{ truncate(product.name, 20) }}</span>
+          <button @click="removeFromCompare(product.id)" class="remove-compare-btn">❌</button>
+        </div>
+      </div>
+
+      <button
+        v-if="compareProducts.length >= 2"
+        @click="goToComparePage"
+        class="compare-action-btn"
+      >
+        So sánh ngay
+      </button>
     </div>
   </div>
 </template>
@@ -245,6 +209,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useCartStore } from '@/stores/cart'
 import recommendationService from '@/services/recommendationService'
 
 export default {
@@ -253,46 +218,58 @@ export default {
     // ID sản phẩm gốc để tìm similar products
     productId: {
       type: String,
-      required: true
+      required: true,
     },
-    
+    // Giá sản phẩm gốc để so sánh
+    productPrice: {
+      type: Number,
+      required: false,
+      default: null,
+    },
+    // Danh mục sản phẩm gốc để so sánh
+    productCategory: {
+      type: String,
+      required: false,
+      default: null,
+    },
     // Số lượng sản phẩm hiển thị
     limit: {
       type: Number,
-      default: 12
+      default: 12,
     },
-    
+
     // Số lượng sản phẩm hiển thị ban đầu (responsive)
     displayLimit: {
       type: Number,
-      default: 6
+      default: 6,
     },
-    
+
     // Hiển thị similarity scores (debug mode)
     showSimilarityScores: {
       type: Boolean,
-      default: false
+      default: false,
     },
-    
+
     // Tự động load khi component mount
     autoLoad: {
       type: Boolean,
-      default: true
+      default: true,
     },
-    
+
     // Custom CSS classes
     containerClass: {
       type: String,
-      default: ''
-    }
+      default: '',
+    },
   },
-  
+
   emits: ['product-click', 'add-to-cart', 'add-to-wishlist', 'compare-products'],
-  
+
   setup(props, { emit }) {
     const router = useRouter()
     const userStore = useUserStore()
-    
+    const cartStore = useCartStore()
+
     // Reactive state
     const similarProducts = ref([])
     const loading = ref(false)
@@ -301,57 +278,64 @@ export default {
     const isAddingToCart = ref(false)
     const compareProducts = ref([])
     const maxCompareProducts = 4
-    
-    // Scroll refs
-    const productsScrollRef = ref(null)
-    const canScrollLeft = ref(false)
-    const canScrollRight = ref(false)
-    
+    const currentPage = ref(1)
+    const pageSize = ref(6) // 2 dòng, mỗi dòng 3 sản phẩm
+
     // Computed properties
     const shouldShow = computed(() => {
       return props.productId && (loading.value || similarProducts.value.length > 0 || error.value)
     })
-    
+
     const displayProducts = computed(() => {
       return similarProducts.value.slice(0, props.displayLimit)
     })
-    
+
     const hasMoreProducts = computed(() => {
       return similarProducts.value.length > props.displayLimit
     })
-    
+
+    const pageCount = computed(() => {
+      return Math.ceil(displayProducts.value.length / pageSize.value)
+    })
+
+    const paginatedProducts = computed(() => {
+      const start = (currentPage.value - 1) * pageSize.value
+      return displayProducts.value.slice(start, start + pageSize.value)
+    })
+
     // Load similar products
     const loadSimilarProducts = async () => {
       if (!props.productId) {
         console.warn('No productId provided for similar products')
         return
       }
-      
+
       loading.value = true
       error.value = null
-      
+
       try {
-        const response = await recommendationService.getSimilarProducts(props.productId, props.limit)
-        
+        const response = await recommendationService.getSimilarProducts(
+          props.productId,
+          props.limit
+        )
+
         similarProducts.value = response.similarProducts || []
         algorithmInfo.value = {
           algorithm: response.algorithm,
           count: response.count,
-          baseProductId: response.baseProductId
+          baseProductId: response.baseProductId,
         }
-        
+
         // Track similar products loaded
         if (similarProducts.value.length > 0) {
           recommendationService.trackInteraction(props.productId, 'SIMILAR_PRODUCTS_LOADED', {
             count: similarProducts.value.length,
-            algorithm: response.algorithm
+            algorithm: response.algorithm,
           })
         }
-        
+
         // Check scroll after loading
         await nextTick()
-        checkScrollButtons()
-        
       } catch (err) {
         console.error('Error loading similar products:', err)
         error.value = err.response?.data?.message || 'Không thể tải sản phẩm tương tự'
@@ -360,41 +344,40 @@ export default {
         loading.value = false
       }
     }
-    
+
     // Handle product click
     const handleProductClick = async (product, index) => {
       // Track click
       await recommendationService.trackClick(product.id, 'similar_products')
-      
+
       // Emit event
       emit('product-click', { product, index, source: 'similar' })
-      
+
       // Navigate to product detail
       router.push(`/products/${product.id}`)
     }
-    
+
     // Quick add to cart
     const quickAddToCart = async (product) => {
       if (isAddingToCart.value) return
-      
       isAddingToCart.value = true
-      
       try {
         // Track add to cart from similar products
         await recommendationService.trackAddToCart(product.id, 1)
-        
+        // Thêm thực sự vào giỏ hàng
+        await cartStore.addItem(product.id, 1)
         // Emit to parent
         emit('add-to-cart', product)
-        
-        // TODO: Add cart logic here
-        
+        // Thông báo thành công
+        alert(`Đã thêm ${product.name} vào giỏ hàng!`)
       } catch (err) {
         console.error('Error adding to cart:', err)
+        alert('Có lỗi khi thêm vào giỏ hàng')
       } finally {
         isAddingToCart.value = false
       }
     }
-    
+
     // Toggle wishlist
     const toggleWishlist = async (product) => {
       try {
@@ -405,164 +388,149 @@ export default {
           // Add to wishlist
           await recommendationService.trackInteraction(product.id, 'ADD_TO_WISHLIST')
         }
-        
+
         emit('add-to-wishlist', product)
-        
       } catch (err) {
         console.error('Error toggling wishlist:', err)
       }
     }
-    
+
     // Compare functionality
     const addToCompare = (product) => {
       if (compareProducts.value.length >= maxCompareProducts) {
         alert(`Chỉ có thể so sánh tối đa ${maxCompareProducts} sản phẩm`)
         return
       }
-      
+
       if (!isInCompare(product.id)) {
         compareProducts.value.push(product)
-        
+
         // Track compare action
         recommendationService.trackInteraction(product.id, 'ADD_TO_COMPARE', {
-          compareCount: compareProducts.value.length
+          compareCount: compareProducts.value.length,
         })
       }
     }
-    
+
     const removeFromCompare = (productId) => {
-      compareProducts.value = compareProducts.value.filter(p => p.id !== productId)
+      compareProducts.value = compareProducts.value.filter((p) => p.id !== productId)
     }
-    
+
     const isInCompare = (productId) => {
-      return compareProducts.value.some(p => p.id === productId)
+      return compareProducts.value.some((p) => p.id === productId)
     }
-    
+
     const clearCompare = () => {
       compareProducts.value = []
     }
-    
+
     const goToComparePage = () => {
-      const productIds = compareProducts.value.map(p => p.id).join(',')
+      const productIds = compareProducts.value.map((p) => p.id).join(',')
       router.push(`/compare?products=${productIds}`)
     }
-    
-    // Scroll functionality
-    const checkScrollButtons = () => {
-      if (!productsScrollRef.value) return
-      
-      const container = productsScrollRef.value
-      canScrollLeft.value = container.scrollLeft > 0
-      canScrollRight.value = container.scrollLeft < (container.scrollWidth - container.clientWidth)
-    }
-    
-    const scrollLeft = () => {
-      if (productsScrollRef.value) {
-        productsScrollRef.value.scrollBy({ left: -300, behavior: 'smooth' })
-      }
-    }
-    
-    const scrollRight = () => {
-      if (productsScrollRef.value) {
-        productsScrollRef.value.scrollBy({ left: 300, behavior: 'smooth' })
-      }
-    }
-    
+
     // View all similar products
     const viewAllSimilar = () => {
       router.push(`/products/${props.productId}/similar`)
     }
-    
+
     // Helper functions
     const formatPrice = (price) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
       }).format(price)
     }
-    
+
     const formatReviewCount = (count) => {
       if (count >= 1000) {
         return (count / 1000).toFixed(1) + 'k'
       }
       return count.toString()
     }
-    
+
     const truncate = (text, length) => {
       if (!text) return ''
       return text.length > length ? text.slice(0, length) + '...' : text
     }
-    
+
     const handleImageError = (event) => {
       event.target.src = '/api/placeholder/product'
     }
-    
+
     const isInWishlist = (productId) => {
-      return userStore.wishlist?.some(item => item.id === productId) || false
+      return userStore.wishlist?.some((item) => item.id === productId) || false
     }
-    
+
     const getSimilarityScore = (product, index) => {
       // Mock similarity scores for display
       const scores = [95, 88, 82, 75, 70, 65]
       return scores[index] || Math.floor(Math.random() * 30 + 60)
     }
-    
+
     const getSimilarityReasons = (product, index) => {
-      const allReasons = [
-        ['Cùng danh mục', 'Giá tương đương'],
-        ['Thương hiệu', 'Đánh giá cao'],
-        ['Màu sắc', 'Kích thước'],
-        ['Phong cách', 'Chất liệu'],
-        ['Tính năng', 'Mức giá']
-      ]
-      return allReasons[index % allReasons.length]
+      const reasons = []
+      if (props.productCategory && product.category === props.productCategory) {
+        reasons.push('Cùng danh mục')
+      }
+      if (
+        props.productPrice &&
+        Math.abs(product.price - props.productPrice) / props.productPrice <= 0.2
+      ) {
+        reasons.push('Giá tương đương')
+      }
+      // Có thể bổ sung thêm các lý do khác nếu cần
+      return reasons
     }
-    
+
     const getAlgorithmLabel = () => {
       if (!algorithmInfo.value) return ''
-      
+
       const labels = {
-        'content_based_similarity': 'Nội dung tương tự',
-        'hybrid': 'AI Hybrid',
-        'category_based': 'Cùng danh mục',
-        'collaborative': 'Cộng tác',
-        'fallback': 'Mặc định'
+        content_based_similarity: 'Nội dung tương tự',
+        hybrid: 'AI Hybrid',
+        category_based: 'Cùng danh mục',
+        collaborative: 'Cộng tác',
+        fallback: 'Mặc định',
       }
-      
+
       return labels[algorithmInfo.value.algorithm] || 'AI'
     }
-    
+
     const getAlgorithmDescription = () => {
       if (!algorithmInfo.value) return ''
-      
+
       const descriptions = {
-        'content_based_similarity': 'Dựa trên đặc điểm sản phẩm',
-        'hybrid': 'Kết hợp nhiều thuật toán AI',
-        'category_based': 'Dựa trên danh mục sản phẩm',
-        'collaborative': 'Dựa trên hành vi người dùng',
-        'fallback': 'Thuật toán dự phòng'
+        content_based_similarity: 'Dựa trên đặc điểm sản phẩm',
+        hybrid: 'Kết hợp nhiều thuật toán AI',
+        category_based: 'Dựa trên danh mục sản phẩm',
+        collaborative: 'Dựa trên hành vi người dùng',
+        fallback: 'Thuật toán dự phòng',
       }
-      
+
       return descriptions[algorithmInfo.value.algorithm] || 'Được tạo bởi AI'
     }
-    
+
     // Watch for productId changes
-    watch(() => props.productId, (newId, oldId) => {
-      if (newId && newId !== oldId) {
-        compareProducts.value = [] // Clear compare when changing product
-        if (props.autoLoad) {
-          loadSimilarProducts()
+    watch(
+      () => props.productId,
+      (newId, oldId) => {
+        if (newId && newId !== oldId) {
+          compareProducts.value = [] // Clear compare when changing product
+          if (props.autoLoad) {
+            loadSimilarProducts()
+          }
         }
       }
-    })
-    
+    )
+
     // Lifecycle
     onMounted(() => {
       if (props.autoLoad && props.productId) {
         loadSimilarProducts()
       }
     })
-    
+
     // Return reactive data and methods
     return {
       // State
@@ -573,17 +541,16 @@ export default {
       isAddingToCart,
       compareProducts,
       maxCompareProducts,
-      
+      currentPage,
+      pageSize,
+
       // Computed
       shouldShow,
       displayProducts,
       hasMoreProducts,
-      canScrollLeft,
-      canScrollRight,
-      
-      // Refs
-      productsScrollRef,
-      
+      pageCount,
+      paginatedProducts,
+
       // Methods
       loadSimilarProducts,
       handleProductClick,
@@ -594,11 +561,8 @@ export default {
       isInCompare,
       clearCompare,
       goToComparePage,
-      checkScrollButtons,
-      scrollLeft,
-      scrollRight,
       viewAllSimilar,
-      
+
       // Helpers
       formatPrice,
       formatReviewCount,
@@ -608,9 +572,9 @@ export default {
       getSimilarityScore,
       getSimilarityReasons,
       getAlgorithmLabel,
-      getAlgorithmDescription
+      getAlgorithmDescription,
     }
-  }
+  },
 }
 </script>
 
@@ -620,7 +584,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 /* Section Header */
@@ -721,13 +685,23 @@ export default {
   margin-bottom: 0.5rem;
 }
 
-.skeleton-line.short { width: 60%; }
-.skeleton-line.medium { width: 80%; }
-.skeleton-line.long { width: 100%; }
+.skeleton-line.short {
+  width: 60%;
+}
+.skeleton-line.medium {
+  width: 80%;
+}
+.skeleton-line.long {
+  width: 100%;
+}
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 /* Error & Empty States */
@@ -783,41 +757,10 @@ export default {
 }
 
 /* Products Container */
-.products-container {
-  position: relative;
-}
-
-.products-scroll-container {
-  position: relative;
-  overflow: hidden;
-}
-
-.products-scroll {
-  display: flex;
-  gap: 1rem;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  padding-bottom: 1rem;
-  scrollbar-width: thin;
-  scrollbar-color: #e2e8f0 transparent;
-}
-
-.products-scroll::-webkit-scrollbar {
-  height: 6px;
-}
-
-.products-scroll::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 3px;
-}
-
-.products-scroll::-webkit-scrollbar-thumb {
-  background: #cbd5e0;
-  border-radius: 3px;
-}
-
-.products-scroll::-webkit-scrollbar-thumb:hover {
-  background: #a0aec0;
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
 }
 
 /* Product Card */
@@ -826,7 +769,7 @@ export default {
   background: white;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   cursor: pointer;
   position: relative;
@@ -834,7 +777,7 @@ export default {
 
 .similar-product-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
 
 .product-image-wrapper {
@@ -874,7 +817,7 @@ export default {
   height: 28px;
   border-radius: 50%;
   border: none;
-  background: rgba(255,255,255,0.9);
+  background: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1047,39 +990,13 @@ export default {
   color: white;
 }
 
-/* Scroll Navigation */
-.scroll-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255,255,255,0.9);
-  color: #667eea;
-  cursor: pointer;
+/* Pagination */
+.pagination {
   display: flex;
-  align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  font-weight: bold;
-  z-index: 10;
-}
-
-.scroll-btn:hover {
-  background: #667eea;
-  color: white;
-  transform: translateY(-50%) scale(1.1);
-}
-
-.scroll-left {
-  left: -20px;
-}
-
-.scroll-right {
-  right: -20px;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
 }
 
 /* Compare Panel */
@@ -1177,30 +1094,30 @@ export default {
   .similar-product-card {
     flex: 0 0 160px;
   }
-  
+
   .section-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .header-actions {
     align-self: stretch;
     justify-content: space-between;
   }
-  
+
   .scroll-btn {
     display: none;
   }
-  
+
   .product-info {
     padding: 0.5rem;
   }
-  
+
   .product-name {
     font-size: 0.8rem;
   }
-  
+
   .current-price {
     font-size: 0.9rem;
   }
@@ -1211,19 +1128,19 @@ export default {
     margin: 1rem 0;
     padding: 1rem;
   }
-  
+
   .similar-product-card {
     flex: 0 0 140px;
   }
-  
+
   .product-image-wrapper {
     height: 100px;
   }
-  
+
   .section-title {
     font-size: 1.3rem;
   }
-  
+
   .compare-panel {
     padding: 0.75rem;
   }

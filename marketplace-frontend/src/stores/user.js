@@ -21,13 +21,13 @@ export const useUserStore = defineStore('user', {
       reviewCount: 0,
       lastPasswordChange: null,
       twoFactorEnabled: false,
-      createdAt: null
+      createdAt: null,
     },
-    
+
     // User orders
     orders: [],
     orderHistory: [],
-    
+
     // User preferences
     preferences: {
       theme: 'space', // space, light, dark
@@ -39,29 +39,29 @@ export const useUserStore = defineStore('user', {
         sms: false,
         orderUpdates: true,
         promotions: true,
-        newProducts: false
+        newProducts: false,
       },
       privacy: {
         showProfile: true,
         showOrders: false,
-        showReviews: true
-      }
+        showReviews: true,
+      },
     },
-    
+
     // Wishlist
     wishlist: [],
-    
+
     // Recently viewed products
     recentlyViewed: [],
-    
+
     // User addresses
     addresses: [],
     defaultAddressId: null,
-    
+
     // Payment methods
     paymentMethods: [],
     defaultPaymentMethodId: null,
-    
+
     // User statistics
     stats: {
       monthlySpending: 0,
@@ -69,9 +69,9 @@ export const useUserStore = defineStore('user', {
       favoriteCategory: '',
       loyaltyPoints: 0,
       membershipLevel: 'Bronze', // Bronze, Silver, Gold, Platinum
-      nextLevelPoints: 0
+      nextLevelPoints: 0,
     },
-    
+
     // Loading states
     loading: {
       profile: false,
@@ -79,9 +79,9 @@ export const useUserStore = defineStore('user', {
       wishlist: false,
       addresses: false,
       paymentMethods: false,
-      preferences: false
+      preferences: false,
     },
-    
+
     // Error states
     errors: {
       profile: null,
@@ -89,54 +89,63 @@ export const useUserStore = defineStore('user', {
       wishlist: null,
       addresses: null,
       paymentMethods: null,
-      preferences: null
-    }
+      preferences: null,
+    },
   }),
 
   getters: {
     fullName: (state) => `${state.profile.firstName} ${state.profile.lastName}`.trim(),
-    
+
     isProfileComplete: (state) => {
       const required = ['firstName', 'lastName', 'email', 'phone']
-      return required.every(field => state.profile[field])
+      return required.every((field) => state.profile[field])
     },
-    
+
     membershipProgress: (state) => {
       const levels = {
-        'Bronze': { min: 0, max: 1000 },
-        'Silver': { min: 1000, max: 5000 },
-        'Gold': { min: 5000, max: 15000 },
-        'Platinum': { min: 15000, max: Infinity }
+        Bronze: { min: 0, max: 1000 },
+        Silver: { min: 1000, max: 5000 },
+        Gold: { min: 5000, max: 15000 },
+        Platinum: { min: 15000, max: Infinity },
       }
       const current = levels[state.stats.membershipLevel]
-      const progress = current.max === Infinity ? 100 : 
-        ((state.stats.loyaltyPoints - current.min) / (current.max - current.min)) * 100
+      const progress =
+        current.max === Infinity
+          ? 100
+          : ((state.stats.loyaltyPoints - current.min) / (current.max - current.min)) * 100
       return Math.min(progress, 100)
     },
-    
+
     recentOrders: (state) => {
       return state.orders.slice(0, 5).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     },
-    
+
     pendingOrders: (state) => {
-      return state.orders.filter(order => ['PENDING', 'PROCESSING', 'SHIPPED'].includes(order.status))
+      return state.orders.filter((order) =>
+        ['PENDING', 'PROCESSING', 'SHIPPED'].includes(order.status)
+      )
     },
-    
+
     completedOrders: (state) => {
-      return state.orders.filter(order => order.status === 'DELIVERED')
+      return state.orders.filter((order) => order.status === 'DELIVERED')
     },
-    
+
     defaultAddress: (state) => {
-      return state.addresses.find(addr => addr.id === state.defaultAddressId) || state.addresses[0]
+      return (
+        state.addresses.find((addr) => addr.id === state.defaultAddressId) || state.addresses[0]
+      )
     },
-    
+
     defaultPaymentMethod: (state) => {
-      return state.paymentMethods.find(pm => pm.id === state.defaultPaymentMethodId) || state.paymentMethods[0]
+      return (
+        state.paymentMethods.find((pm) => pm.id === state.defaultPaymentMethodId) ||
+        state.paymentMethods[0]
+      )
     },
-    
+
     wishlistItems: (state) => state.wishlist,
-    
-    recentProducts: (state) => state.recentlyViewed.slice(0, 10)
+
+    recentProducts: (state) => state.recentlyViewed.slice(0, 10),
   },
 
   actions: {
@@ -144,16 +153,13 @@ export const useUserStore = defineStore('user', {
     async loadProfile() {
       this.loading.profile = true
       this.errors.profile = null
-      
+
       try {
         const response = await profileAPI.getProfile()
         this.profile = { ...this.profile, ...response.data }
-        
+
         // Load related data
-        await Promise.all([
-          this.loadUserStats(),
-          this.loadPreferences()
-        ])
+        await Promise.all([this.loadUserStats(), this.loadPreferences()])
       } catch (error) {
         this.errors.profile = error.response?.data?.message || 'Không thể tải thông tin profile'
         console.error('Load profile error:', error)
@@ -165,7 +171,7 @@ export const useUserStore = defineStore('user', {
     async updateProfile(profileData) {
       this.loading.profile = true
       this.errors.profile = null
-      
+
       try {
         const response = await profileAPI.updateProfile(profileData)
         this.profile = { ...this.profile, ...response.data }
@@ -181,11 +187,11 @@ export const useUserStore = defineStore('user', {
     async uploadAvatar(file) {
       this.loading.profile = true
       this.errors.profile = null
-      
+
       try {
         const formData = new FormData()
         formData.append('avatar', file)
-        
+
         const response = await profileAPI.uploadAvatar(formData)
         this.profile.avatar = response.data.avatar
         return response.data
@@ -200,7 +206,7 @@ export const useUserStore = defineStore('user', {
     async changePassword(passwordData) {
       this.loading.profile = true
       this.errors.profile = null
-      
+
       try {
         await profileAPI.changePassword(passwordData)
         this.profile.lastPasswordChange = new Date().toISOString()
@@ -217,10 +223,10 @@ export const useUserStore = defineStore('user', {
     async loadOrders() {
       this.loading.orders = true
       this.errors.orders = null
-      
+
       try {
         const response = await orderAPI.getMyOrders()
-        this.orders = response.data.orders || []
+        this.orders = Array.isArray(response.data) ? response.data : response.data.orders || []
         this.orderHistory = [...this.orders]
       } catch (error) {
         this.errors.orders = error.response?.data?.message || 'Không thể tải danh sách đơn hàng'
@@ -233,13 +239,13 @@ export const useUserStore = defineStore('user', {
     async cancelOrder(orderId) {
       try {
         const response = await orderAPI.cancel(orderId)
-        
+
         // Update order in local state
-        const orderIndex = this.orders.findIndex(order => order.id === orderId)
+        const orderIndex = this.orders.findIndex((order) => order.id === orderId)
         if (orderIndex !== -1) {
           this.orders[orderIndex] = { ...this.orders[orderIndex], ...response.data }
         }
-        
+
         return response.data
       } catch (error) {
         const errorMsg = error.response?.data?.message || 'Không thể hủy đơn hàng'
@@ -251,7 +257,7 @@ export const useUserStore = defineStore('user', {
     async loadWishlist() {
       this.loading.wishlist = true
       this.errors.wishlist = null
-      
+
       try {
         const response = await profileAPI.getWishlist()
         this.wishlist = response.data.items || []
@@ -266,12 +272,12 @@ export const useUserStore = defineStore('user', {
     async addToWishlist(productId) {
       try {
         const response = await profileAPI.addToWishlist(productId)
-        
+
         // Add to local state if not exists
-        if (!this.wishlist.some(item => item.productId === productId)) {
+        if (!this.wishlist.some((item) => item.productId === productId)) {
           this.wishlist.push(response.data)
         }
-        
+
         this.profile.wishlistCount = this.wishlist.length
         return response.data
       } catch (error) {
@@ -283,11 +289,11 @@ export const useUserStore = defineStore('user', {
     async removeFromWishlist(productId) {
       try {
         await profileAPI.removeFromWishlist(productId)
-        
+
         // Remove from local state
-        this.wishlist = this.wishlist.filter(item => item.productId !== productId)
+        this.wishlist = this.wishlist.filter((item) => item.productId !== productId)
         this.profile.wishlistCount = this.wishlist.length
-        
+
         return true
       } catch (error) {
         const errorMsg = error.response?.data?.message || 'Không thể xóa khỏi danh sách yêu thích'
@@ -299,7 +305,7 @@ export const useUserStore = defineStore('user', {
     async loadAddresses() {
       this.loading.addresses = true
       this.errors.addresses = null
-      
+
       try {
         const response = await profileAPI.getAddresses()
         this.addresses = response.data.addresses || []
@@ -316,12 +322,12 @@ export const useUserStore = defineStore('user', {
       try {
         const response = await profileAPI.addAddress(addressData)
         this.addresses.push(response.data)
-        
+
         // Set as default if it's the first address
         if (this.addresses.length === 1) {
           this.defaultAddressId = response.data.id
         }
-        
+
         return response.data
       } catch (error) {
         const errorMsg = error.response?.data?.message || 'Không thể thêm địa chỉ'
@@ -332,13 +338,13 @@ export const useUserStore = defineStore('user', {
     async updateAddress(addressId, addressData) {
       try {
         const response = await profileAPI.updateAddress(addressId, addressData)
-        
+
         // Update in local state
-        const addressIndex = this.addresses.findIndex(addr => addr.id === addressId)
+        const addressIndex = this.addresses.findIndex((addr) => addr.id === addressId)
         if (addressIndex !== -1) {
           this.addresses[addressIndex] = { ...this.addresses[addressIndex], ...response.data }
         }
-        
+
         return response.data
       } catch (error) {
         const errorMsg = error.response?.data?.message || 'Không thể cập nhật địa chỉ'
@@ -349,15 +355,15 @@ export const useUserStore = defineStore('user', {
     async deleteAddress(addressId) {
       try {
         await profileAPI.deleteAddress(addressId)
-        
+
         // Remove from local state
-        this.addresses = this.addresses.filter(addr => addr.id !== addressId)
-        
+        this.addresses = this.addresses.filter((addr) => addr.id !== addressId)
+
         // Update default if deleted address was default
         if (this.defaultAddressId === addressId) {
           this.defaultAddressId = this.addresses[0]?.id || null
         }
-        
+
         return true
       } catch (error) {
         const errorMsg = error.response?.data?.message || 'Không thể xóa địa chỉ'
@@ -380,13 +386,14 @@ export const useUserStore = defineStore('user', {
     async loadPaymentMethods() {
       this.loading.paymentMethods = true
       this.errors.paymentMethods = null
-      
+
       try {
         const response = await profileAPI.getPaymentMethods()
         this.paymentMethods = response.data.paymentMethods || []
         this.defaultPaymentMethodId = response.data.defaultPaymentMethodId
       } catch (error) {
-        this.errors.paymentMethods = error.response?.data?.message || 'Không thể tải phương thức thanh toán'
+        this.errors.paymentMethods =
+          error.response?.data?.message || 'Không thể tải phương thức thanh toán'
         console.error('Load payment methods error:', error)
       } finally {
         this.loading.paymentMethods = false
@@ -397,12 +404,12 @@ export const useUserStore = defineStore('user', {
       try {
         const response = await profileAPI.addPaymentMethod(paymentData)
         this.paymentMethods.push(response.data)
-        
+
         // Set as default if it's the first payment method
         if (this.paymentMethods.length === 1) {
           this.defaultPaymentMethodId = response.data.id
         }
-        
+
         return response.data
       } catch (error) {
         const errorMsg = error.response?.data?.message || 'Không thể thêm phương thức thanh toán'
@@ -413,15 +420,15 @@ export const useUserStore = defineStore('user', {
     async deletePaymentMethod(paymentMethodId) {
       try {
         await profileAPI.deletePaymentMethod(paymentMethodId)
-        
+
         // Remove from local state
-        this.paymentMethods = this.paymentMethods.filter(pm => pm.id !== paymentMethodId)
-        
+        this.paymentMethods = this.paymentMethods.filter((pm) => pm.id !== paymentMethodId)
+
         // Update default if deleted payment method was default
         if (this.defaultPaymentMethodId === paymentMethodId) {
           this.defaultPaymentMethodId = this.paymentMethods[0]?.id || null
         }
-        
+
         return true
       } catch (error) {
         const errorMsg = error.response?.data?.message || 'Không thể xóa phương thức thanh toán'
@@ -435,7 +442,8 @@ export const useUserStore = defineStore('user', {
         this.defaultPaymentMethodId = paymentMethodId
         return true
       } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Không thể đặt phương thức thanh toán mặc định'
+        const errorMsg =
+          error.response?.data?.message || 'Không thể đặt phương thức thanh toán mặc định'
         throw new Error(errorMsg)
       }
     },
@@ -444,7 +452,7 @@ export const useUserStore = defineStore('user', {
     async loadPreferences() {
       this.loading.preferences = true
       this.errors.preferences = null
-      
+
       try {
         const response = await profileAPI.getPreferences()
         this.preferences = { ...this.preferences, ...response.data }
@@ -459,7 +467,7 @@ export const useUserStore = defineStore('user', {
     async updatePreferences(preferencesData) {
       this.loading.preferences = true
       this.errors.preferences = null
-      
+
       try {
         const response = await profileAPI.updatePreferences(preferencesData)
         this.preferences = { ...this.preferences, ...response.data }
@@ -475,14 +483,14 @@ export const useUserStore = defineStore('user', {
     // Recently viewed products
     addToRecentlyViewed(product) {
       // Remove if already exists
-      this.recentlyViewed = this.recentlyViewed.filter(p => p.id !== product.id)
-      
+      this.recentlyViewed = this.recentlyViewed.filter((p) => p.id !== product.id)
+
       // Add to beginning
       this.recentlyViewed.unshift(product)
-      
+
       // Keep only last 20 items
       this.recentlyViewed = this.recentlyViewed.slice(0, 20)
-      
+
       // Save to localStorage
       try {
         localStorage.setItem('recentlyViewed', JSON.stringify(this.recentlyViewed))
@@ -634,12 +642,12 @@ export const useUserStore = defineStore('user', {
       try {
         const response = await profileAPI.redeemLoyaltyPoints({
           points: pointsToRedeem,
-          rewardType
+          rewardType,
         })
-        
+
         // Update points
         this.stats.loyaltyPoints -= pointsToRedeem
-        
+
         return response.data
       } catch (error) {
         const errorMsg = error.response?.data?.message || 'Không thể đổi điểm thưởng'
@@ -655,7 +663,7 @@ export const useUserStore = defineStore('user', {
     },
 
     clearAllErrors() {
-      Object.keys(this.errors).forEach(key => {
+      Object.keys(this.errors).forEach((key) => {
         this.errors[key] = null
       })
     },
@@ -679,9 +687,9 @@ export const useUserStore = defineStore('user', {
         reviewCount: 0,
         lastPasswordChange: null,
         twoFactorEnabled: false,
-        createdAt: null
+        createdAt: null,
       }
-      
+
       this.orders = []
       this.orderHistory = []
       this.wishlist = []
@@ -689,35 +697,35 @@ export const useUserStore = defineStore('user', {
       this.paymentMethods = []
       this.defaultAddressId = null
       this.defaultPaymentMethodId = null
-      
+
       this.clearAllErrors()
       this.clearRecentlyViewed()
     },
 
     // Utility methods
     isInWishlist(productId) {
-      return this.wishlist.some(item => item.productId === productId)
+      return this.wishlist.some((item) => item.productId === productId)
     },
 
     getOrderById(orderId) {
-      return this.orders.find(order => order.id === orderId)
+      return this.orders.find((order) => order.id === orderId)
     },
 
     getAddressById(addressId) {
-      return this.addresses.find(address => address.id === addressId)
+      return this.addresses.find((address) => address.id === addressId)
     },
 
     getPaymentMethodById(paymentMethodId) {
-      return this.paymentMethods.find(pm => pm.id === paymentMethodId)
+      return this.paymentMethods.find((pm) => pm.id === paymentMethodId)
     },
 
     // Format methods
     formatMembershipLevel(level) {
       const levels = {
-        'Bronze': '🥉 Đồng',
-        'Silver': '🥈 Bạc', 
-        'Gold': '🥇 Vàng',
-        'Platinum': '💎 Bạch Kim'
+        Bronze: '🥉 Đồng',
+        Silver: '🥈 Bạc',
+        Gold: '🥇 Vàng',
+        Platinum: '💎 Bạch Kim',
       }
       return levels[level] || level
     },
@@ -733,21 +741,21 @@ export const useUserStore = defineStore('user', {
       try {
         // Load recently viewed from localStorage
         this.loadRecentlyViewed()
-        
+
         // Load profile and related data
         await this.loadProfile()
-        
+
         // Load additional data in parallel
         await Promise.all([
           this.loadOrders(),
           this.loadWishlist(),
           this.loadAddresses(),
           this.loadPaymentMethods(),
-          this.getLoyaltyPoints()
+          this.getLoyaltyPoints(),
         ])
       } catch (error) {
         console.error('User store initialization error:', error)
       }
-    }
-  }
+    },
+  },
 })

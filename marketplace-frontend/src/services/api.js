@@ -86,8 +86,7 @@ export const cartAPI = {
 }
 
 export const orderAPI = {
-  create: (shippingAddress, billingAddress) =>
-    api.post('/orders/create', { shippingAddress, billingAddress }),
+  create: (orderData) => api.post('/orders/create', orderData),
   getMyOrders: () => api.get('/orders/my-orders'),
   getById: (id) => api.get(`/orders/${id}`),
   cancel: (id) => api.put(`/orders/${id}/cancel`),
@@ -150,17 +149,24 @@ export const dashboardAPI = {
 }
 
 export const adminAPI = {
-  getDashboard: () => api.get('/admin/dashboard'),
+  getDashboard: (timeRange = 30) => api.get(`/admin/dashboard?timeRange=${timeRange}`),
 
   getUsers: () => api.get('/admin/users'),
   getUserById: (userId) => api.get(`/admin/users/${userId}`),
+  getUserStats: () => api.get('/admin/users/stats'),
   toggleUserStatus: (userId) => api.put(`/admin/users/${userId}/toggle-status`),
+  updateUserRole: (userId, role) => api.put(`/admin/users/${userId}/role`, { role }),
+  toggleVipStatus: (userId) => api.put(`/admin/users/${userId}/vip`),
+  deleteUser: (userId) => api.delete(`/admin/users/${userId}`),
+  createUser: (userData) => api.post('/admin/users', userData),
+  updateUser: (userId, userData) => api.put(`/admin/users/${userId}`, userData),
 
   getProducts: () => api.get('/admin/products'),
   toggleProductStatus: (productId) => api.put(`/admin/products/${productId}/toggle-status`),
   deleteProduct: (productId) => api.delete(`/admin/products/${productId}`),
 
   getOrders: () => api.get('/admin/orders'),
+  getOrdersByStatus: (status) => api.get(`/admin/orders/status/${status}`),
   updateOrderStatus: (orderId, status) => api.put(`/admin/orders/${orderId}/status`, { status }),
 
   getCategories: () => api.get('/admin/categories'),
@@ -169,7 +175,10 @@ export const adminAPI = {
   toggleCategoryStatus: (id) => api.patch(`/admin/categories/${id}/toggle-status`),
   deleteCategory: (id) => api.delete(`/categories/${id}`),
 
-  getAnalytics: (type) => api.get(`/admin/analytics/${type}`),
+  getRevenueAnalytics: () => api.get('/admin/analytics/revenue'),
+  getOrderAnalytics: () => api.get('/admin/analytics/orders'),
+  getProductAnalytics: () => api.get('/admin/analytics/products'),
+  getUserAnalytics: () => api.get('/admin/analytics/users'),
 }
 
 export const reviewAPI = {
@@ -233,11 +242,12 @@ export const notificationAPI = {
   markAllAsRead: () => api.put('/notifications/mark-all-read'),
   delete: (notificationId) => api.delete(`/notifications/${notificationId}`),
   getUnreadCount: () => api.get('/notifications/unread-count'),
+  getUserNotifications: () => api.get('/notifications'),
 }
 
 export const paymentAPI = {
-  createPaymentIntent: (amount, currency = 'VND') =>
-    api.post('/payments/create-intent', { amount, currency }),
+  createPaymentIntent: (orderId, amount, currency = 'VND') =>
+    api.post('/payments/create-intent', { orderId, amount, currency }),
   confirmPayment: (paymentIntentId) => api.post('/payments/confirm', { paymentIntentId }),
   getPaymentHistory: () => api.get('/payments/history'),
 }

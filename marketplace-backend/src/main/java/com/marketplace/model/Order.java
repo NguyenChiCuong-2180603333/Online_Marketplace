@@ -3,12 +3,15 @@ package com.marketplace.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
 
 @Document(collection = "orders")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Order {
     @Id
     private String id;
@@ -43,6 +46,11 @@ public class Order {
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
     private LocalDateTime deliveredAt;
+
+    private String paymentMethod; // "card" hoặc "cod"
+
+    @JsonProperty("shippingFee")
+    private Double shippingFee;
 
     // Inner class for order items
     public static class OrderItem {
@@ -106,11 +114,16 @@ public class Order {
     // Constructors
     public Order() {}
 
-    public Order(String userId, String userEmail, List<OrderItem> items, Double totalAmount) {
+    public Order(String userId, String userEmail, List<OrderItem> items, Double totalAmount, Double shippingFee) {
         this.userId = userId;
         this.userEmail = userEmail;
         this.items = items;
         this.totalAmount = totalAmount;
+        this.shippingFee = shippingFee;
+    }
+
+    public Order(String userId, String userEmail, List<OrderItem> items, Double totalAmount) {
+        this(userId, userEmail, items, totalAmount, 0.0);
     }
 
     // Getters and Setters
@@ -152,4 +165,10 @@ public class Order {
 
     public LocalDateTime getDeliveredAt() { return deliveredAt; }
     public void setDeliveredAt(LocalDateTime deliveredAt) { this.deliveredAt = deliveredAt; }
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public Double getShippingFee() { return shippingFee; }
+    public void setShippingFee(Double shippingFee) { this.shippingFee = shippingFee; }
 }

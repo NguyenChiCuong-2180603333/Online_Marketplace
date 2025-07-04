@@ -38,7 +38,7 @@ public class OrderService {
     @Autowired
     private MarketplaceEventListener eventListener;
 
-    public Order createOrderFromCart(String userId, String shippingAddress, String billingAddress) {
+    public Order createOrderFromCart(String userId, String shippingAddress, String billingAddress, String paymentMethod, Double shippingFee) {
         User user = userService.getUserById(userId);
         Cart cart = cartService.getCartByUserId(userId);
 
@@ -69,14 +69,17 @@ public class OrderService {
             // Update product stock
             product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
             product.setUpdatedAt(LocalDateTime.now());
-            // Cần thêm method saveProduct trong ProductService
             productService.saveProduct(product);
         }
 
-        // Create order
-        Order order = new Order(userId, user.getEmail(), orderItems, cart.getTotalAmount());
+        // Tính tổng tiền đã bao gồm phí vận chuyển
+        double totalAmount = cart.getTotalAmount() + (shippingFee != null ? shippingFee : 0.0);
+
+        // Create order với shippingFee từ frontend
+        Order order = new Order(userId, user.getEmail(), orderItems, totalAmount, shippingFee);
         order.setShippingAddress(shippingAddress);
         order.setBillingAddress(billingAddress);
+        order.setPaymentMethod(paymentMethod);
 
         Order savedOrder = orderRepository.save(order);
 
@@ -152,6 +155,12 @@ public class OrderService {
 
     public List<Order> getOrdersBySeller(String sellerId) {
         return orderRepository.findBySellerIdInItems(sellerId);
+    }
+
+    public boolean isOrderFromSeller(String orderId, String sellerId) {
+        Order order = getOrderById(orderId);
+        return order.getItems().stream()
+                .anyMatch(item -> sellerId.equals(item.getSellerId()));
     }
 
     public Order cancelOrder(String orderId, String userId) {
@@ -245,5 +254,9 @@ public class OrderService {
         }
 
         orderRepository.save(order);
+    }
+
+    public OrderRepository getOrderRepository() {
+        return orderRepository;
     }
 }

@@ -69,46 +69,6 @@
               </div>
             </form>
           </div>
-
-          <!-- Đơn hàng -->
-          <div v-if="activeTab === 'orders'">
-            <h3>Đơn hàng của bạn</h3>
-            <div v-if="orders.length === 0" class="empty-block">Chưa có đơn hàng nào.</div>
-            <ul v-else class="order-list">
-              <li v-for="order in orders" :key="order.id" class="order-item">
-                <span class="order-id">#{{ order.id }}</span>
-                <span class="order-status">{{ order.status }}</span>
-                <span class="order-total">{{ formatCurrency(order.total) }}</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Wishlist -->
-          <div v-if="activeTab === 'wishlist'">
-            <h3>Danh sách yêu thích</h3>
-            <div v-if="wishlist.length === 0" class="empty-block">Chưa có sản phẩm yêu thích.</div>
-            <ul v-else class="wishlist-list">
-              <li v-for="item in wishlist" :key="item.id" class="wishlist-item">
-                <span class="wishlist-name">❤️ {{ item.name }}</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Settings -->
-          <div v-if="activeTab === 'settings'">
-            <h3>Cài đặt</h3>
-            <div class="form-row">
-              <label>Ngôn ngữ</label>
-              <select v-model="settings.language">
-                <option value="vi">Tiếng Việt</option>
-                <option value="en">English</option>
-              </select>
-            </div>
-            <div class="form-row">
-              <label>Chế độ tối</label>
-              <input type="checkbox" v-model="settings.darkMode" />
-            </div>
-          </div>
         </div>
       </transition>
     </div>
@@ -207,12 +167,7 @@ const passwordForm = ref({ currentPassword: '', newPassword: '', confirmPassword
 const passwordChanging = ref(false)
 const activeTab = ref('info')
 const isUploadHover = ref(false)
-const tabs = [
-  { id: 'info', label: 'Thông tin', icon: '👤' },
-  { id: 'orders', label: 'Đơn hàng', icon: '📦' },
-  { id: 'wishlist', label: 'Yêu thích', icon: '❤️' },
-  { id: 'settings', label: 'Cài đặt', icon: '⚙️' },
-]
+const tabs = [{ id: 'info', label: 'Thông tin', icon: '👤' }]
 const orders = ref([])
 const wishlist = ref([])
 const settings = ref({ language: 'vi', darkMode: false })
