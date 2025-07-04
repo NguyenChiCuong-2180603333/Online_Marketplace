@@ -1,0 +1,70 @@
+
+# Maven build artifacts
+target/
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE files
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+
+# Environment files (CRITICAL - không push secrets!)
+.env*
+*.env
+.env.local
+.env.production
+.env.development
+.env.test
+
+# Application properties với secrets
+application-local.yml
+application-dev.yml
+
+# Logs
+logs/
+*.log
+log/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# Test files (skip để build nhanh hơn)
+src/test/
+
+# Runtime artifacts
+*.jar
+*.war
+*.class
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Upload directories (sẽ tạo lại trong container)
+uploads/

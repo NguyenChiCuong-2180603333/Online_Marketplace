@@ -1,10 +1,10 @@
 spring:
   data:
     mongodb:
-      # Render sẽ provide MongoDB URI qua environment variable
+      # MongoDB URI từ environment variable
       uri: ${MONGODB_URI:mongodb://localhost:27017/marketplace}
       database: marketplace
-
+      
   # Email configuration
   mail:
     host: ${EMAIL_HOST:smtp.gmail.com}
@@ -22,7 +22,7 @@ spring:
             trust: "*"
     test-connection: false
 
-  # File upload
+  # File upload - Render có ephemeral filesystem
   servlet:
     multipart:
       max-file-size: 10MB
@@ -35,50 +35,52 @@ spring:
     prefix: classpath:/templates/
     suffix: .html
 
-# Server configuration for Render
+# Server configuration cho Render
 server:
   port: ${PORT:8080}
-  # Render auto-assigns port, so we use PORT env var
-
-  # Enable compression for better performance
+  
+  # Enable compression cho performance tốt hơn
   compression:
     enabled: true
     mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
     min-response-size: 1024
+    
+  # Timeout settings cho Render environment
+  connection-timeout: 20000
+  keep-alive-timeout: 15000
 
 # Application settings
 app:
   name: ${APP_NAME:Cosmic Marketplace}
-  url: ${APP_URL:https://marketplace-backend.onrender.com}
+  url: ${APP_URL:https://your-app-name.onrender.com}
   support:
     email: ${SUPPORT_EMAIL:support@cosmicmarketplace.com}
 
 # JWT Security
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:your-default-secret-change-this}
   expiration: ${JWT_EXPIRATION:86400000}
 
-# Stripe configuration
+# Stripe configuration (optional)
 stripe:
-  api-key: ${STRIPE_SECRET_KEY}
-  publishable-key: ${STRIPE_PUBLISHABLE_KEY}
-  webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+  api-key: ${STRIPE_SECRET_KEY:}
+  publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
 
-# CORS - Allow Render frontend URL + local development
+# CORS - QUAN TRỌNG: Thêm Vercel domain
 cors:
-  allowed-origins: ${CORS_ORIGINS:https://marketplace-frontend.onrender.com,http://localhost:5173,http://localhost:3000}
+  allowed-origins: ${CORS_ORIGINS:https://your-frontend.vercel.app,http://localhost:5173,http://localhost:3000}
   allowed-methods: GET,POST,PUT,DELETE,OPTIONS,PATCH
   allowed-headers: "*"
   allow-credentials: true
 
-# File storage (Render has ephemeral filesystem)
+# File storage - Render có ephemeral filesystem
 file:
   upload:
     dir: ${UPLOAD_DIR:/tmp/uploads/}
     max-size: 10485760
     allowed-types: image/jpeg,image/jpg,image/png,image/gif,image/webp
 
-# Logging for production
+# Logging cho production
 logging:
   level:
     com.marketplace: INFO
@@ -89,13 +91,18 @@ logging:
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
-# Actuator for health checks
+# Actuator cho health checks - Render cần này
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
       base-path: /actuator
   endpoint:
     health:
       show-details: when-authorized
+      
+# JVM settings optimization cho 512MB container
+java:
+  jvm:
+    heap-size: 450m
