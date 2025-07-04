@@ -1,4 +1,4 @@
-<!-- views/seller/Orders.vue - Enhanced Order Management
+views/seller/Orders.vue - Enhanced Order Management
 <template>
   <div class="seller-orders-page">
     <div class="page-header">
@@ -1221,4 +1221,4 @@ onUnmounted(() => {
     justify-content: center;
   }
 }
-</style> -->
+</style>
