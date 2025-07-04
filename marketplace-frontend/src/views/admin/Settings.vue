@@ -82,7 +82,7 @@
                 v-model="settings.general.contactPhone"
                 type="tel"
                 class="form-input"
-                placeholder="+84 123 456 789"
+                placeholder="+84 xxx xxx xxx"
               />
             </div>
           </div>
@@ -94,7 +94,7 @@
 
           <div class="settings-grid">
             <div class="setting-group">
-              <label>Tiền tệ mặc định</label>
+              <label>Đơn vị tiền tệ mặc định</label>
               <select v-model="settings.business.defaultCurrency" class="form-select">
                 <option value="VND">VND (Việt Nam Đồng)</option>
                 <option value="USD">USD (US Dollar)</option>
@@ -103,59 +103,56 @@
             </div>
 
             <div class="setting-group">
-              <label>Phí hoa hồng (%)</label>
+              <label>Tỷ lệ hoa hồng (%)</label>
               <input
-                v-model="settings.business.commissionRate"
+                v-model.number="settings.business.commissionRate"
                 type="number"
                 min="0"
                 max="100"
                 step="0.1"
                 class="form-input"
-                placeholder="5.0"
               />
             </div>
 
             <div class="setting-group">
-              <label>Phí vận chuyển mặc định</label>
+              <label>Phí vận chuyển mặc định (VND)</label>
               <input
-                v-model="settings.business.defaultShippingFee"
+                v-model.number="settings.business.defaultShippingFee"
                 type="number"
                 min="0"
                 class="form-input"
-                placeholder="30000"
               />
             </div>
 
             <div class="setting-group">
-              <label>Giá trị đơn hàng tối thiểu để miễn phí vận chuyển</label>
+              <label>Ngưỡng miễn phí vận chuyển (VND)</label>
               <input
-                v-model="settings.business.freeShippingThreshold"
+                v-model.number="settings.business.freeShippingThreshold"
                 type="number"
                 min="0"
                 class="form-input"
-                placeholder="500000"
               />
             </div>
 
             <div class="setting-group">
               <label>Thời gian xử lý đơn hàng (ngày)</label>
               <input
-                v-model="settings.business.orderProcessingTime"
+                v-model.number="settings.business.orderProcessingTime"
                 type="number"
                 min="1"
+                max="30"
                 class="form-input"
-                placeholder="3"
               />
             </div>
 
             <div class="setting-group">
-              <label>Thời gian hoàn tiền (ngày)</label>
+              <label>Thời gian hoàn trả (ngày)</label>
               <input
-                v-model="settings.business.refundPeriod"
+                v-model.number="settings.business.refundPeriod"
                 type="number"
                 min="1"
+                max="365"
                 class="form-input"
-                placeholder="7"
               />
             </div>
           </div>
@@ -169,65 +166,65 @@
             <div class="setting-group">
               <label>Thời gian hết hạn JWT (phút)</label>
               <input
-                v-model="settings.security.jwtExpiration"
+                v-model.number="settings.security.jwtExpiration"
                 type="number"
-                min="15"
+                min="5"
+                max="10080"
                 class="form-input"
-                placeholder="60"
               />
             </div>
 
             <div class="setting-group">
               <label>Số lần đăng nhập sai tối đa</label>
               <input
-                v-model="settings.security.maxLoginAttempts"
+                v-model.number="settings.security.maxLoginAttempts"
                 type="number"
                 min="3"
+                max="10"
                 class="form-input"
-                placeholder="5"
               />
             </div>
 
             <div class="setting-group">
               <label>Thời gian khóa tài khoản (phút)</label>
               <input
-                v-model="settings.security.accountLockoutDuration"
+                v-model.number="settings.security.accountLockoutDuration"
                 type="number"
                 min="5"
+                max="1440"
                 class="form-input"
-                placeholder="30"
               />
             </div>
 
             <div class="setting-group">
-              <label>Yêu cầu xác thực email</label>
+              <label>Kích thước file tối đa (MB)</label>
+              <input
+                v-model.number="settings.security.maxFileSize"
+                type="number"
+                min="1"
+                max="100"
+                class="form-input"
+              />
+            </div>
+
+            <div class="setting-group">
+              <label>Xác thực email</label>
               <div class="checkbox-group">
                 <label class="checkbox-label">
                   <input v-model="settings.security.requireEmailVerification" type="checkbox" />
-                  <span>Bắt buộc xác thực email khi đăng ký</span>
+                  <span>Yêu cầu xác thực email khi đăng ký</span>
                 </label>
               </div>
             </div>
 
             <div class="setting-group">
-              <label>Yêu cầu xác thực 2FA cho admin</label>
+              <label>Xác thực 2FA cho Admin</label>
               <div class="checkbox-group">
                 <label class="checkbox-label">
                   <input v-model="settings.security.require2FAForAdmin" type="checkbox" />
-                  <span>Bắt buộc xác thực 2FA cho tài khoản admin</span>
+                  <span>Yêu cầu 2FA cho tài khoản Admin</span>
                 </label>
               </div>
-            </div>
-
-            <div class="setting-group">
-              <label>Giới hạn kích thước file upload (MB)</label>
-              <input
-                v-model="settings.security.maxFileSize"
-                type="number"
-                min="1"
-                class="form-input"
-                placeholder="10"
-              />
             </div>
           </div>
         </div>
@@ -250,7 +247,7 @@
             <div class="setting-group">
               <label>SMTP Port</label>
               <input
-                v-model="settings.email.smtpPort"
+                v-model.number="settings.email.smtpPort"
                 type="number"
                 class="form-input"
                 placeholder="587"
@@ -278,47 +275,49 @@
             </div>
 
             <div class="setting-group">
-              <label>Username SMTP</label>
+              <label>SMTP Username</label>
               <input
                 v-model="settings.email.smtpUsername"
                 type="text"
                 class="form-input"
-                placeholder="your-email@gmail.com"
               />
             </div>
 
             <div class="setting-group">
-              <label>Password SMTP</label>
+              <label>SMTP Password</label>
               <input
                 v-model="settings.email.smtpPassword"
                 type="password"
                 class="form-input"
-                placeholder="your-app-password"
               />
             </div>
 
             <div class="setting-group">
-              <label>Bật SSL/TLS</label>
+              <label>SSL/TLS</label>
               <div class="checkbox-group">
                 <label class="checkbox-label">
                   <input v-model="settings.email.enableSSL" type="checkbox" />
-                  <span>Sử dụng SSL/TLS cho kết nối SMTP</span>
+                  <span>Sử dụng SSL/TLS</span>
                 </label>
               </div>
             </div>
           </div>
 
+          <!-- Test Email Section -->
           <div class="test-email-section">
             <h3>Test Email</h3>
             <div class="test-email-form">
-              <input
-                v-model="testEmail"
-                type="email"
-                placeholder="Email để test"
-                class="form-input"
-              />
+              <div class="setting-group">
+                <label>Email thử nghiệm</label>
+                <input
+                  v-model="testEmail"
+                  type="email"
+                  class="form-input"
+                  placeholder="test@example.com"
+                />
+              </div>
               <button @click="sendTestEmail" class="btn btn-outline" :disabled="sendingTest">
-                {{ sendingTest ? 'Đang gửi...' : 'Gửi test email' }}
+                {{ sendingTest ? 'Đang gửi...' : '📧 Gửi test' }}
               </button>
             </div>
           </div>
@@ -368,7 +367,7 @@
             </div>
 
             <div class="setting-group">
-              <label>Bật thanh toán COD</label>
+              <label>Thanh toán khi nhận hàng</label>
               <div class="checkbox-group">
                 <label class="checkbox-label">
                   <input v-model="settings.payment.enableCOD" type="checkbox" />
@@ -378,7 +377,7 @@
             </div>
 
             <div class="setting-group">
-              <label>Bật thanh toán chuyển khoản</label>
+              <label>Chuyển khoản ngân hàng</label>
               <div class="checkbox-group">
                 <label class="checkbox-label">
                   <input v-model="settings.payment.enableBankTransfer" type="checkbox" />
@@ -395,21 +394,21 @@
 
           <div class="settings-grid">
             <div class="setting-group">
-              <label>Bật thông báo email</label>
+              <label>Thông báo email</label>
               <div class="checkbox-group">
                 <label class="checkbox-label">
                   <input v-model="settings.notifications.enableEmail" type="checkbox" />
-                  <span>Gửi thông báo qua email</span>
+                  <span>Bật thông báo qua email</span>
                 </label>
               </div>
             </div>
 
             <div class="setting-group">
-              <label>Bật thông báo đẩy</label>
+              <label>Thông báo push</label>
               <div class="checkbox-group">
                 <label class="checkbox-label">
                   <input v-model="settings.notifications.enablePush" type="checkbox" />
-                  <span>Gửi thông báo đẩy</span>
+                  <span>Bật thông báo push</span>
                 </label>
               </div>
             </div>
@@ -439,7 +438,7 @@
               <div class="checkbox-group">
                 <label class="checkbox-label">
                   <input v-model="settings.notifications.promotionNotification" type="checkbox" />
-                  <span>Gửi thông báo khuyến mãi</span>
+                  <span>Thông báo khuyến mãi cho khách hàng</span>
                 </label>
               </div>
             </div>
@@ -460,140 +459,124 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, onMounted } from 'vue'
-import { api } from '@/services/api'
+import api from '@/services/api'
 
-export default {
-  name: 'AdminSettings',
-  setup() {
-    // Reactive data
-    const activeTab = ref('general')
-    const saving = ref(false)
-    const sendingTest = ref(false)
-    const testEmail = ref('')
+// Reactive data
+const activeTab = ref('general')
+const saving = ref(false)
+const sendingTest = ref(false)
+const testEmail = ref('')
 
-    // Settings data
-    const settings = ref({
-      general: {
-        siteName: '',
-        siteDescription: '',
-        logoUrl: '',
-        faviconUrl: '',
-        contactEmail: '',
-        contactPhone: '',
-      },
-      business: {
-        defaultCurrency: 'VND',
-        commissionRate: 5.0,
-        defaultShippingFee: 30000,
-        freeShippingThreshold: 500000,
-        orderProcessingTime: 3,
-        refundPeriod: 7,
-      },
-      security: {
-        jwtExpiration: 60,
-        maxLoginAttempts: 5,
-        accountLockoutDuration: 30,
-        requireEmailVerification: true,
-        require2FAForAdmin: false,
-        maxFileSize: 10,
-      },
-      email: {
-        smtpHost: '',
-        smtpPort: 587,
-        fromEmail: '',
-        fromName: '',
-        smtpUsername: '',
-        smtpPassword: '',
-        enableSSL: true,
-      },
-      payment: {
-        stripePublicKey: '',
-        stripeSecretKey: '',
-        webhookSecret: '',
-        stripeEnvironment: 'test',
-        enableCOD: true,
-        enableBankTransfer: false,
-      },
-      notifications: {
-        enableEmail: true,
-        enablePush: true,
-        newOrderNotification: true,
-        newReviewNotification: true,
-        promotionNotification: true,
-        maintenanceNotification: true,
-      },
-    })
-
-    // Tab configuration
-    const tabs = [
-      { id: 'general', name: 'Chung', icon: '⚙️' },
-      { id: 'business', name: 'Kinh doanh', icon: '💼' },
-      { id: 'security', name: 'Bảo mật', icon: '🔒' },
-      { id: 'email', name: 'Email', icon: '📧' },
-      { id: 'payment', name: 'Thanh toán', icon: '💳' },
-      { id: 'notifications', name: 'Thông báo', icon: '🔔' },
-    ]
-
-    // Methods
-    const loadSettings = async () => {
-      try {
-        const response = await api.get('/admin/settings')
-        settings.value = { ...settings.value, ...response.data }
-      } catch (error) {
-        console.error('Error loading settings:', error)
-      }
-    }
-
-    const saveAllSettings = async () => {
-      saving.value = true
-      try {
-        await api.put('/admin/settings', settings.value)
-        // Show success message
-      } catch (error) {
-        console.error('Error saving settings:', error)
-        // Show error message
-      } finally {
-        saving.value = false
-      }
-    }
-
-    const sendTestEmail = async () => {
-      if (!testEmail.value) return
-
-      sendingTest.value = true
-      try {
-        await api.post('/admin/settings/test-email', {
-          email: testEmail.value,
-        })
-        // Show success message
-        testEmail.value = ''
-      } catch (error) {
-        console.error('Error sending test email:', error)
-        // Show error message
-      } finally {
-        sendingTest.value = false
-      }
-    }
-
-    // Lifecycle
-    onMounted(() => {
-      loadSettings()
-    })
-
-    return {
-      activeTab,
-      saving,
-      sendingTest,
-      testEmail,
-      settings,
-      tabs,
-      saveAllSettings,
-      sendTestEmail,
-    }
+// Settings data
+const settings = ref({
+  general: {
+    siteName: '',
+    siteDescription: '',
+    logoUrl: '',
+    faviconUrl: '',
+    contactEmail: '',
+    contactPhone: '',
   },
+  business: {
+    defaultCurrency: 'VND',
+    commissionRate: 5.0,
+    defaultShippingFee: 30000,
+    freeShippingThreshold: 500000,
+    orderProcessingTime: 3,
+    refundPeriod: 7,
+  },
+  security: {
+    jwtExpiration: 60,
+    maxLoginAttempts: 5,
+    accountLockoutDuration: 30,
+    requireEmailVerification: true,
+    require2FAForAdmin: false,
+    maxFileSize: 10,
+  },
+  email: {
+    smtpHost: '',
+    smtpPort: 587,
+    fromEmail: '',
+    fromName: '',
+    smtpUsername: '',
+    smtpPassword: '',
+    enableSSL: true,
+  },
+  payment: {
+    stripePublicKey: '',
+    stripeSecretKey: '',
+    webhookSecret: '',
+    stripeEnvironment: 'test',
+    enableCOD: true,
+    enableBankTransfer: false,
+  },
+  notifications: {
+    enableEmail: true,
+    enablePush: true,
+    newOrderNotification: true,
+    newReviewNotification: true,
+    promotionNotification: true,
+    maintenanceNotification: true,
+  },
+})
+
+// Tab configuration
+const tabs = [
+  { id: 'general', name: 'Chung', icon: '⚙️' },
+  { id: 'business', name: 'Kinh doanh', icon: '💼' },
+  { id: 'security', name: 'Bảo mật', icon: '🔒' },
+  { id: 'email', name: 'Email', icon: '📧' },
+  { id: 'payment', name: 'Thanh toán', icon: '💳' },
+  { id: 'notifications', name: 'Thông báo', icon: '🔔' },
+]
+
+// Methods
+const loadSettings = async () => {
+  try {
+    const response = await api.get('/admin/settings')
+    settings.value = { ...settings.value, ...response.data }
+  } catch (error) {
+    console.error('Error loading settings:', error)
+  }
 }
+
+const saveAllSettings = async () => {
+  saving.value = true
+  try {
+    await api.put('/admin/settings', settings.value)
+    alert('Cài đặt đã được lưu thành công!')
+  } catch (error) {
+    console.error('Error saving settings:', error)
+    alert('Có lỗi xảy ra khi lưu cài đặt!')
+  } finally {
+    saving.value = false
+  }
+}
+
+const sendTestEmail = async () => {
+  if (!testEmail.value) return
+
+  sendingTest.value = true
+  try {
+    await api.post('/admin/settings/test-email', {
+      email: testEmail.value,
+    })
+    alert('Email test đã được gửi thành công!')
+    testEmail.value = ''
+  } catch (error) {
+    console.error('Error sending test email:', error)
+    alert('Có lỗi xảy ra khi gửi email test!')
+  } finally {
+    sendingTest.value = false
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  loadSettings()
+})
 </script>
 
 <style scoped>
