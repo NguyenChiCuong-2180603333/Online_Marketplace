@@ -25,13 +25,13 @@ public class PointsReward {
             message = "Reward type must be DISCOUNT, FREE_SHIPPING, GIFT_CARD, PRODUCT, or CASHBACK")
     private String rewardType;
 
-    private Double discountPercentage; // For DISCOUNT type
-    private Double discountAmount; // For DISCOUNT/CASHBACK type
-    private String productId; // For PRODUCT type
-    private String giftCardCode; // For GIFT_CARD type
+    private Double discountPercentage; 
+    private Double discountAmount; 
+    private String productId; 
+    private String giftCardCode; 
 
     private String imageUrl;
-    private int stockQuantity = -1; // -1 means unlimited
+    private int stockQuantity = -1; 
     private int redeemedCount = 0;
 
     @Pattern(regexp = "BRONZE|SILVER|GOLD|PLATINUM|DIAMOND|ALL",
@@ -44,7 +44,6 @@ public class PointsReward {
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    // Constructors
     public PointsReward() {}
 
     public PointsReward(String name, int pointsCost, String rewardType) {
@@ -53,7 +52,6 @@ public class PointsReward {
         this.rewardType = rewardType;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

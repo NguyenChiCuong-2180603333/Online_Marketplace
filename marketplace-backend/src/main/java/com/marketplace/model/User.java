@@ -32,26 +32,25 @@ public class User {
     private String lastName;
 
     @Pattern(regexp = "^[0-9+\\-\\s()]*$", message = "Invalid phone number format")
-    private String phone; // Tùy chọn số điện thoại
+    private String phone; 
 
-    private String avatar; // Ảnh đại diện
+    private String avatar; 
 
-    private String birthday; // Ngày sinh
-    private String address; // Địa chỉ
+    private String birthday; 
+    private String address; 
 
     @Pattern(regexp = "USER|ADMIN|SELLER", message = "Role must be USER, ADMIN or SELLER")
-    private String role = "USER"; // USER, ADMIN or SELLER
-    private boolean enabled = true; // Cho phép khóa tài khoản
-    private boolean isVip = false; // VIP status
-    private boolean isVerified = false; // Email verification status
-    private LocalDateTime lastLogin; // Last login time
-    private List<String> purchaseHistory = new ArrayList<>(); // Lịch sử mua hàng
-    private List<String> productsSold = new ArrayList<>(); // Sản phẩm đã đăng bán
-    private List<String> savedItems = new ArrayList<>(); // Danh sách sản phẩm lưu lại sau
+    private String role = "USER";
+    private boolean enabled = true; 
+    private boolean isVip = false; 
+    private boolean isVerified = false; 
+    private LocalDateTime lastLogin; 
+    private List<String> purchaseHistory = new ArrayList<>();
+    private List<String> productsSold = new ArrayList<>(); 
+    private List<String> savedItems = new ArrayList<>(); 
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    // Constructors
     public User() {}
 
     public User(String email, String password, String firstName, String lastName) {
@@ -69,7 +68,6 @@ public class User {
         this.phone = phone;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

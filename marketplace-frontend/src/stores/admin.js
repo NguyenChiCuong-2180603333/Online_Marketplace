@@ -3,7 +3,6 @@ import { adminAPI } from '@/services/api'
 
 export const useAdminStore = defineStore('admin', {
   state: () => ({
-    // 🔧 SỬA: Simplified dashboard data structure để match với backend
     dashboardStats: {
       totalUsers: 0,
       activeUsers: 0,
@@ -14,7 +13,6 @@ export const useAdminStore = defineStore('admin', {
       processingOrders: 0,
       completedOrders: 0,
       totalRevenue: 0,
-      // Additional computed fields for compatibility
       users: { total: 0, active: 0, change: 0 },
       products: { total: 0, active: 0, change: 0 },
       orders: { total: 0, pending: 0, change: 0 },
@@ -197,7 +195,6 @@ export const useAdminStore = defineStore('admin', {
   },
 
   actions: {
-    // 🔧 SỬA: Dashboard actions với proper error handling và data mapping
     async loadDashboard() {
       this.loading.dashboard = true
       this.errors.dashboard = null
@@ -207,12 +204,9 @@ export const useAdminStore = defineStore('admin', {
         const response = await adminAPI.getDashboard()
         console.log('📊 Dashboard response:', response.data)
 
-        // 🔧 Map backend data to frontend structure
         const backendData = response.data
 
-        // Direct mapping from backend response
         this.dashboardStats = {
-          // Direct fields from backend
           totalUsers: backendData.totalUsers || 0,
           activeUsers: backendData.activeUsers || 0,
           totalProducts: backendData.totalProducts || 0,
@@ -223,11 +217,10 @@ export const useAdminStore = defineStore('admin', {
           completedOrders: backendData.completedOrders || 0,
           totalRevenue: backendData.totalRevenue || 0,
 
-          // Nested structure for compatibility with other components
           users: {
             total: backendData.totalUsers || 0,
             active: backendData.activeUsers || 0,
-            change: 0, // Calculate later if needed
+            change: 0, 
           },
           products: {
             total: backendData.totalProducts || 0,
@@ -255,7 +248,6 @@ export const useAdminStore = defineStore('admin', {
         this.errors.dashboard = error.response?.data?.message || 'Không thể tải dữ liệu dashboard'
         console.error('❌ Load dashboard error:', error)
 
-        // 🔧 Provide fallback data to prevent undefined errors
         this.dashboardStats = {
           totalUsers: 0,
           activeUsers: 0,

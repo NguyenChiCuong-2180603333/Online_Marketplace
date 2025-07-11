@@ -98,7 +98,6 @@ public class ProductController {
         String sellerId = getCurrentUserId();
         Product product = productService.getProductById(id);
         
-        // Chỉ seller hoặc admin mới được toggle status
         if (!product.getSellerId().equals(sellerId)) {
             throw new RuntimeException("You can only toggle status of your own products");
         }
@@ -122,7 +121,6 @@ public class ProductController {
                 try {
                     return jwtTokenProvider.getUserIdFromToken(token);
                 } catch (Exception e) {
-                    // Log error if needed
                 }
             }
         }
@@ -140,7 +138,7 @@ public class ProductController {
                 return bearerToken.substring(7);
             }
         } catch (Exception e) {
-            // Ignore
+        
         }
         return null;
     }

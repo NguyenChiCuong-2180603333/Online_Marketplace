@@ -15,11 +15,9 @@ public interface NotificationRepository extends MongoRepository<Notification, St
     List<Notification> findByIsGlobalTrue();
     List<Notification> findByType(String type);
 
-    // Lấy notifications cho user (bao gồm global)
     @Query("{'$or': [{'userId': ?0}, {'isGlobal': true}]}")
     List<Notification> findByUserIdOrGlobal(String userId);
 
-    // Đếm notifications chưa đọc
     long countByUserIdAndIsReadFalse(String userId);
 
     @Query("{'$or': [{'userId': ?0, 'isRead': false}, {'isGlobal': true, 'isRead': false}]}")

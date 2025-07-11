@@ -26,11 +26,10 @@ public class PointTransaction {
     private String reason;
 
     private String description;
-    private String relatedId; // Order ID, Product ID, etc.
+    private String relatedId; 
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime expiresAt;
 
-    // Constructors
     public PointTransaction() {}
 
     public PointTransaction(String userId, int points, String type, String reason) {
@@ -40,7 +39,6 @@ public class PointTransaction {
         this.reason = reason;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

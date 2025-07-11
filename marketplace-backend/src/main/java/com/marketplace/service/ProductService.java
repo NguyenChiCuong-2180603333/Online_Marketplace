@@ -326,9 +326,9 @@ public class ProductService {
             sellerInfo.put("id", seller.getId());
             sellerInfo.put("name", seller.getFirstName() + " " + seller.getLastName());
             sellerInfo.put("avatar", seller.getAvatar());
-            sellerInfo.put("rating", 0); // TODO: Tính rating thực tế nếu có
+            sellerInfo.put("rating", 0); 
             sellerInfo.put("totalProducts", seller.getProductsSold() != null ? seller.getProductsSold().size() : 0);
-            sellerInfo.put("completedOrders", 0); // TODO: Tính số đơn hoàn thành nếu có
+            sellerInfo.put("completedOrders", 0); 
             result.put("seller", sellerInfo);
         } else {
             result.put("seller", null);

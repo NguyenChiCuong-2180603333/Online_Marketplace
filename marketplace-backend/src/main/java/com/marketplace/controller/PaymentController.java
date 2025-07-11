@@ -18,9 +18,11 @@ public class PaymentController {
 
     @PostMapping("/create-intent")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> createPaymentIntent(@RequestBody Map<String, String> request) {
-        String orderId = request.get("orderId");
-        Map<String, Object> response = paymentService.createPaymentIntent(orderId);
+    public ResponseEntity<Map<String, Object>> createPaymentIntent(@RequestBody Map<String, Object> request) {
+        String orderId = request.get("orderId") != null ? request.get("orderId").toString() : null;
+        Long amount = request.get("amount") != null ? Long.valueOf(request.get("amount").toString()) : null;
+        String currency = request.get("currency") != null ? request.get("currency").toString() : "vnd";
+        Map<String, Object> response = paymentService.createPaymentIntent(orderId, amount, currency);
         return ResponseEntity.ok(response);
     }
 

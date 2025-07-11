@@ -81,9 +81,7 @@ public class ReviewService {
         // Cập nhật rating trung bình của sản phẩm
         updateProductRating(reviewRequest.getProductId());
 
-        // 🆕 NEW: Trigger review events (loyalty points + seller notification)
         try {
-            // Get seller info for notification
             User seller = userService.getUserById(product.getSellerId());
 
             eventListener.handleNewReview(
@@ -95,7 +93,6 @@ public class ReviewService {
                     reviewRequest.getRating()
             );
         } catch (Exception e) {
-            // Log but don't fail review creation
             System.err.println("Failed to process review events: " + e.getMessage());
         }
 
@@ -206,7 +203,6 @@ public class ReviewService {
                     .flatMap(order -> order.getItems().stream())
                     .anyMatch(item -> item.getProductId().equals(productId));
         } catch (Exception e) {
-            // Nếu không thể verify, trả về false
             return false;
         }
     }

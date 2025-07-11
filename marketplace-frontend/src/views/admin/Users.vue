@@ -587,10 +587,10 @@ export default {
           name: `${user.firstName} ${user.lastName}`,
           status: user.enabled ? 'active' : 'blocked',
           totalOrders: user.purchaseHistory ? user.purchaseHistory.length : 0,
-          totalSpent: 0, // This would need to be calculated from orders
-          reviewCount: 0, // This would need to be fetched from reviews
-          loyaltyPoints: 0, // This would need to be fetched from loyalty service
-          isOnline: false, // This would need real-time tracking
+          totalSpent: 0, 
+          reviewCount: 0, 
+          loyaltyPoints: 0, 
+          isOnline: false, 
           address: user.address || 'Chưa cập nhật',
           birthday: user.birthday || 'Chưa cập nhật',
         }))
@@ -620,7 +620,7 @@ export default {
         try {
           await adminAPI.toggleUserStatus(user.id)
           user.status = newStatus
-          await loadUsers() // Reload to get updated stats
+          await loadUsers() 
         } catch (err) {
           console.error('Error toggling user status:', err)
           alert('Có lỗi xảy ra khi cập nhật trạng thái người dùng')
@@ -635,7 +635,7 @@ export default {
       } catch (err) {
         console.error('Error updating user role:', err)
         alert('Có lỗi xảy ra khi cập nhật vai trò người dùng')
-        await loadUsers() // Reload to get correct data
+        await loadUsers() 
       }
     }
 
@@ -643,7 +643,7 @@ export default {
       try {
         await adminAPI.toggleVipStatus(user.id)
         user.isVip = !user.isVip
-        await loadUsers() // Reload to get updated stats
+        await loadUsers() 
       } catch (err) {
         console.error('Error toggling VIP status:', err)
         alert('Có lỗi xảy ra khi cập nhật trạng thái VIP')
@@ -673,7 +673,7 @@ export default {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        password: '', // Don't include password in edit form
+        password: '', 
         address: user.address,
         isVip: user.isVip,
         isVerified: user.isVerified,
@@ -692,7 +692,7 @@ export default {
         try {
           await adminAPI.deleteUser(user.id)
           users.value = users.value.filter((u) => u.id !== user.id)
-          await loadUsers() // Reload to get updated stats
+          await loadUsers() 
         } catch (err) {
           console.error('Error deleting user:', err)
           alert('Có lỗi xảy ra khi xóa người dùng')
@@ -738,10 +738,8 @@ export default {
         }
 
         if (showEditUserModal.value) {
-          // Update existing user
           await adminAPI.updateUser(userForm.value.id, userData)
         } else {
-          // Create new user
           await adminAPI.createUser(userData)
         }
         closeCreateUserModal()
@@ -755,7 +753,6 @@ export default {
     }
 
     const exportUsers = () => {
-      // Export users to Excel logic
       console.log('Exporting users...')
     }
 
@@ -846,7 +843,6 @@ export default {
       }
     }
 
-    // When opening modal, copy current filters
     const openFilterModal = () => {
       tempFilters.value = { ...filters.value }
       tempSortBy.value = sortBy.value
@@ -855,7 +851,6 @@ export default {
     const closeFilterModal = () => {
       showFilterModal.value = false
     }
-    // Clear temp filters in modal
     const clearTempFilters = () => {
       tempFilters.value = {
         status: '',
@@ -867,7 +862,6 @@ export default {
       }
       tempSortBy.value = 'newest'
     }
-    // Apply temp filters to real filters
     const applyTempFilters = () => {
       filters.value = { ...tempFilters.value }
       sortBy.value = tempSortBy.value
@@ -875,9 +869,7 @@ export default {
       showFilterModal.value = false
     }
 
-    // Lifecycle
     onMounted(() => {
-      // Load real data or mock data for development
       loadUsers()
     })
 

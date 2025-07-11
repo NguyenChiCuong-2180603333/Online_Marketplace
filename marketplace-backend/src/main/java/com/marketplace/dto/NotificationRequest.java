@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class NotificationRequest {
-    private String userId; // null nếu là thông báo global
+    private String userId; 
 
     @NotBlank(message = "Title is required")
     @Size(max = 100, message = "Title must not exceed 100 characters")
@@ -19,9 +19,8 @@ public class NotificationRequest {
             message = "Type must be NEW_PRODUCT, PROMOTION, ORDER_UPDATE, or SYSTEM_UPDATE")
     private String type;
 
-    private String relatedId; // ID của product, order, etc.
+    private String relatedId; 
 
-    // Constructors
     public NotificationRequest() {}
 
     public NotificationRequest(String userId, String title, String message, String type) {
@@ -31,7 +30,6 @@ public class NotificationRequest {
         this.type = type;
     }
 
-    // Getters and Setters
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
 

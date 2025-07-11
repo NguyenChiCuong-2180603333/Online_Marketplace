@@ -232,25 +232,21 @@ import recommendationService from '@/services/recommendationService'
 export default {
   name: 'TrendingProducts',
   props: {
-    // Số lượng sản phẩm hiển thị
     limit: {
       type: Number,
       default: 12,
     },
 
-    // Tự động refresh
     autoRefresh: {
       type: Boolean,
       default: true,
     },
 
-    // Interval tự động refresh (minutes)
     refreshInterval: {
       type: Number,
       default: 10,
     },
 
-    // Custom CSS class
     containerClass: {
       type: String,
       default: '',
@@ -263,22 +259,18 @@ export default {
     const router = useRouter()
     const userStore = useUserStore()
 
-    // Reactive state
     const trendingProducts = ref([])
     const loading = ref(false)
     const error = ref(null)
     const lastUpdated = ref(new Date())
     const nextRefreshIn = ref(props.refreshInterval * 60 * 1000)
 
-    // Mock trending stats
     const totalViews = ref(2547391)
     const totalPurchases = ref(148726)
 
-    // Auto refresh
     let refreshTimer = null
     let countdownTimer = null
 
-    // Computed properties
     const autoRefreshEnabled = computed(() => {
       return props.autoRefresh && refreshTimer
     })
@@ -287,7 +279,6 @@ export default {
       return trendingProducts.value.length >= props.limit
     })
 
-    // Load trending products
     const loadTrendingProducts = async () => {
       loading.value = true
       error.value = null
@@ -298,10 +289,8 @@ export default {
         trendingProducts.value = response.trending || []
         lastUpdated.value = new Date()
 
-        // Enhance with mock trending data
         enhanceWithTrendingData()
 
-        // Track trending products loaded
         recommendationService.trackInteraction(null, 'TRENDING_PRODUCTS_LOADED', {
           count: trendingProducts.value.length,
           source: 'home_page_trending',
@@ -316,7 +305,6 @@ export default {
       }
     }
 
-    // Enhance products with trending data
     const enhanceWithTrendingData = () => {
       trendingProducts.value = trendingProducts.value.map((product, index) => ({
         ...product,
@@ -330,65 +318,49 @@ export default {
       }))
     }
 
-    // Handle product click
     const handleProductClick = async (product, index) => {
-      // Track trending product click
       await recommendationService.trackClick(product.id, 'trending_products')
 
-      // Additional tracking for position
       await recommendationService.trackInteraction(product.id, 'TRENDING_PRODUCT_CLICK', {
         position: index + 1,
         trendingScore: product.trendingScore,
         source: 'trending_section',
       })
 
-      // Emit event
       emit('product-click', { product, index })
 
-      // Navigate to product detail
       router.push(`/products/${product.id}`)
     }
 
-    // Handle add to cart
     const handleAddToCart = async (product) => {
       try {
-        // Track add to cart from trending
         await recommendationService.trackAddToCart(product.id, 1)
 
-        // Additional trending conversion tracking
         await recommendationService.trackInteraction(product.id, 'TRENDING_CONVERSION', {
           trendingScore: product.trendingScore,
           source: 'trending_section',
         })
 
-        // Emit event
         emit('add-to-cart', product)
 
-        // Show success feedback
         console.log('Added to cart from trending:', product.name)
       } catch (error) {
         console.error('Error adding trending product to cart:', error)
       }
     }
 
-    // Quick view functionality
     const quickView = (product) => {
-      // Track quick view action
       recommendationService.trackInteraction(product.id, 'QUICK_VIEW', {
         source: 'trending_products',
       })
 
-      // Emit event
       emit('quick-view', product)
 
-      // TODO: Implement quick view modal or navigate to product
       router.push(`/products/${product.id}`)
     }
 
-    // Add to wishlist
     const addToWishlist = async (product) => {
       try {
-        // Track wishlist action
         await recommendationService.trackInteraction(product.id, 'ADD_TO_WISHLIST', {
           source: 'trending_products',
         })
@@ -399,9 +371,7 @@ export default {
       }
     }
 
-    // View all trending
     const viewAllTrending = () => {
-      // Track view all action
       recommendationService.trackInteraction(null, 'VIEW_ALL_TRENDING', {
         currentCount: trendingProducts.value.length,
       })

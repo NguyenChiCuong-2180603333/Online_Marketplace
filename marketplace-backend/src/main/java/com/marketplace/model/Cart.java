@@ -27,7 +27,6 @@ public class Cart {
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    // Inner class for cart items
     public static class CartItem {
         @NotBlank(message = "Product ID is required")
         private String productId;
@@ -47,7 +46,6 @@ public class Cart {
         @DecimalMin(value = "0.01", message = "Subtotal must be greater than 0")
         private Double subtotal;
 
-        // Constructors
         public CartItem() {}
 
         public CartItem(String productId, String productName, Double productPrice, String productImage, int quantity) {
@@ -59,7 +57,6 @@ public class Cart {
             this.subtotal = productPrice * quantity;
         }
 
-        // Getters and Setters
         public String getProductId() { return productId; }
         public void setProductId(String productId) { this.productId = productId; }
 
@@ -82,14 +79,12 @@ public class Cart {
         public void setSubtotal(Double subtotal) { this.subtotal = subtotal; }
     }
 
-    // Constructors
     public Cart() {}
 
     public Cart(String userId) {
         this.userId = userId;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

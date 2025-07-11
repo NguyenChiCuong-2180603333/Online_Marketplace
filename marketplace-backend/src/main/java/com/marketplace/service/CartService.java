@@ -43,13 +43,11 @@ public class CartService {
             throw new BadRequestException("Không đủ hàng trong kho. Còn lại: " + product.getStockQuantity() + " sản phẩm");
         }
 
-        // Check if item already exists in cart
         Optional<Cart.CartItem> existingItem = cart.getItems().stream()
                 .filter(item -> item.getProductId().equals(productId))
                 .findFirst();
 
         if (existingItem.isPresent()) {
-            // Update quantity
             Cart.CartItem item = existingItem.get();
             int newQuantity = item.getQuantity() + quantity;
 

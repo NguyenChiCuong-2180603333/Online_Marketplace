@@ -134,7 +134,6 @@ public class ReviewController {
                         return jwtProvider.getUserIdFromToken(token);
                     }
                 } catch (Exception e) {
-                    // Fall back to mock for now
                 }
             }
         }
@@ -152,7 +151,6 @@ public class ReviewController {
                 return bearerToken.substring(7);
             }
         } catch (Exception e) {
-            // Ignore
         }
         return null;
     }

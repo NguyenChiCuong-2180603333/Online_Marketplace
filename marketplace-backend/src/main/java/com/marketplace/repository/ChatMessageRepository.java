@@ -34,4 +34,6 @@ public interface ChatMessageRepository extends MongoRepository<ChatMessage, Stri
 
     @Query(value = "{'senderId': ?0, 'createdAt': {'$gte': ?1}}", count = true)
     long countMessagesSentByUserSince(String userId, LocalDateTime since);
+
+    void deleteByConversationId(String conversationId);
 }

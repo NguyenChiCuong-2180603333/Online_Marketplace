@@ -11,7 +11,7 @@ public class Notification {
     @Id
     private String id;
 
-    private String userId; // null nếu là thông báo global
+    private String userId; 
 
     @NotBlank(message = "Title is required")
     @Size(max = 100, message = "Title must not exceed 100 characters")
@@ -23,15 +23,14 @@ public class Notification {
 
     @Pattern(regexp = "NEW_PRODUCT|PROMOTION|ORDER_UPDATE|SYSTEM_UPDATE",
             message = "Type must be NEW_PRODUCT, PROMOTION, ORDER_UPDATE, or SYSTEM_UPDATE")
-    private String type; // NEW_PRODUCT, PROMOTION, ORDER_UPDATE, SYSTEM_UPDATE
+    private String type; 
 
-    private String relatedId; // ID của product, order, etc.
+    private String relatedId; 
     private boolean isRead = false;
-    private boolean isGlobal = false; // Thông báo cho tất cả user
+    private boolean isGlobal = false; 
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime readAt;
 
-    // Constructors
     public Notification() {}
 
     public Notification(String userId, String title, String message, String type) {
@@ -48,7 +47,6 @@ public class Notification {
         this.isGlobal = isGlobal;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

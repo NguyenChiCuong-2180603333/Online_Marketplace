@@ -3,7 +3,6 @@ import { profileAPI, orderAPI } from '@/services/api'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
-    // Profile data
     profile: {
       id: null,
       firstName: '',
@@ -30,7 +29,7 @@ export const useUserStore = defineStore('user', {
 
     // User preferences
     preferences: {
-      theme: 'space', // space, light, dark
+      theme: 'space', 
       language: 'vi',
       currency: 'VND',
       notifications: {
@@ -48,21 +47,16 @@ export const useUserStore = defineStore('user', {
       },
     },
 
-    // Wishlist
     wishlist: [],
 
-    // Recently viewed products
     recentlyViewed: [],
 
-    // User addresses
     addresses: [],
     defaultAddressId: null,
 
-    // Payment methods
     paymentMethods: [],
     defaultPaymentMethodId: null,
 
-    // User statistics
     stats: {
       monthlySpending: 0,
       averageOrderValue: 0,
@@ -482,16 +476,10 @@ export const useUserStore = defineStore('user', {
 
     // Recently viewed products
     addToRecentlyViewed(product) {
-      // Remove if already exists
       this.recentlyViewed = this.recentlyViewed.filter((p) => p.id !== product.id)
-
-      // Add to beginning
       this.recentlyViewed.unshift(product)
-
-      // Keep only last 20 items
       this.recentlyViewed = this.recentlyViewed.slice(0, 20)
 
-      // Save to localStorage
       try {
         localStorage.setItem('recentlyViewed', JSON.stringify(this.recentlyViewed))
       } catch (error) {
@@ -535,7 +523,7 @@ export const useUserStore = defineStore('user', {
       try {
         const response = await profileAPI.enableTwoFactor()
         this.profile.twoFactorEnabled = true
-        return response.data // Contains QR code, backup codes, etc.
+        return response.data 
       } catch (error) {
         const errorMsg = error.response?.data?.message || 'Không thể bật xác thực 2 bước'
         throw new Error(errorMsg)
@@ -739,13 +727,10 @@ export const useUserStore = defineStore('user', {
     // Initialize store
     async initialize() {
       try {
-        // Load recently viewed from localStorage
         this.loadRecentlyViewed()
 
-        // Load profile and related data
         await this.loadProfile()
 
-        // Load additional data in parallel
         await Promise.all([
           this.loadOrders(),
           this.loadWishlist(),

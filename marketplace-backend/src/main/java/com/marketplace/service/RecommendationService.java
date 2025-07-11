@@ -37,26 +37,21 @@ public class RecommendationService {
         try {
             Set<String> recommendedProductIds = new LinkedHashSet<>();
 
-            // 1. Content-based filtering (dựa trên preferences)
             List<String> contentBasedIds = getContentBasedRecommendations(userId, limit / 3);
             recommendedProductIds.addAll(contentBasedIds);
 
-            // 2. Collaborative filtering (dựa trên users tương tự)
             List<String> collaborativeIds = getCollaborativeRecommendations(userId, limit / 3);
             recommendedProductIds.addAll(collaborativeIds);
 
-            // 3. Popular products (trending)
             List<String> popularIds = getPopularRecommendations(userId, limit / 3);
             recommendedProductIds.addAll(popularIds);
 
-            // 4. Bổ sung nếu chưa đủ
             if (recommendedProductIds.size() < limit) {
                 List<String> fallbackIds = getFallbackRecommendations(userId,
                         limit - recommendedProductIds.size(), recommendedProductIds);
                 recommendedProductIds.addAll(fallbackIds);
             }
 
-            // Convert IDs to Products và sort theo relevance score
             return recommendedProductIds.stream()
                     .limit(limit)
                     .map(id -> {
@@ -74,12 +69,10 @@ public class RecommendationService {
         }
     }
 
-    // Content-based recommendations
     private List<String> getContentBasedRecommendations(String userId, int limit) {
         UserPreference preference = getUserPreference(userId);
         List<Product> allProducts = productService.getAllProducts();
 
-        // Score products dựa trên preferences
         List<ProductScore> scoredProducts = allProducts.stream()
                 .map(product -> new ProductScore(product.getId(),
                         calculateContentScore(product, preference)))
@@ -92,15 +85,12 @@ public class RecommendationService {
                 .collect(Collectors.toList());
     }
 
-    // Collaborative filtering recommendations
     private List<String> getCollaborativeRecommendations(String userId, int limit) {
-        // Tìm users tương tự
         List<String> similarUsers = findSimilarUsers(userId, 10);
 
         Set<String> recommendedIds = new LinkedHashSet<>();
 
         for (String similarUserId : similarUsers) {
-            // Lấy products mà similar user đã mua/like
             List<UserInteraction> interactions = userInteractionRepository
                     .findByUserIdAndInteractionTypeOrderByCreatedAtDesc(similarUserId, "PURCHASE");
 
@@ -115,15 +105,14 @@ public class RecommendationService {
         return recommendedIds.stream().limit(limit).collect(Collectors.toList());
     }
 
-    // Popular/trending recommendations
     private List<String> getPopularRecommendations(String userId, int limit) {
         LocalDateTime lastWeek = LocalDateTime.now().minusDays(7);
 
-        // Lấy products có nhiều interactions gần đây
         List<UserInteraction> recentInteractions = userInteractionRepository
                 .findTrendingInteractions(lastWeek);
 
         Map<String, Long> productCounts = recentInteractions.stream()
+                .filter(i -> i.getProductId() != null)
                 .collect(Collectors.groupingBy(
                         UserInteraction::getProductId,
                         Collectors.counting()
@@ -137,7 +126,6 @@ public class RecommendationService {
                 .collect(Collectors.toList());
     }
 
-    // Fallback recommendations
     private List<String> getFallbackRecommendations(String userId, int limit, Set<String> excludeIds) {
         List<Product> products = productService.getTopRatedProducts(limit * 2);
 
@@ -149,11 +137,9 @@ public class RecommendationService {
                 .collect(Collectors.toList());
     }
 
-    // Recommendations cho sản phẩm cụ thể
     public List<Product> getProductRecommendations(String productId, String userId, int limit) {
         Set<String> recommendedIds = new LinkedHashSet<>();
 
-        // 1. Products tương tự theo content
         List<ProductSimilarity> similarities = productSimilarityRepository
                 .findByProductIdOrderBySimilarityScoreDesc(productId);
 
@@ -162,7 +148,6 @@ public class RecommendationService {
                 .map(ProductSimilarity::getSimilarProductId)
                 .forEach(recommendedIds::add);
 
-        // 2. Products trong cùng category
         try {
             Product product = productService.getProductById(productId);
             List<Product> categoryProducts = productService.getProductsByCategory(product.getCategory());
@@ -175,10 +160,8 @@ public class RecommendationService {
                     .forEach(recommendedIds::add);
 
         } catch (Exception e) {
-            // Product not found, ignore
         }
 
-        // Convert to Products
         return recommendedIds.stream()
                 .limit(limit)
                 .map(id -> {
@@ -192,13 +175,11 @@ public class RecommendationService {
                 .collect(Collectors.toList());
     }
 
-    // Track user interaction
     public void trackInteraction(String userId, String productId, String interactionType,
                                  String sessionId, Map<String, Object> context) {
         UserInteraction interaction = new UserInteraction(userId, productId, interactionType);
         interaction.setSessionId(sessionId);
 
-        // Set context data
         if (context != null) {
             if (context.containsKey("duration")) {
                 interaction.setDuration((Double) context.get("duration"));
@@ -216,33 +197,26 @@ public class RecommendationService {
 
         userInteractionRepository.save(interaction);
 
-        // Update user preferences asynchronously
-        updateUserPreferences(userId);
+        java.util.concurrent.CompletableFuture.runAsync(() -> updateUserPreferences(userId));
     }
 
-    // Update user preferences dựa trên interactions
     public void updateUserPreferences(String userId) {
         UserPreference preference = getUserPreference(userId);
 
-        // Lấy recent interactions
         LocalDateTime lastMonth = LocalDateTime.now().minusDays(30);
         List<UserInteraction> recentInteractions = userInteractionRepository
                 .findByUserIdAndCreatedAtBetween(userId, lastMonth, LocalDateTime.now());
 
-        // Update category preferences
         updateCategoryPreferences(preference, recentInteractions);
 
-        // Update price preferences
         updatePricePreferences(preference, recentInteractions);
 
-        // Update time preferences
         updateTimePreferences(preference, recentInteractions);
 
         preference.setUpdatedAt(LocalDateTime.now());
         userPreferenceRepository.save(preference);
     }
 
-    // Calculate product similarities
     public void calculateProductSimilarities() {
         List<Product> products = productService.getAllProducts();
 
@@ -251,7 +225,7 @@ public class RecommendationService {
                 if (!product1.getId().equals(product2.getId())) {
                     double similarity = calculateProductSimilarity(product1, product2);
 
-                    if (similarity > 0.3) { // Threshold
+                    if (similarity > 0.3) { 
                         ProductSimilarity ps = new ProductSimilarity(
                                 product1.getId(),
                                 product2.getId(),
@@ -269,7 +243,6 @@ public class RecommendationService {
         }
     }
 
-    // Helper methods
     private UserPreference getUserPreference(String userId) {
         return userPreferenceRepository.findByUserId(userId)
                 .orElseGet(() -> {
@@ -281,22 +254,18 @@ public class RecommendationService {
     private double calculateContentScore(Product product, UserPreference preference) {
         double score = 0.0;
 
-        // Category preference
         Double categoryScore = preference.getCategoryPreferences().get(product.getCategory());
         if (categoryScore != null) {
             score += categoryScore * 0.3;
         }
 
-        // Price preference
         if (product.getPrice() >= preference.getMinPreferredPrice() &&
                 product.getPrice() <= preference.getMaxPreferredPrice()) {
             score += 0.2;
         }
 
-        // Rating score
         score += (product.getAverageRating() / 5.0) * 0.3;
 
-        // Tag preferences
         for (String tag : product.getTags()) {
             Double tagScore = preference.getTagPreferences().get(tag);
             if (tagScore != null) {
@@ -304,7 +273,6 @@ public class RecommendationService {
             }
         }
 
-        // Seller preference
         Double sellerScore = preference.getSellerPreferences().get(product.getSellerId());
         if (sellerScore != null) {
             score += sellerScore * 0.1;
@@ -314,7 +282,6 @@ public class RecommendationService {
     }
 
     private List<String> findSimilarUsers(String userId, int limit) {
-        // Lấy products mà user đã interact
         List<String> userProducts = userInteractionRepository
                 .findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
@@ -324,7 +291,6 @@ public class RecommendationService {
 
         if (userProducts.isEmpty()) return List.of();
 
-        // Tìm users khác có interact với các products tương tự
         List<UserInteraction> similarInteractions = userInteractionRepository
                 .findSimilarUsersByProducts(userProducts, userId);
 
@@ -342,26 +308,23 @@ public class RecommendationService {
     }
 
     private boolean hasUserInteractedWith(String userId, String productId) {
-        return userInteractionRepository.countByUserIdAndInteractionType(userId, "VIEW") > 0 ||
-                userInteractionRepository.countByUserIdAndInteractionType(userId, "PURCHASE") > 0;
+        return userInteractionRepository.countByUserIdAndProductIdAndInteractionType(userId, productId, "VIEW") > 0 ||
+               userInteractionRepository.countByUserIdAndProductIdAndInteractionType(userId, productId, "PURCHASE") > 0;
     }
 
     private double calculateProductSimilarity(Product p1, Product p2) {
         double similarity = 0.0;
 
-        // Category similarity
         if (p1.getCategory().equals(p2.getCategory())) {
             similarity += 0.4;
         }
 
-        // Price similarity
         double priceDiff = Math.abs(p1.getPrice() - p2.getPrice());
         double maxPrice = Math.max(p1.getPrice(), p2.getPrice());
         if (maxPrice > 0) {
             similarity += (1.0 - (priceDiff / maxPrice)) * 0.2;
         }
 
-        // Tag similarity (Jaccard similarity)
         Set<String> tags1 = new HashSet<>(p1.getTags());
         Set<String> tags2 = new HashSet<>(p2.getTags());
         Set<String> intersection = new HashSet<>(tags1);
@@ -373,7 +336,6 @@ public class RecommendationService {
             similarity += ((double) intersection.size() / union.size()) * 0.3;
         }
 
-        // Rating similarity
         double ratingDiff = Math.abs(p1.getAverageRating() - p2.getAverageRating());
         similarity += (1.0 - (ratingDiff / 5.0)) * 0.1;
 
@@ -392,11 +354,9 @@ public class RecommendationService {
                 categoryScores.merge(category, weight, Double::sum);
 
             } catch (Exception e) {
-                // Product not found, skip
             }
         }
 
-        // Normalize scores
         double maxScore = categoryScores.values().stream().mapToDouble(d -> d).max().orElse(1.0);
         categoryScores.replaceAll((k, v) -> v / maxScore);
 
@@ -412,7 +372,6 @@ public class RecommendationService {
                     Product product = productService.getProductById(interaction.getProductId());
                     prices.add(product.getPrice());
                 } catch (Exception e) {
-                    // Product not found, skip
                 }
             }
         }
@@ -421,9 +380,8 @@ public class RecommendationService {
             prices.sort(Double::compareTo);
             int size = prices.size();
 
-            // Set preferred range based on purchases
-            preference.setMinPreferredPrice(prices.get(size / 4)); // 25th percentile
-            preference.setMaxPreferredPrice(prices.get(3 * size / 4)); // 75th percentile
+            preference.setMinPreferredPrice(prices.get(size / 4)); 
+            preference.setMaxPreferredPrice(prices.get(3 * size / 4)); 
         }
     }
 
@@ -451,7 +409,6 @@ public class RecommendationService {
         };
     }
 
-    // Helper class
     private static class ProductScore {
         String productId;
         double score;

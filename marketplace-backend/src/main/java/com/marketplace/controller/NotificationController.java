@@ -141,7 +141,6 @@ public class NotificationController {
                         return jwtProvider.getUserIdFromToken(token);
                     }
                 } catch (Exception e) {
-                    // Fall back to mock for now
                 }
             }
         }
@@ -159,7 +158,6 @@ public class NotificationController {
                 return bearerToken.substring(7);
             }
         } catch (Exception e) {
-            // Ignore
         }
         return null;
     }
@@ -172,7 +170,7 @@ public class NotificationController {
             Notification updated = notificationService.updateNotification(notificationId, notificationRequest);
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
-            e.printStackTrace(); // Log lỗi chi tiết ra console
+            e.printStackTrace(); 
             throw e;
         }
     }

@@ -14,9 +14,9 @@ public class ReviewRequest {
     @Size(max = 500, message = "Comment must not exceed 500 characters")
     private String comment;
 
-    private String orderId; // Optional: để verify người dùng đã mua sản phẩm
+    private String orderId;
 
-    // Constructors
+   
     public ReviewRequest() {}
 
     public ReviewRequest(String productId, Integer rating, String comment) {
@@ -25,7 +25,6 @@ public class ReviewRequest {
         this.comment = comment;
     }
 
-    // Getters and Setters
     public String getProductId() { return productId; }
     public void setProductId(String productId) { this.productId = productId; }
 

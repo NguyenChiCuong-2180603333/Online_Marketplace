@@ -444,9 +444,7 @@ export default {
 
     const reorderItems = async (order) => {
       try {
-        // Add all items from the order to cart
         for (const item of order.items) {
-          // Add to cart logic here
         }
         alert('Đã thêm các sản phẩm vào giỏ hàng')
         router.push('/cart')

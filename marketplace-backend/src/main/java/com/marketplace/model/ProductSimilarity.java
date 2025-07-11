@@ -23,11 +23,10 @@ public class ProductSimilarity {
 
     @Pattern(regexp = "CATEGORY|TAGS|PRICE|RATING|COLLABORATIVE|CONTENT",
             message = "Similarity type must be CATEGORY, TAGS, PRICE, RATING, COLLABORATIVE, or CONTENT")
-    private String similarityType; // Loại tương tự
+    private String similarityType; 
 
     private LocalDateTime calculatedAt = LocalDateTime.now();
 
-    // Constructors
     public ProductSimilarity() {}
 
     public ProductSimilarity(String productId, String similarProductId, Double similarityScore, String similarityType) {
@@ -37,7 +36,6 @@ public class ProductSimilarity {
         this.similarityType = similarityType;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

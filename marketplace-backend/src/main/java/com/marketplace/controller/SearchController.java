@@ -125,7 +125,6 @@ public class SearchController {
     public ResponseEntity<Map<String, Object>> getAvailableFilters() {
         Map<String, Object> filters = new HashMap<>();
 
-        // Danh mục
         List<Category> categories = categoryService.getAllActiveCategories();
         filters.put("categories", categories);
 
@@ -168,7 +167,6 @@ public class SearchController {
     public ResponseEntity<Map<String, Object>> getTrendingSearches() {
         Map<String, Object> trending = new HashMap<>();
 
-        // Mock data - trong thực tế sẽ lấy từ analytics
         trending.put("keywords", List.of(
                 "smartphone", "laptop", "tai nghe", "đồng hồ", "giày sneaker",
                 "túi xách", "máy ảnh", "tablet", "phụ kiện điện thoại", "quần áo"

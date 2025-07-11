@@ -387,20 +387,29 @@ export default {
 .product-image-container {
   position: relative;
   width: 100%;
-  height: 250px;
+  height: 270px;
   overflow: hidden;
   border-radius: 12px 12px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px 0 rgba(0, 212, 255, 0.08);
+  background: linear-gradient(135deg, #f8fafc 60%, #e0f7fa 100%); /* nền sáng nhẹ */
 }
-
 .product-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: transparent;
   transition: transform 0.3s ease;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px #00d4ff22;
+  display: block;
 }
-
-.product-card:hover .product-image {
-  transform: scale(1.05);
+@media (max-width: 600px) {
+  .product-image-container {
+    height: 160px;
+  }
 }
 
 /* Image Overlay */

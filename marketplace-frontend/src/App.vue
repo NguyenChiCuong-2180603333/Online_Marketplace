@@ -1,16 +1,12 @@
 <template>
   <div id="app" class="space-bg">
-    <!-- Navigation -->
     <Header />
-    <!-- Main Content -->
     <main class="main-content">
       <router-view />
     </main>
 
-    <!-- Footer -->
     <Footer />
 
-    <!-- Loading Overlay -->
     <div v-if="loading" class="loading-overlay">
       <div class="loading-spinner">
         <div class="loading"></div>
@@ -22,10 +18,11 @@
 </template>
 
 <script>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import { useRouter } from 'vue-router'
+import { useChatStore } from '@/stores/chat'
 import NotificationContainer from '@/components/NotificationContainer.vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
@@ -37,6 +34,7 @@ export default {
     const authStore = useAuthStore()
     const cartStore = useCartStore()
     const router = useRouter()
+    const chatStore = useChatStore()
 
     const showUserMenu = ref(false)
     const loading = ref(false)
@@ -61,8 +59,25 @@ export default {
 
       if (isAuthenticated.value) {
         cartStore.loadCart()
+        console.log('App.vue: Gọi chatStore.initializeChat khi user login', authStore.user?.id)
+        chatStore.initializeChat(authStore.user.id, authStore.token)
       }
     })
+
+    watch(
+      () => authStore.isAuthenticated,
+      (val) => {
+        if (val) {
+          console.log(
+            'App.vue: Gọi chatStore.initializeChat khi user login (watch)',
+            authStore.user?.id
+          )
+          chatStore.initializeChat(authStore.user.id, authStore.token)
+        } else {
+          chatStore.disconnectChat()
+        }
+      }
+    )
 
     return {
       authStore,

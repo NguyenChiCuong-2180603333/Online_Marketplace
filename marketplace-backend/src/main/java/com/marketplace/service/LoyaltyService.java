@@ -26,7 +26,7 @@ public class LoyaltyService {
     private PointTransactionRepository pointTransactionRepository;
 
     // Points earning rates
-    private static final int POINTS_PER_VND = 1; // 1 point per 1000 VND
+    private static final int POINTS_PER_VND = 1; 
     private static final int REVIEW_POINTS = 50;
     private static final int SIGNUP_BONUS = 100;
     private static final int REFERRAL_BONUS = 200;
@@ -64,7 +64,7 @@ public class LoyaltyService {
      */
     public LoyaltyAccount getLoyaltyAccount(String userId) {
         return loyaltyAccountRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Loyalty account not found"));
+                .orElseGet(() -> createLoyaltyAccount(userId));
     }
 
     /**
@@ -75,7 +75,8 @@ public class LoyaltyService {
             return; // Only award points for completed orders
         }
 
-        int pointsToAward = (int) (order.getTotalAmount() / 1000) * POINTS_PER_VND;
+        // Cộng 1% giá trị đơn hàng, 1 điểm = 1đ
+        int pointsToAward = (int) (order.getTotalAmount() * 0.01);
 
         awardPoints(
                 order.getUserId(),
@@ -91,7 +92,6 @@ public class LoyaltyService {
      * Tặng điểm cho review
      */
     public void awardPointsForReview(String userId, String productId) {
-        // Check if user already got points for this product review
         List<PointTransaction> existingReviewPoints = pointTransactionRepository
                 .findByUserIdAndReasonAndRelatedId(userId, "REVIEW", productId);
 
@@ -129,19 +129,16 @@ public class LoyaltyService {
         LoyaltyAccount account = loyaltyAccountRepository.findByUserId(userId)
                 .orElseGet(() -> createLoyaltyAccount(userId));
 
-        // Create transaction
         PointTransaction transaction = new PointTransaction(userId, points, type, reason);
         transaction.setDescription(description);
         transaction.setRelatedId(relatedId);
 
         if ("EARN".equals(type)) {
-            // Set expiration (1 year from now)
             transaction.setExpiresAt(LocalDateTime.now().plusYears(1));
         }
 
         pointTransactionRepository.save(transaction);
 
-        // Update account
         if ("EARN".equals(type)) {
             account.setTotalPoints(account.getTotalPoints() + points);
             account.setAvailablePoints(account.getAvailablePoints() + points);
@@ -155,7 +152,6 @@ public class LoyaltyService {
 
         account.setUpdatedAt(LocalDateTime.now());
 
-        // Update tier
         updateUserTier(account);
 
         loyaltyAccountRepository.save(account);
@@ -178,11 +174,9 @@ public class LoyaltyService {
             throw new BadRequestException("Không đủ điểm để đổi voucher");
         }
 
-        // Spend points
         spendPoints(userId, pointsCost, "REDEEM_VOUCHER",
                 "Đổi voucher " + voucherType, null);
 
-        // Generate voucher code
         String voucherCode = generateVoucherCode();
 
         Map<String, Object> voucher = new HashMap<>();

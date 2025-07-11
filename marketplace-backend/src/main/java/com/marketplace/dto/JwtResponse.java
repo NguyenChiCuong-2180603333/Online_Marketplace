@@ -9,7 +9,6 @@ public class JwtResponse {
     private String lastName;
     private String role;
 
-    // Constructors
     public JwtResponse() {}
 
     public JwtResponse(String token, String id, String email, String firstName, String lastName, String role) {
@@ -21,7 +20,6 @@ public class JwtResponse {
         this.role = role;
     }
 
-    // Getters and Setters
     public String getToken() { return token; }
     public void setToken(String token) { this.token = token; }
 

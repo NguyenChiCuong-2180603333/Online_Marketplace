@@ -30,40 +30,53 @@ public class PaymentService {
         Stripe.apiKey = stripeSecretKey;
     }
 
-    public Map<String, Object> createPaymentIntent(String orderId) {
+    public Map<String, Object> createPaymentIntent(String orderId, Long amount, String currency) {
         try {
-            Order order = orderService.getOrderById(orderId);
+            long amountInVND;
+            String usedCurrency = (currency != null) ? currency : "vnd";
+            String description = "Thanh toán qua Stripe";
+            Map<String, String> metadata = new HashMap<>();
 
-            if (!"PENDING".equals(order.getPaymentStatus())) {
-                throw new BadRequestException("Thanh toán đơn hàng đã được xử lý");
+            if (orderId != null) {
+                Order order = orderService.getOrderById(orderId);
+                if (!"PENDING".equals(order.getPaymentStatus())) {
+                    throw new BadRequestException("Thanh toán đơn hàng đã được xử lý");
+                }
+                amountInVND = order.getTotalAmount().longValue();
+                metadata.put("orderId", orderId);
+                metadata.put("userId", order.getUserId());
+                description = "Đơn hàng #" + orderId;
+            } else {
+                if (amount == null) {
+                    throw new BadRequestException("Thiếu số tiền thanh toán");
+                }
+                amountInVND = amount;
             }
 
-            // Convert VND to smallest unit (no conversion needed for VND)
-            long amountInVND = order.getTotalAmount().longValue();
-
-            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+            PaymentIntentCreateParams.Builder paramsBuilder = PaymentIntentCreateParams.builder()
                     .setAmount(amountInVND)
-                    .setCurrency("vnd")
-                    .putMetadata("orderId", orderId)
-                    .putMetadata("userId", order.getUserId())
-                    .setDescription("Đơn hàng #" + orderId)
+                    .setCurrency(usedCurrency)
+                    .setDescription(description)
                     .setAutomaticPaymentMethods(
                             PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
                                     .setEnabled(true)
                                     .build()
-                    )
-                    .build();
+                    );
+            for (Map.Entry<String, String> entry : metadata.entrySet()) {
+                paramsBuilder.putMetadata(entry.getKey(), entry.getValue());
+            }
 
-            PaymentIntent paymentIntent = PaymentIntent.create(params);
+            PaymentIntent paymentIntent = PaymentIntent.create(paramsBuilder.build());
 
-            // Update order with payment intent ID
-            orderService.updatePaymentStatus(orderId, "PENDING", paymentIntent.getId());
+            if (orderId != null) {
+                orderService.updatePaymentStatus(orderId, "PENDING", paymentIntent.getId());
+            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("clientSecret", paymentIntent.getClientSecret());
             response.put("paymentIntentId", paymentIntent.getId());
-            response.put("amount", order.getTotalAmount());
-            response.put("currency", "vnd");
+            response.put("amount", amountInVND);
+            response.put("currency", usedCurrency);
 
             return response;
 
@@ -128,8 +141,6 @@ public class PaymentService {
     }
 
     public Map<String, Object> handleWebhook(String payload, String sigHeader) {
-        // This method handles Stripe webhooks for real-time payment status updates
-        // You'll need to implement webhook handling based on your requirements
 
         Map<String, Object> response = new HashMap<>();
         response.put("received", true);

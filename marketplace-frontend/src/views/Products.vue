@@ -154,7 +154,8 @@
                     :key="i"
                     class="star"
                     :class="[i <= Number(product.averageRating || 0) ? 'filled' : '']"
-                  >⭐</span>
+                    >⭐</span
+                  >
                 </div>
                 <span class="rating-text">({{ product.reviewCount || 0 }})</span>
               </div>
@@ -396,24 +397,20 @@ export default {
       return pages
     })
 
-    // API Methods
     const loadProducts = async () => {
       try {
         loading.value = true
         error.value = null
 
-        // Prepare API parameters
         const params = {
           page: currentPage.value - 1,
           size: itemsPerPage.value,
         }
 
-        // Add category filter
         if (filters.value.category) {
           params.category = filters.value.category
         }
 
-        // Add price range filter
         if (filters.value.priceRange) {
           const [min, max] = filters.value.priceRange.split('-').map(Number)
           params.minPrice = min
@@ -422,7 +419,6 @@ export default {
           }
         }
 
-        // Map sortBy/sortOrder for backend
         const sortMap = {
           newest: { sortBy: 'createdAt', sortOrder: 'desc' },
           'price-asc': { sortBy: 'price', sortOrder: 'asc' },
@@ -434,13 +430,10 @@ export default {
         params.sortBy = sort.sortBy
         params.sortOrder = sort.sortOrder
 
-        // Add search query
         const query = searchQuery.value.trim() || undefined
 
-        // Gọi API mới
         const response = await searchAPI.products(query, params)
 
-        // Lấy dữ liệu từ response.data.products
         if (response.data.products) {
           products.value = response.data.products
           totalResults.value = response.data.totalElements || response.data.products.length
@@ -471,7 +464,6 @@ export default {
       }
     }
 
-    // Utility Methods
     const formatCurrency = (amount) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
@@ -489,14 +481,14 @@ export default {
       const createdDate = new Date(product.createdAt)
       const now = new Date()
       const daysDiff = (now - createdDate) / (1000 * 60 * 60 * 24)
-      return daysDiff <= 7 // Products created within 7 days are considered "new"
+      return daysDiff <= 7 
     }
 
     const handleImageError = (event) => {
       event.target.src = '/placeholder-product.jpg'
     }
 
-    // Filter & Search Methods
+    
     const performSearch = () => {
       currentPage.value = 1
       loadProducts()
@@ -518,12 +510,11 @@ export default {
       loadProducts()
     }
 
-    // Navigation Methods
+    
     const goToPage = (page) => {
       if (page >= 1 && page <= totalPages.value) {
         currentPage.value = page
         loadProducts()
-        // Scroll to top
         window.scrollTo({ top: 0, behavior: 'smooth' })
       }
     }
@@ -532,7 +523,7 @@ export default {
       router.push(`/products/${productId}`)
     }
 
-    // Modal Methods
+  
     const quickView = (product) => {
       selectedProduct.value = product
       showQuickView.value = true
@@ -543,7 +534,7 @@ export default {
       selectedProduct.value = null
     }
 
-    // Cart Methods
+    
     const addToCart = async (product) => {
       if (cartLoading.value || product.stock <= 0) return
 
@@ -551,9 +542,8 @@ export default {
         cartLoading.value = true
         await cartStore.addItem(product.id, 1)
 
-        // Show success message
         const message = `Đã thêm "${product.name}" vào giỏ hàng!`
-        alert(message) // Replace with toast notification
+        alert(message) 
       } catch (error) {
         console.error('Error adding to cart:', error)
         const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng'
@@ -572,7 +562,7 @@ export default {
       }
     }
 
-    // Wishlist Methods
+    
     const toggleWishlist = (productId) => {
       const index = wishlist.value.indexOf(productId)
       if (index > -1) {
@@ -580,19 +570,15 @@ export default {
       } else {
         wishlist.value.push(productId)
       }
-      // TODO: Persist to backend
     }
 
     const isInWishlist = (productId) => {
       return wishlist.value.includes(productId)
     }
 
-    // Lifecycle hooks
     onMounted(async () => {
-      // Load initial data
       await Promise.all([loadCategories(), loadProducts()])
 
-      // Load from route query parameters
       if (route.query.search) {
         searchQuery.value = route.query.search
       }
@@ -600,13 +586,11 @@ export default {
         filters.value.category = route.query.category
       }
 
-      // Reload products if query params exist
       if (route.query.search || route.query.category) {
         await loadProducts()
       }
     })
 
-    // Watch for route changes
     watch(
       () => route.query,
       async (newQuery) => {
@@ -617,14 +601,12 @@ export default {
           filters.value.category = newQuery.category || ''
         }
 
-        // Reload products when route query changes
         currentPage.value = 1
         await loadProducts()
       }
     )
 
     return {
-      // State
       loading,
       cartLoading,
       error,
@@ -639,11 +621,9 @@ export default {
       products,
       categories,
 
-      // Computed
       totalPages,
       visiblePages,
 
-      // Methods
       formatCurrency,
       truncateText,
       isNewProduct,
@@ -1248,12 +1228,20 @@ export default {
   width: 100%;
   border-radius: 12px;
   overflow: hidden;
+  background: linear-gradient(135deg, #f8fafc 60%, #e0f7fa 100%); /* nền sáng nhẹ */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 340px;
 }
-
 .quick-view-image img {
   width: 100%;
-  height: 300px;
-  object-fit: cover;
+  height: 340px;
+  object-fit: contain;
+  background: transparent;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px #00d4ff22;
+  display: block;
 }
 
 .quick-view-info h3 {
@@ -1387,7 +1375,10 @@ export default {
   }
 
   .quick-view-image img {
-    height: 200px;
+    height: 220px;
+  }
+  .quick-view-image {
+    min-height: 220px;
   }
 
   .modal-content {

@@ -433,6 +433,25 @@
               </div>
             </div>
 
+            <!-- Loyalty Points Section (Dùng điểm thưởng) -->
+            <div class="loyalty-section">
+              <label for="loyaltyPointsToUse" class="loyalty-label"> Dùng điểm thưởng: </label>
+              <input
+                id="loyaltyPointsToUse"
+                type="number"
+                min="0"
+                :max="maxLoyaltyPoints"
+                v-model.number="loyaltyPointsToUse"
+                class="loyalty-input"
+              />
+              <span class="loyalty-max">
+                (Tối đa: {{ (maxLoyaltyPoints || 0).toLocaleString('vi-VN') }})
+              </span>
+              <span v-if="loyaltyPointsToUse > 0" class="loyalty-discount">
+                Giảm giá: <b>{{ loyaltyDiscount.toLocaleString('vi-VN') }}đ</b>
+              </span>
+            </div>
+
             <!-- Trust Badges -->
             <div class="trust-badges">
               <div class="trust-badge">
@@ -459,8 +478,9 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
-import { orderAPI, paymentAPI, productAPI } from '@/services/api'
+import api, { orderAPI, paymentAPI, productAPI } from '@/services/api'
 import { loadStripe } from '@stripe/stripe-js'
+import { useNotificationStore } from '@/stores/notifications'
 
 let stripe = null
 let elements = null
@@ -471,15 +491,16 @@ export default {
   setup() {
     const router = useRouter()
     const cartStore = useCartStore()
+    const notification = useNotificationStore()
 
-    // Reactive data
-    const currentStep = ref(2) // Start at shipping info step
+    const userAvailablePoints = ref(0)
+
+    const currentStep = ref(2) 
     const submitting = ref(false)
     const processing = ref(false)
     const orderCode = ref(`CM${Date.now()}`)
-    const createdOrder = ref(null) // Store the created order from API
+    const createdOrder = ref(null) 
 
-    // Form data
     const shippingInfo = ref({
       firstName: '',
       lastName: '',
@@ -543,12 +564,10 @@ export default {
       { id: 'cod', name: 'Thanh toán khi nhận hàng (COD)', icon: '💵' },
     ])
 
-    // Lấy orderItems từ cartStore (giỏ hàng thực tế)
     const orderItems = computed(() => cartStore.items)
 
     const discount = ref(0)
 
-    // Computed properties
     const subtotal = computed(() => {
       return orderItems.value.reduce(
         (total, item) => total + (item.productPrice || 0) * item.quantity,
@@ -586,7 +605,6 @@ export default {
       return subtotal.value >= 500000
     })
 
-    // Dynamic delivery price calculation
     const getDynamicDeliveryPrice = (optionId) => {
       const option = deliveryOptions.value.find((opt) => opt.id === optionId)
       if (!option) return 0
@@ -594,7 +612,6 @@ export default {
       let price = option.price
       const address = shippingInfo.value.address.toLowerCase()
 
-      // Surcharge for remote areas
       if (
         address.includes('miền núi') ||
         address.includes('tây nguyên') ||
@@ -604,7 +621,6 @@ export default {
         price += 15000
       }
 
-      // Special surcharge for islands
       if (
         address.includes('phú quốc') ||
         address.includes('côn đảo') ||
@@ -616,7 +632,6 @@ export default {
       return price
     }
 
-    // Available delivery options based on conditions
     const availableDeliveryOptions = computed(() => {
       return deliveryOptions.value.map((option) => {
         let available = option.available
@@ -683,45 +698,12 @@ export default {
     const cardMounted = ref(false)
 
     const processPayment = async () => {
-      if (selectedPayment.value === 'card') {
-        if (!cardComplete.value) {
-          alert('Vui lòng nhập đầy đủ thông tin thẻ')
-          return
-        }
-      }
       processing.value = true
       try {
-        // Create order first
-        const orderData = {
-          shippingAddress: JSON.stringify({
-            firstName: shippingInfo.value.firstName,
-            lastName: shippingInfo.value.lastName,
-            email: shippingInfo.value.email,
-            phone: shippingInfo.value.phone,
-            address: shippingInfo.value.address,
-            notes: shippingInfo.value.notes,
-            deliveryMethod: selectedDelivery.value,
-          }),
-          billingAddress: JSON.stringify({
-            firstName: shippingInfo.value.firstName,
-            lastName: shippingInfo.value.lastName,
-            email: shippingInfo.value.email,
-            phone: shippingInfo.value.phone,
-            address: shippingInfo.value.address,
-          }),
-          paymentMethod: selectedPayment.value,
-          shippingFee: deliveryPrice.value,
-        }
-        const orderResponse = await orderAPI.create(orderData)
-        const order = orderResponse.data
-        console.log('Order response:', order)
-        createdOrder.value = order
-        orderCode.value = order.orderCode || order.id
         if (selectedPayment.value === 'card') {
-          // Gọi backend để tạo PaymentIntent
           const paymentIntentRes = await paymentAPI.createPaymentIntent(
-            order.id || order.orderId,
-            totalAmount.value
+            null, 
+            finalTotalAmount.value
           )
           const clientSecret = paymentIntentRes.data.clientSecret
           stripe = await stripePromise
@@ -739,17 +721,81 @@ export default {
             processing.value = false
             return
           }
+          // 2. Nếu thanh toán thành công, mới tạo đơn hàng
+          const orderData = {
+            shippingAddress: JSON.stringify({
+              firstName: shippingInfo.value.firstName,
+              lastName: shippingInfo.value.lastName,
+              email: shippingInfo.value.email,
+              phone: shippingInfo.value.phone,
+              address: shippingInfo.value.address,
+              notes: shippingInfo.value.notes,
+              deliveryMethod: selectedDelivery.value,
+            }),
+            billingAddress: JSON.stringify({
+              firstName: shippingInfo.value.firstName,
+              lastName: shippingInfo.value.lastName,
+              email: shippingInfo.value.email,
+              phone: shippingInfo.value.phone,
+              address: shippingInfo.value.address,
+            }),
+            paymentMethod: selectedPayment.value,
+            shippingFee: deliveryPrice.value,
+            loyaltyPointsToUse: loyaltyPointsToUse.value,
+            paymentId: paymentIntent.id, 
+          }
+          const orderResponse = await orderAPI.create(orderData)
+          const order = orderResponse.data
+          createdOrder.value = order
+          orderCode.value = order.orderCode || order.id
           alert('Thanh toán Stripe thành công!')
         } else if (selectedPayment.value === 'cod') {
+          const orderData = {
+            shippingAddress: JSON.stringify({
+              firstName: shippingInfo.value.firstName,
+              lastName: shippingInfo.value.lastName,
+              email: shippingInfo.value.email,
+              phone: shippingInfo.value.phone,
+              address: shippingInfo.value.address,
+              notes: shippingInfo.value.notes,
+              deliveryMethod: selectedDelivery.value,
+            }),
+            billingAddress: JSON.stringify({
+              firstName: shippingInfo.value.firstName,
+              lastName: shippingInfo.value.lastName,
+              email: shippingInfo.value.email,
+              phone: shippingInfo.value.phone,
+              address: shippingInfo.value.address,
+            }),
+            paymentMethod: selectedPayment.value,
+            shippingFee: deliveryPrice.value,
+            loyaltyPointsToUse: loyaltyPointsToUse.value,
+          }
+          const orderResponse = await orderAPI.create(orderData)
+          const order = orderResponse.data
+          createdOrder.value = order
+          orderCode.value = order.orderCode || order.id
           alert('Đặt hàng thành công! Bạn sẽ thanh toán khi nhận hàng.')
         }
         await cartStore.clearCart()
         currentStep.value = 4
+        if (loyaltyPointsToUse.value > 0) {
+          notification.success(
+            `Đã sử dụng ${loyaltyPointsToUse.value.toLocaleString(
+              'vi-VN'
+            )} điểm thưởng để giảm giá đơn hàng!`
+          )
+        }
       } catch (error) {
         console.error('❌ Payment error:', error)
         const errorMessage =
           error.response?.data?.message || 'Có lỗi xảy ra khi thanh toán. Vui lòng thử lại.'
         alert(errorMessage)
+        if (loyaltyPointsToUse.value > 0) {
+          notification.error(
+            'Sử dụng điểm thưởng thất bại. Vui lòng thử lại hoặc kiểm tra số điểm!'
+          )
+        }
       } finally {
         processing.value = false
       }
@@ -790,7 +836,6 @@ export default {
       return ''
     }
 
-    // Watch selectedPayment để mount lại Stripe Card Element khi chọn thẻ
     watch(selectedPayment, async (val, oldVal) => {
       if (currentStep.value === 3 && val === 'card') {
         await nextTick()
@@ -818,7 +863,6 @@ export default {
       }
     })
 
-    // Watch currentStep để mount lại Stripe Card Element khi chuyển sang bước thanh toán
     watch(currentStep, async (val, oldVal) => {
       if (val === 3 && selectedPayment.value === 'card') {
         await nextTick()
@@ -848,10 +892,8 @@ export default {
       }
     })
 
-    // Lifecycle
     onMounted(async () => {
       await cartStore.loadCart()
-      // Join product info for each cart item if missing
       const items = cartStore.items
       for (const item of items) {
         if (!item.product && item.productId) {
@@ -863,7 +905,6 @@ export default {
           }
         }
       }
-      // Mount Stripe Card Element khi vào bước thanh toán
       if (!cardMounted.value && document.getElementById('stripe-card-element')) {
         stripe = await stripePromise
         elements = stripe.elements()
@@ -877,6 +918,33 @@ export default {
         cardElement.mount('#stripe-card-element')
         cardMounted.value = true
       }
+
+      try {
+        const res = await api.getLoyaltyPoints()
+        userAvailablePoints.value = res.data.points || 0
+      } catch (e) {
+        userAvailablePoints.value = 0
+      }
+    })
+
+    const loyaltyPointsToUse = ref(0)
+    const loyaltyPointsError = ref('')
+
+    const maxLoyaltyPoints = computed(() => {
+      return userAvailablePoints.value || 0
+    })
+
+    watch(loyaltyPointsToUse, (val) => {
+      if (val < 0) loyaltyPointsToUse.value = 0
+      if (val > maxLoyaltyPoints.value) loyaltyPointsToUse.value = maxLoyaltyPoints.value
+    })
+
+    const loyaltyDiscount = computed(() => {
+      return Math.min(loyaltyPointsToUse.value, totalAmount.value)
+    })
+
+    const finalTotalAmount = computed(() => {
+      return totalAmount.value - loyaltyDiscount.value
     })
 
     return {
@@ -913,6 +981,13 @@ export default {
       cardComplete,
       cardError,
       cardMounted,
+      loyaltyPointsToUse,
+      loyaltyPointsError,
+      maxLoyaltyPoints,
+      loyaltyDiscount,
+      finalTotalAmount,
+      notification,
+      userAvailablePoints,
     }
   },
 }
@@ -1695,6 +1770,76 @@ export default {
 .badge-icon {
   flex: none;
   color: #10b981;
+}
+
+/* Loyalty Points Section */
+.loyalty-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 1rem;
+  background: rgba(255, 215, 0, 0.13);
+  border: 1.5px solid rgba(255, 215, 0, 0.35);
+  border-radius: 12px;
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.loyalty-label {
+  color: var(--text-accent);
+  font-weight: 700;
+  font-size: 1.08rem;
+  margin-right: 0.5rem;
+  white-space: nowrap;
+}
+.loyalty-input {
+  width: 90px;
+  padding: 0.6rem 1rem;
+  border: 1.5px solid var(--text-accent);
+  border-radius: 8px;
+  background: rgba(26, 26, 46, 0.92);
+  color: var(--text-primary);
+  font-size: 1.08rem;
+  text-align: right;
+  font-weight: 600;
+  margin-right: 0.5rem;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+.loyalty-input:focus {
+  outline: none;
+  border-color: #ffd700;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.18);
+}
+.loyalty-max {
+  color: var(--text-secondary);
+  font-size: 1.02rem;
+  margin-right: 0.7rem;
+  white-space: nowrap;
+}
+.loyalty-discount {
+  color: #10b981;
+  font-size: 1.08rem;
+  font-weight: 600;
+  margin-left: auto;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .loyalty-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 1rem 0.5rem;
+  }
+  .loyalty-label,
+  .loyalty-input,
+  .loyalty-max,
+  .loyalty-discount {
+    font-size: 1rem;
+    margin: 0 0 0.2rem 0;
+  }
+  .loyalty-discount {
+    margin-left: 0;
+  }
 }
 
 /* Responsive Design */

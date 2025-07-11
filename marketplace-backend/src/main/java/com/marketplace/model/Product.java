@@ -26,7 +26,7 @@ public class Product {
     @DecimalMax(value = "999999.99", message = "Price must not exceed 999,999.99")
     private Double price;
 
-    private List<String> images = new ArrayList<>(); // Hỗ trợ nhiều hình ảnh
+    private List<String> images = new ArrayList<>(); 
 
     @NotBlank(message = "Category is required")
     private String category;
@@ -35,22 +35,21 @@ public class Product {
     private String sellerId;
 
     @Min(value = 0, message = "Stock quantity cannot be negative")
-    private int stockQuantity = 0; // Số lượng tồn kho
+    private int stockQuantity = 0; 
     
     @JsonProperty("isActive")
     private boolean active = true;
 
     @DecimalMin(value = "0.0", message = "Average rating cannot be negative")
     @DecimalMax(value = "5.0", message = "Average rating cannot exceed 5.0")
-    private double averageRating = 0.0; // Đánh giá trung bình
+    private double averageRating = 0.0; 
 
     @Min(value = 0, message = "Review count cannot be negative")
-    private int reviewCount = 0; // Số lượng đánh giá
-    private List<String> tags = new ArrayList<>(); // Tags để tìm kiếm
+    private int reviewCount = 0; 
+    private List<String> tags = new ArrayList<>(); 
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    // Constructors
     public Product() {}
 
     public Product(String name, String description, Double price, String category, String sellerId) {
@@ -61,7 +60,6 @@ public class Product {
         this.sellerId = sellerId;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

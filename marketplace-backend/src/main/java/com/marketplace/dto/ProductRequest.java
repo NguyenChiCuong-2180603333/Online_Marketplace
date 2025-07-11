@@ -24,7 +24,6 @@ public class ProductRequest {
 
     private List<String> tags;
 
-    // Constructors
     public ProductRequest() {}
 
     public ProductRequest(String name, String description, Double price, String category) {
@@ -34,7 +33,6 @@ public class ProductRequest {
         this.category = category;
     }
 
-    // Getters and Setters
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 

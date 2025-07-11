@@ -35,7 +35,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
                 String userId = tokenProvider.getUserIdFromToken(jwt);
 
-                // Lazy load UserService để tránh circular dependency
                 UserService userService = applicationContext.getBean(UserService.class);
                 UserDetails userDetails = userService.loadUserById(userId);
 

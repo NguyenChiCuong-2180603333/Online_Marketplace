@@ -409,7 +409,6 @@ const sendMessage = async () => {
     status: 'sending'
   }
   
-  // Add message immediately for better UX
   messages.value.push(tempMessage)
   newMessage.value = ''
   await nextTick()
@@ -419,7 +418,6 @@ const sendMessage = async () => {
     sendingMessage.value = true
     const sentMessage = await sellerStore.sendOrderMessage(props.order.id, messageContent)
     
-    // Update temp message with real data
     const messageIndex = messages.value.findIndex(m => m.id === tempMessage.id)
     if (messageIndex !== -1) {
       messages.value[messageIndex] = {
@@ -430,12 +428,10 @@ const sendMessage = async () => {
     
     emit('message-sent', props.order.id, sentMessage)
     
-    // Play sound notification
     if (soundNotifications.value) {
       playNotificationSound()
     }
     
-    // Simulate message delivery
     setTimeout(() => {
       if (messageIndex !== -1) {
         messages.value[messageIndex].status = 'delivered'
@@ -443,7 +439,6 @@ const sendMessage = async () => {
     }, 2000)
     
   } catch (error) {
-    // Remove temp message on error
     messages.value = messages.value.filter(m => m.id !== tempMessage.id)
     alert('Có lỗi xảy ra khi gửi tin nhắn')
   } finally {
@@ -459,7 +454,6 @@ const handleKeyDown = (event) => {
 }
 
 const handleTyping = () => {
-  // Simulate typing indicator (in real app, would send typing event to server)
 }
 
 const useQuickReply = (content) => {
@@ -517,7 +511,6 @@ const uploadFiles = async () => {
   try {
     uploadingFiles.value = true
     
-    // Simulate file upload (replace with real implementation)
     await new Promise(resolve => setTimeout(resolve, 2000))
     
     const fileMessage = {
@@ -530,7 +523,7 @@ const uploadFiles = async () => {
         name: file.name,
         size: file.size,
         type: file.type,
-        url: URL.createObjectURL(file) // In real app, this would be the uploaded file URL
+        url: URL.createObjectURL(file) 
       }))
     }
     
@@ -565,7 +558,6 @@ const markAllAsRead = () => {
 const copyToClipboard = async (text) => {
   try {
     await navigator.clipboard.writeText(text)
-    // Show temporary notification
     const notification = document.createElement('div')
     notification.textContent = 'Đã copy vào clipboard'
     notification.style.cssText = `
@@ -587,10 +579,9 @@ const copyToClipboard = async (text) => {
 }
 
 const playNotificationSound = () => {
-  // Create and play notification sound
   const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+Tv0Xg...')
   audio.volume = 0.3
-  audio.play().catch(() => {}) // Ignore errors if sound can't play
+  audio.play().catch(() => {}) 
 }
 
 const getCustomerStatusText = () => {
@@ -607,11 +598,11 @@ const formatTime = (timestamp) => {
   const now = new Date()
   const diff = now - date
   
-  if (diff < 60000) { // Less than 1 minute
+  if (diff < 60000) { 
     return 'Vừa xong'
-  } else if (diff < 3600000) { // Less than 1 hour
+  } else if (diff < 3600000) { 
     return `${Math.floor(diff / 60000)} phút trước`
-  } else if (diff < 86400000) { // Less than 1 day
+  } else if (diff < 86400000) { 
     return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
   } else {
     return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
@@ -650,7 +641,6 @@ const getStatusColor = (status) => {
   return sellerStore.getStatusColor(status)
 }
 
-// Auto-refresh messages
 let refreshInterval = null
 
 const startAutoRefresh = () => {
@@ -673,7 +663,7 @@ const startAutoRefresh = () => {
         console.error('Error auto-refreshing messages:', error)
       }
     }
-  }, 5000) // Refresh every 5 seconds
+  }, 5000) 
 }
 
 const stopAutoRefresh = () => {
@@ -683,7 +673,7 @@ const stopAutoRefresh = () => {
   }
 }
 
-// Watchers
+
 watch(autoRefresh, (newValue) => {
   if (newValue) {
     startAutoRefresh()
@@ -692,12 +682,10 @@ watch(autoRefresh, (newValue) => {
   }
 })
 
-// Lifecycle
 onMounted(async () => {
   await loadMessages()
   startAutoRefresh()
   
-  // Simulate customer status changes
   setTimeout(() => customerStatus.value = 'away', 30000)
   setTimeout(() => customerTyping.value = true, 10000)
   setTimeout(() => customerTyping.value = false, 13000)

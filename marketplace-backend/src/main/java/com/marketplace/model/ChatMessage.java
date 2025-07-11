@@ -5,13 +5,14 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import jakarta.validation.constraints.*;
 
 import java.time.LocalDateTime;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 @Document(collection = "chat_messages")
 public class ChatMessage {
     @Id
     private String id;
 
-    @NotBlank(message = "Conversation ID is required")
+    @Indexed
     private String conversationId;
 
     @NotBlank(message = "Sender ID is required")
@@ -33,7 +34,6 @@ public class ChatMessage {
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime editedAt;
 
-    // Constructors
     public ChatMessage() {}
 
     public ChatMessage(String conversationId, String senderId, String receiverId, String content) {
@@ -43,7 +43,6 @@ public class ChatMessage {
         this.content = content;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

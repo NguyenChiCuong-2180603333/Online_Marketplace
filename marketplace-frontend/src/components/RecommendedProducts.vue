@@ -307,13 +307,10 @@ export default {
 
     // Handle product click
     const handleProductClick = async (product, index) => {
-      // Track click
       await recommendationService.trackClick(product.id, 'recommendation_card')
 
-      // Emit event
       emit('product-click', { product, index })
 
-      // Navigate to product detail
       router.push(`/products/${product.id}`)
     }
 
@@ -325,8 +322,6 @@ export default {
 
         emit('add-to-cart', product)
 
-        // Show success notification
-        // TODO: Add notification system
       } catch (err) {
         console.error('Error adding to cart:', err)
       }
@@ -335,7 +330,6 @@ export default {
     // Add to wishlist
     const addToWishlist = async (product) => {
       try {
-        // Add to wishlist logic here
         await recommendationService.trackInteraction(product.id, 'ADD_TO_WISHLIST')
 
         emit('add-to-wishlist', product)

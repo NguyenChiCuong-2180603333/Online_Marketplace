@@ -67,6 +67,8 @@ public class UserProfileController {
         return ResponseEntity.ok(profile);
     }
 
+
+
     // Cập nhật thông tin profile
     @PutMapping
     public ResponseEntity<User> updateProfile(@Valid @RequestBody UpdateProfileRequest updateRequest) {
@@ -93,8 +95,6 @@ public class UserProfileController {
 
         // Upload to Cloudinary using FileUploadService
         String avatarUrl = fileUploadService.uploadAvatar(file);
-
-        // Update user's avatar in database
         User user = userService.getUserById(userId);
         user.setAvatar(avatarUrl);
         userService.updateUser(userId, user);
@@ -172,14 +172,12 @@ public class UserProfileController {
     public ResponseEntity<Map<String, Object>> getNotifications(
             @RequestParam(defaultValue = "false") boolean unreadOnly) {
         String userId = getCurrentUserId();
-        // This would typically call NotificationService
         Map<String, Object> result = new HashMap<>();
         result.put("notifications", List.of());
         result.put("unreadCount", 0);
         return ResponseEntity.ok(result);
     }
 
-    // Addresses endpoints - Simplified to use User.address field
     @GetMapping("/addresses")
     public ResponseEntity<Map<String, Object>> getAddresses() {
         String userId = getCurrentUserId();
@@ -202,7 +200,6 @@ public class UserProfileController {
         String userId = getCurrentUserId();
         User user = userService.getUserById(userId);
         
-        // Update user's address
         user.setAddress((String) addressData.get("address"));
         userService.updateUser(userId, user);
         
@@ -217,7 +214,6 @@ public class UserProfileController {
         String userId = getCurrentUserId();
         User user = userService.getUserById(userId);
         
-        // Update user's address
         user.setAddress((String) addressData.get("address"));
         userService.updateUser(userId, user);
         
@@ -231,7 +227,6 @@ public class UserProfileController {
         String userId = getCurrentUserId();
         User user = userService.getUserById(userId);
         
-        // Clear user's address
         user.setAddress(null);
         userService.updateUser(userId, user);
         
@@ -242,17 +237,14 @@ public class UserProfileController {
 
     @PutMapping("/addresses/{addressId}/default")
     public ResponseEntity<Map<String, Object>> setDefaultAddress(@PathVariable String addressId) {
-        // Already default since we only have one address
         Map<String, Object> result = new HashMap<>();
         result.put("message", "Đã đặt địa chỉ mặc định");
         return ResponseEntity.ok(result);
     }
 
-    // Payment methods endpoints
     @GetMapping("/payment-methods")
     public ResponseEntity<Map<String, Object>> getPaymentMethods() {
         String userId = getCurrentUserId();
-        // TODO: Implement payment method service
         Map<String, Object> result = new HashMap<>();
         result.put("paymentMethods", List.of());
         result.put("defaultPaymentMethodId", null);
@@ -262,7 +254,6 @@ public class UserProfileController {
     @PostMapping("/payment-methods")
     public ResponseEntity<Map<String, Object>> addPaymentMethod(@RequestBody Map<String, Object> paymentData) {
         String userId = getCurrentUserId();
-        // TODO: Implement payment method service
         Map<String, Object> result = new HashMap<>();
         result.put("message", "Phương thức thanh toán đã được thêm thành công");
         return ResponseEntity.ok(result);
@@ -272,7 +263,6 @@ public class UserProfileController {
     public ResponseEntity<Map<String, Object>> updatePaymentMethod(@PathVariable String methodId, 
                                                                  @RequestBody Map<String, Object> paymentData) {
         String userId = getCurrentUserId();
-        // TODO: Implement payment method service
         Map<String, Object> result = new HashMap<>();
         result.put("message", "Phương thức thanh toán đã được cập nhật thành công");
         return ResponseEntity.ok(result);
@@ -281,7 +271,6 @@ public class UserProfileController {
     @DeleteMapping("/payment-methods/{methodId}")
     public ResponseEntity<Map<String, Object>> deletePaymentMethod(@PathVariable String methodId) {
         String userId = getCurrentUserId();
-        // TODO: Implement payment method service
         Map<String, Object> result = new HashMap<>();
         result.put("message", "Phương thức thanh toán đã được xóa thành công");
         return ResponseEntity.ok(result);
@@ -290,17 +279,14 @@ public class UserProfileController {
     @PutMapping("/payment-methods/{methodId}/default")
     public ResponseEntity<Map<String, Object>> setDefaultPaymentMethod(@PathVariable String methodId) {
         String userId = getCurrentUserId();
-        // TODO: Implement payment method service
         Map<String, Object> result = new HashMap<>();
         result.put("message", "Đã đặt phương thức thanh toán mặc định");
         return ResponseEntity.ok(result);
     }
 
-    // Wishlist endpoints
     @GetMapping("/wishlist")
     public ResponseEntity<Map<String, Object>> getWishlist() {
         String userId = getCurrentUserId();
-        // TODO: Implement wishlist service
         Map<String, Object> result = new HashMap<>();
         result.put("wishlist", List.of());
         return ResponseEntity.ok(result);
@@ -310,7 +296,6 @@ public class UserProfileController {
     public ResponseEntity<Map<String, Object>> addToWishlist(@RequestBody Map<String, Object> request) {
         String userId = getCurrentUserId();
         String productId = (String) request.get("productId");
-        // TODO: Implement wishlist service
         Map<String, Object> result = new HashMap<>();
         result.put("message", "Sản phẩm đã được thêm vào danh sách yêu thích");
         return ResponseEntity.ok(result);
@@ -319,18 +304,15 @@ public class UserProfileController {
     @DeleteMapping("/wishlist/{productId}")
     public ResponseEntity<Map<String, Object>> removeFromWishlist(@PathVariable String productId) {
         String userId = getCurrentUserId();
-        // TODO: Implement wishlist service
         Map<String, Object> result = new HashMap<>();
         result.put("message", "Sản phẩm đã được xóa khỏi danh sách yêu thích");
         return ResponseEntity.ok(result);
     }
 
-    // Saved for Later endpoints
     @GetMapping("/saved-items")
     public ResponseEntity<Map<String, Object>> getSavedItems() {
         String userId = getCurrentUserId();
         List<String> savedProductIds = userService.getSavedItems(userId);
-        // Lấy chi tiết sản phẩm từ id, bỏ qua id không hợp lệ
         List<Product> savedProducts = savedProductIds.stream()
             .map(id -> {
                 try {
@@ -374,7 +356,7 @@ public class UserProfileController {
                 try {
                     return jwtTokenProvider.getUserIdFromToken(token);
                 } catch (Exception e) {
-                    // Log error if needed
+    
                 }
             }
         }
@@ -392,7 +374,7 @@ public class UserProfileController {
                 return bearerToken.substring(7);
             }
         } catch (Exception e) {
-            // Ignore
+
         }
         return null;
     }

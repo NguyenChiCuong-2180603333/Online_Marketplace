@@ -91,7 +91,6 @@ public class CartController {
         if (authentication != null && authentication.isAuthenticated() &&
                 !authentication.getPrincipal().equals("anonymousUser")) {
 
-            // Extract user ID from JWT token
             String token = getJwtFromCurrentRequest();
             if (token != null) {
                 try {

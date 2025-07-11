@@ -6,6 +6,8 @@ import jakarta.validation.constraints.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Document(collection = "conversations")
 public class Conversation {
@@ -15,14 +17,14 @@ public class Conversation {
     @NotNull(message = "Participants are required")
     private List<String> participantIds;
 
-    private String productId; // Optional: conversation about a specific product
+    private String productId; 
     private String lastMessageId;
     private String lastMessageContent;
     private LocalDateTime lastMessageTime;
     private LocalDateTime createdAt = LocalDateTime.now();
     private boolean isActive = true;
+    private Map<String, Integer> unreadCount = new HashMap<>(); // key: userId, value: số tin chưa đọc
 
-    // Constructors
     public Conversation() {}
 
     public Conversation(List<String> participantIds) {
@@ -34,7 +36,6 @@ public class Conversation {
         this.productId = productId;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -58,4 +59,7 @@ public class Conversation {
 
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
+
+    public Map<String, Integer> getUnreadCount() { return unreadCount; }
+    public void setUnreadCount(Map<String, Integer> unreadCount) { this.unreadCount = unreadCount; }
 }

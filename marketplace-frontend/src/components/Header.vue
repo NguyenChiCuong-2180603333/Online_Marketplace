@@ -41,13 +41,12 @@
                   }}</span>
                 </span>
               </router-link>
-            </div>
-            <div class="reward-group">
-              <span class="star-icon">★</span>
-              <span class="reward-points">{{ loyaltyStore.userPoints.current }}</span>
-              <span class="tier-badge2" :style="{ background: loyaltyStore.tierColor }">
-                {{ loyaltyStore.userPoints.tier }}
-              </span>
+              <router-link to="/chat" class="nav-link chat-link" title="Tin nhắn">
+                <span class="icon-badge-wrapper">
+                  <span class="nav-icon">💬</span>
+                  <span v-if="unreadChatMessages" class="chat-badge">{{ unreadChatMessages }}</span>
+                </span>
+              </router-link>
             </div>
             <div class="user-dropdown user-info-group">
               <button @click="toggleUserMenu" class="user-btn">
@@ -90,11 +89,12 @@
                     <span>Đơn hàng của tôi</span>
                   </router-link>
 
-                  <!-- Loyalty Link - NEW INTEGRATION -->
-                  <router-link to="/loyalty" class="dropdown-link loyalty-link">
-                    <span class="link-icon">⭐</span>
-                    <span>Điểm thưởng</span>
-                    <div class="loyalty-points-badge">{{ loyaltyStore.formattedPoints }}</div>
+                  <router-link to="/chat" class="dropdown-link">
+                    <span class="link-icon">💬</span>
+                    <span>Tin nhắn</span>
+                    <span v-if="unreadChatMessages" class="chat-badge-small">{{
+                      unreadChatMessages
+                    }}</span>
                   </router-link>
 
                   <router-link to="/wishlist" class="dropdown-link">
@@ -178,26 +178,15 @@
             <span v-if="cartStore.totalItems" class="mobile-badge">{{ cartStore.totalItems }}</span>
           </router-link>
 
-          <!-- Mobile Points Display - NEW INTEGRATION -->
-          <router-link
-            to="/loyalty"
-            class="mobile-nav-link loyalty-mobile"
-            @click="closeMobileMenu"
-          >
-            <span class="mobile-loyalty-content">
-              ⭐ Điểm thưởng
-              <span class="mobile-points-badge">{{ loyaltyStore.formattedPoints }}</span>
-              <span class="mobile-tier-badge" :style="{ color: loyaltyStore.tierColor }">
-                {{ loyaltyStore.userPoints.tier }}
-              </span>
-            </span>
-          </router-link>
-
           <router-link to="/profile" class="mobile-nav-link" @click="closeMobileMenu">
             👤 Hồ sơ
           </router-link>
           <router-link to="/orders" class="mobile-nav-link" @click="closeMobileMenu">
             📋 Đơn hàng
+          </router-link>
+          <router-link to="/chat" class="mobile-nav-link" @click="closeMobileMenu">
+            💬 Tin nhắn
+            <span v-if="unreadChatMessages" class="mobile-badge">{{ unreadChatMessages }}</span>
           </router-link>
 
           <!-- 🆕 NEW: Mobile Seller Dashboard Link -->
@@ -233,24 +222,22 @@ import { ref, computed, onMounted, onUnmounted, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
-import { useLoyaltyStore } from '@/stores/loyalty' // NEW IMPORT
-import { useSellerStore } from '@/stores/seller' // 🆕 NEW IMPORT
+import { useSellerStore } from '@/stores/seller'
+import { useChatStore } from '@/stores/chat'
 import SearchBox from '@/components/SearchBox.vue'
-import PointsDisplay from '@/components/PointsDisplay.vue' // NEW IMPORT
-import { notificationAPI } from '@/services/api'
+import { notificationAPI, chatAPI } from '@/services/api'
 
 export default {
   name: 'Header',
   components: {
     SearchBox,
-    PointsDisplay, // NEW COMPONENT
   },
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
     const cartStore = useCartStore()
-    const loyaltyStore = useLoyaltyStore()
-    const sellerStore = useSellerStore() // 🆕 NEW STORE
+    const sellerStore = useSellerStore()
+    const chatStore = useChatStore()
 
     const isAuthenticated = computed(() => authStore.isAuthenticated)
     const isAdmin = computed(() => authStore.isAdmin)
@@ -264,12 +251,11 @@ export default {
     // Refs
     const searchBoxRef = ref(null)
 
-    // Reactive data
     const showNotifications = ref(false)
     const showUserMenu = ref(false)
     const showMobileMenu = ref(false)
     const unreadNotifications = computed(() => notifications.value.filter((n) => !n.read).length)
-    // Sample notifications - Updated with loyalty notifications
+    const unreadChatMessages = computed(() => chatStore.totalUnreadCount)
     const notifications = ref([
       {
         id: 1,
@@ -379,9 +365,7 @@ export default {
     const logout = async () => {
       try {
         await authStore.logout()
-        // Reset loyalty data on logout
-        loyaltyStore.resetLoyalty()
-        // 🆕 NEW: Reset seller data on logout
+        // Reset seller data on logout
         sellerStore.resetSeller()
         router.push('/')
         showUserMenu.value = false
@@ -391,7 +375,6 @@ export default {
       }
     }
 
-    // Close dropdowns when clicking outside
     const handleClickOutside = (event) => {
       if (!event.target.closest('.notification-dropdown')) {
         showNotifications.value = false
@@ -401,27 +384,18 @@ export default {
       }
     }
 
-    // Focus search shortcut (Ctrl/Cmd + K)
     const handleKeyboardShortcut = (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
         event.preventDefault()
         searchBoxRef.value?.focus()
       }
 
-      // Escape to close mobile menu
       if (event.key === 'Escape' && showMobileMenu.value) {
         closeMobileMenu()
       }
     }
 
-    // NEW: Initialize loyalty data when user logs in
-    const initializeLoyaltyData = async () => {
-      if (authStore.isAuthenticated) {
-        await loyaltyStore.initializeLoyalty()
-      }
-    }
-
-    // 🆕 NEW: Initialize seller data when user logs in
+    // NEW: Initialize seller data when user logs in
     const initializeSellerData = async () => {
       if (authStore.isAuthenticated) {
         try {
@@ -432,15 +406,12 @@ export default {
       }
     }
 
-    // NEW: Watch for authentication changes
     watchEffect(() => {
       if (authStore.isAuthenticated) {
-        initializeLoyaltyData()
-        initializeSellerData() // 🆕 NEW
+        initializeSellerData()
         cartStore.loadCart()
       } else {
-        loyaltyStore.resetLoyalty()
-        sellerStore.resetSeller() // 🆕 NEW
+        sellerStore.resetSeller()
       }
     })
 
@@ -450,7 +421,6 @@ export default {
       document.addEventListener('keydown', handleKeyboardShortcut)
 
       if (authStore.isAuthenticated) {
-        initializeLoyaltyData()
         initializeSellerData()
         cartStore.loadCart()
         // Lấy thông báo thực tế từ backend
@@ -472,8 +442,8 @@ export default {
       // Stores
       authStore,
       cartStore,
-      loyaltyStore,
       sellerStore,
+      chatStore,
 
       isAdmin,
       currentUser,
@@ -487,6 +457,7 @@ export default {
       showUserMenu,
       showMobileMenu,
       unreadNotifications,
+      unreadChatMessages, // 🆕 NEW
       notifications,
 
       // SearchBox handlers
@@ -551,6 +522,37 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.chat-badge {
+  position: absolute;
+  top: -8px;
+  right: -16px;
+  background: #2ed573;
+  color: #fff;
+  border-radius: 50%;
+  padding: 2px 10px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  min-width: 28px;
+  text-align: center;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-badge-small {
+  background: #2ed573;
+  color: #fff;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+  margin-left: auto;
 }
 .reward-group {
   display: flex;

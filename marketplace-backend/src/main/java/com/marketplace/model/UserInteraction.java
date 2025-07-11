@@ -21,19 +21,16 @@ public class UserInteraction {
             message = "Interaction type must be VIEW, CLICK, ADD_TO_CART, PURCHASE, REVIEW, LIKE, SHARE, or SEARCH")
     private String interactionType;
 
-    private Double duration; // Thời gian xem sản phẩm (seconds)
+    private Double duration;
     private String sessionId;
-    private String deviceType; // MOBILE, DESKTOP, TABLET
-    private String referrer; // Từ đâu đến sản phẩm
+    private String deviceType; 
+    private String referrer; 
 
-    // Context data
-    private String searchQuery; // Nếu đến từ search
-    private String categoryBrowsed; // Nếu đến từ category
-    private Double rating; // Nếu là review
+    private String searchQuery; 
+    private String categoryBrowsed; 
+    private Double rating; 
 
     private LocalDateTime createdAt = LocalDateTime.now();
-
-    // Constructors
     public UserInteraction() {}
 
     public UserInteraction(String userId, String productId, String interactionType) {
@@ -42,7 +39,6 @@ public class UserInteraction {
         this.interactionType = interactionType;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

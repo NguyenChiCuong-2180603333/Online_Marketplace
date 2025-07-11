@@ -30,9 +30,6 @@ public class EnhancedPaymentService {
         Stripe.apiKey = stripeSecretKey;
     }
 
-    /**
-     * Tạo Payment Intent với support cho nhiều payment methods
-     */
     public Map<String, Object> createPaymentIntent(String orderId, String paymentType) {
         try {
             Order order = orderService.getOrderById(orderId);
@@ -43,7 +40,6 @@ public class EnhancedPaymentService {
 
             long amountInVND = order.getTotalAmount().longValue();
 
-            // Build payment methods based on type
             PaymentIntentCreateParams.Builder paramsBuilder = PaymentIntentCreateParams.builder()
                     .setAmount(amountInVND)
                     .setCurrency("vnd")
@@ -51,7 +47,6 @@ public class EnhancedPaymentService {
                     .putMetadata("userId", order.getUserId())
                     .setDescription("Đơn hàng #" + orderId);
 
-            // Configure payment methods
             switch (paymentType.toLowerCase()) {
                 case "card":
                     paramsBuilder.setAutomaticPaymentMethods(
@@ -63,10 +58,9 @@ public class EnhancedPaymentService {
                     break;
 
                 case "ewallet":
-                    // Support for e-wallets like GrabPay, ShopeePay, etc.
                     List<String> paymentMethodTypes = new ArrayList<>();
                     paymentMethodTypes.add("grabpay");
-                    paymentMethodTypes.add("fpx"); // Malaysian online banking
+                    paymentMethodTypes.add("fpx"); 
                     paymentMethodTypes.add("alipay");
 
                     paramsBuilder.addAllPaymentMethodType(paymentMethodTypes);
@@ -75,13 +69,12 @@ public class EnhancedPaymentService {
                 case "bank_transfer":
                     List<String> bankMethods = new ArrayList<>();
                     bankMethods.add("fpx");
-                    bankMethods.add("promptpay"); // Thai
+                    bankMethods.add("promptpay"); 
 
                     paramsBuilder.addAllPaymentMethodType(bankMethods);
                     break;
 
                 default:
-                    // Default: enable all available methods
                     paramsBuilder.setAutomaticPaymentMethods(
                             PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
                                     .setEnabled(true)
@@ -91,7 +84,6 @@ public class EnhancedPaymentService {
 
             PaymentIntent paymentIntent = PaymentIntent.create(paramsBuilder.build());
 
-            // Update order with payment intent ID
             orderService.updatePaymentStatus(orderId, "PENDING", paymentIntent.getId());
 
             Map<String, Object> response = new HashMap<>();
@@ -115,7 +107,6 @@ public class EnhancedPaymentService {
     public Map<String, Object> getAvailablePaymentMethods() {
         Map<String, Object> methods = new HashMap<>();
 
-        // Credit/Debit Cards
         Map<String, Object> cards = new HashMap<>();
         cards.put("enabled", true);
         cards.put("types", List.of("visa", "mastercard", "amex"));
@@ -198,15 +189,10 @@ public class EnhancedPaymentService {
      * Handle Stripe webhook events
      */
     public Map<String, Object> handleWebhook(String payload, String sigHeader) {
-        // Implementation for webhook handling
-        // This would process real-time payment status updates from Stripe
+   
 
         Map<String, Object> response = new HashMap<>();
         response.put("received", true);
-
-        // TODO: Implement proper webhook signature verification
-        // TODO: Process different event types (payment_intent.succeeded, etc.)
-
         return response;
     }
 
@@ -270,10 +256,7 @@ public class EnhancedPaymentService {
     private void sendPaymentConfirmationEmail(String orderId) {
         try {
             Order order = orderService.getOrderById(orderId);
-            // Integration with EmailService would go here
-            // emailService.sendOrderConfirmationEmail(order.getUserEmail(), order.getUserName(), orderId, order.getTotalAmount());
         } catch (Exception e) {
-            // Log error but don't fail payment
             System.err.println("Failed to send payment confirmation email: " + e.getMessage());
         }
     }

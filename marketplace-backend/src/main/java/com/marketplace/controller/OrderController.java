@@ -40,7 +40,15 @@ public class OrderController {
                 shippingFee = 0.0;
             }
         }
-        Order order = orderService.createOrderFromCart(userId, shippingAddress, billingAddress, paymentMethod, shippingFee);
+        Integer loyaltyPointsToUse = null;
+        if (request.containsKey("loyaltyPointsToUse")) {
+            try {
+                loyaltyPointsToUse = Integer.valueOf(request.get("loyaltyPointsToUse").toString());
+            } catch (Exception e) {
+                loyaltyPointsToUse = null;
+            }
+        }
+        Order order = orderService.createOrderFromCart(userId, shippingAddress, billingAddress, paymentMethod, shippingFee, loyaltyPointsToUse);
         return ResponseEntity.ok(order);
     }
 
@@ -58,7 +66,6 @@ public class OrderController {
         String userId = getCurrentUserId();
         Order order = orderService.getOrderById(id);
         
-        // Verify user owns this order (or is admin)
         if (!order.getUserId().equals(userId) && !isAdmin()) {
             return ResponseEntity.status(403).build();
         }
@@ -100,7 +107,6 @@ public class OrderController {
         String sellerId = getCurrentUserId();
         String status = request.get("status");
         
-        // Verify the order belongs to this seller
         Order order = orderService.getOrderById(orderId);
         if (!orderService.isOrderFromSeller(orderId, sellerId)) {
             return ResponseEntity.status(403).body(null);
@@ -116,7 +122,6 @@ public class OrderController {
         String promoCode = request.get("promoCode");
         String userId = getCurrentUserId();
         
-        // TODO: Implement promo code validation service
         Map<String, Object> result = new HashMap<>();
         
         // Mock validation for now
@@ -148,7 +153,6 @@ public class OrderController {
                 try {
                     return jwtTokenProvider.getUserIdFromToken(token);
                 } catch (Exception e) {
-                    // Log error if needed
                 }
             }
         }
@@ -166,7 +170,7 @@ public class OrderController {
                 return bearerToken.substring(7);
             }
         } catch (Exception e) {
-            // Ignore
+            
         }
         return null;
     }

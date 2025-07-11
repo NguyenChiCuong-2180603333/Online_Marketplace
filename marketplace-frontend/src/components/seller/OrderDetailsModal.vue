@@ -333,7 +333,6 @@ const emit = defineEmits(['close', 'status-updated', 'message-sent'])
 
 const sellerStore = useSellerStore()
 
-// Reactive data
 const updating = ref(false)
 const sendingMessage = ref(false)
 const newMessage = ref('')
@@ -352,7 +351,6 @@ const cancelInfo = ref({
   note: '',
 })
 
-// Message templates
 const messageTemplates = ref([
   {
     id: 1,
@@ -380,9 +378,8 @@ const messageTemplates = ref([
   },
 ])
 
-// Computed
+
 const statusHistory = computed(() => {
-  // Mock status history - replace with real data
   return [
     { status: 'PENDING', timestamp: props.order.createdAt, note: 'Đơn hàng được tạo' },
     ...(props.order.status !== 'PENDING'
@@ -397,7 +394,6 @@ const statusHistory = computed(() => {
   ]
 })
 
-// Methods
 const getSellerStatusLabel = (status) => {
   return getStatusLabel(status, 'SELLER')
 }
@@ -486,7 +482,6 @@ const sendMessage = async () => {
   try {
     sendingMessage.value = true
     
-    // Add message to local list
     const message = {
       id: Date.now(),
       sender: 'seller',
@@ -496,7 +491,6 @@ const sendMessage = async () => {
     
     messages.value.push(message)
     
-    // Send to backend
     await sellerStore.sendMessageToCustomer(props.order.id, newMessage.value)
     
     newMessage.value = ''
@@ -510,31 +504,25 @@ const sendMessage = async () => {
 }
 
 const viewProduct = (productId) => {
-  // Navigate to product page
   window.open(`/products/${productId}`, '_blank')
 }
 
 const printOrder = () => {
-  // Generate and print order
   window.print()
 }
 
 const generateInvoice = () => {
-  // Generate invoice
   alert('Tính năng tạo hóa đơn đang được phát triển')
 }
 
 const exportOrder = () => {
-  // Export order to Excel
   alert('Tính năng xuất Excel đang được phát triển')
 }
 
 const duplicateOrder = () => {
-  // Create similar order
   alert('Tính năng tạo đơn tương tự đang được phát triển')
 }
 
-// Load messages on mount
 onMounted(async () => {
   try {
     messages.value = await sellerStore.getOrderMessages(props.order.id)

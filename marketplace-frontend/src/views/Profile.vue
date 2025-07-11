@@ -214,7 +214,6 @@ const uploadAvatar = async () => {
 const updateProfile = async () => {
   updating.value = true
   try {
-    // Tách họ tên thành firstName, lastName
     const [firstName, ...lastArr] = (profileForm.value.fullName || '').trim().split(' ')
     const lastName = lastArr.join(' ') || ''
     const payload = {

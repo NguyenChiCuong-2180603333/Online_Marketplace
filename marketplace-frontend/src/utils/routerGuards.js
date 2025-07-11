@@ -1,15 +1,12 @@
-// utils/routerGuards.js - Enhanced với seller access
 import { useAuthStore } from '@/stores/auth'
 import { useSellerStore } from '@/stores/seller'
 
-// 🔧 SIMPLIFIED: Seller access check - chỉ cần USER/ADMIN role
 export const canAccessSellerFeatures = (user) => {
   if (!user) {
     console.log('❌ No user found')
     return false
   }
   
-  // Simplified check - bất kỳ USER nào cũng có thể trở thành seller
   const canAccess = (user.role === 'USER' || user.role === 'ADMIN')
   
   console.log('🔍 Seller access check:', {
@@ -21,13 +18,10 @@ export const canAccessSellerFeatures = (user) => {
   return canAccess
 }
 
-// 🔧 OPTIONAL: Seller onboarding check (có thể bỏ qua trong development)
 export const hasCompletedSellerOnboarding = (user) => {
   if (!user) return false
   
-  // Trong development, auto-approve mọi user
-  // Trong production, có thể check verification status
-  const isCompleted = true // hoặc user.sellerProfile?.isVerified
+  const isCompleted = true 
   
   console.log('🎓 Seller onboarding check:', {
     userId: user.id,
@@ -37,7 +31,6 @@ export const hasCompletedSellerOnboarding = (user) => {
   return isCompleted
 }
 
-// 🚀 MAIN: Seller Guard - kiểm tra quyền truy cập seller features
 export const sellerGuard = (to, from, next) => {
   const authStore = useAuthStore()
   const user = authStore.user
@@ -148,7 +141,6 @@ export const productOwnershipGuard = async (to, from, next) => {
   }
 }
 
-// 🔐 Order ownership guard - chỉ seller có sản phẩm trong order mới được truy cập
 export const orderOwnershipGuard = async (to, from, next) => {
   const authStore = useAuthStore()
   const sellerStore = useSellerStore()
@@ -201,7 +193,6 @@ export const orderOwnershipGuard = async (to, from, next) => {
   }
 }
 
-// 🎛️ Feature guard - kiểm tra tính năng được enable
 export const featureGuard = (requiredFeatures = []) => {
   return (to, from, next) => {
     const authStore = useAuthStore()
@@ -249,7 +240,6 @@ export const featureGuard = (requiredFeatures = []) => {
   }
 }
 
-// 🚨 Rate limiting guard (optional)
 export const rateLimitGuard = (maxRequests = 60) => {
   const requestCounts = new Map()
   
@@ -267,7 +257,7 @@ export const rateLimitGuard = (maxRequests = 60) => {
     const currentCount = requestCounts.get(key) || 0
     
     if (currentCount >= maxRequests) {
-      console.log('🚨 Rate limit exceeded for user:', userId)
+      console.log(' Rate limit exceeded for user:', userId)
       next({
         name: 'SellerDashboard',
         query: { 
@@ -289,7 +279,6 @@ export const rateLimitGuard = (maxRequests = 60) => {
   }
 }
 
-// 🔧 Combine multiple guards
 export const combineGuards = (guards = []) => {
   return (to, from, next) => {
     let currentIndex = 0
@@ -314,17 +303,13 @@ export const combineGuards = (guards = []) => {
   }
 }
 
-// 📋 Guard configurations for different route types
 export const guardConfigs = {
-  // Basic seller access
   seller: sellerGuard,
   
-  // Product management with ownership
   productManagement: combineGuards([
     sellerGuard
   ]),
   
-  // Product editing with ownership check
   productEdit: combineGuards([
     sellerGuard,
     productOwnershipGuard
@@ -356,7 +341,6 @@ export const guardConfigs = {
   ])
 }
 
-// 🎯 Main exports
 export default {
   sellerGuard,
   productOwnershipGuard,

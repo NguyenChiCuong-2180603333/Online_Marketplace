@@ -500,7 +500,6 @@ const generateShippingLabel = (order) => {
 }
 
 const showOrderMenu = (order) => {
-  // Show context menu with more actions
   alert(`Menu cho đơn hàng #${order.id.slice(-8)}\n- Xem lịch sử\n- Tạo hoàn trả\n- Báo cáo vấn đề`)
 }
 
@@ -509,17 +508,14 @@ const loadMoreOrders = () => {
 }
 
 const handleStatusUpdate = (orderId, newStatus) => {
-  // Handle status update from modal
   console.log(`Order ${orderId} updated to ${newStatus}`)
 }
 
 const handleMessageSent = (orderId, message) => {
-  // Handle message sent from order details
   console.log(`Message sent to order ${orderId}:`, message)
 }
 
 const handleChatMessage = (orderId, message) => {
-  // Handle message sent from chat modal
   console.log(`Chat message sent to order ${orderId}:`, message)
 }
 

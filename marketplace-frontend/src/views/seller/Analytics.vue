@@ -1,4 +1,3 @@
-<!-- views/seller/Analytics.vue - Enhanced Analytics Dashboard -->
 <template>
   <div class="seller-analytics-page">
     <!-- Page Header -->

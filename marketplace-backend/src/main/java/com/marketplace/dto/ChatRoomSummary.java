@@ -16,10 +16,8 @@ public class ChatRoomSummary {
     private long unreadCount;
     private boolean active;
 
-    // Constructors
     public ChatRoomSummary() {}
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

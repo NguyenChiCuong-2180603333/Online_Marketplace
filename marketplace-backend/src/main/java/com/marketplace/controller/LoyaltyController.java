@@ -2,6 +2,7 @@ package com.marketplace.controller;
 
 import com.marketplace.model.LoyaltyAccount;
 import com.marketplace.model.PointTransaction;
+import com.marketplace.security.JwtTokenProvider;
 import com.marketplace.service.LoyaltyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,9 @@ public class LoyaltyController {
     @Autowired
     private LoyaltyService loyaltyService;
 
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+
     /**
      * Lấy thông tin loyalty account của user
      */
@@ -31,6 +35,33 @@ public class LoyaltyController {
         String userId = getCurrentUserId();
         LoyaltyAccount account = loyaltyService.getLoyaltyAccount(userId);
         return ResponseEntity.ok(account);
+    }
+
+    /**
+     * Lấy điểm hiện tại của user
+     */
+    @GetMapping("/points")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> getPoints() {
+        String userId = getCurrentUserId();
+        LoyaltyAccount account = loyaltyService.getLoyaltyAccount(userId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("points", account.getAvailablePoints());
+        response.put("tier", account.getTier());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Lấy thông tin các tier
+     */
+    @GetMapping("/tiers")
+    public ResponseEntity<Map<String, Object>> getTiers() {
+        Map<String, Object> tiers = new HashMap<>();
+        tiers.put("BRONZE", Map.of("minPoints", 0, "discount", 0.05));
+        tiers.put("SILVER", Map.of("minPoints", 1000, "discount", 0.10));
+        tiers.put("GOLD", Map.of("minPoints", 5000, "discount", 0.15));
+        tiers.put("PLATINUM", Map.of("minPoints", 10000, "discount", 0.20));
+        return ResponseEntity.ok(tiers);
     }
 
     /**
@@ -116,7 +147,6 @@ public class LoyaltyController {
     @GetMapping("/admin/overview")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getAdminOverview() {
-        // Implementation for admin loyalty overview
         Map<String, Object> overview = new HashMap<>();
         overview.put("message", "Admin loyalty overview - implement as needed");
         return ResponseEntity.ok(overview);
@@ -124,7 +154,32 @@ public class LoyaltyController {
 
     private String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        // Extract user ID from JWT token - implement based on your JWT setup
-        return "mockUserId123"; // Replace with actual implementation
+        if (authentication != null && authentication.isAuthenticated() &&
+                !"anonymousUser".equals(authentication.getPrincipal())) {
+            String token = getJwtFromCurrentRequest();
+            if (token != null) {
+                try {
+                    return jwtTokenProvider.getUserIdFromToken(token);
+                } catch (Exception e) {
+                }
+            }
+        }
+        throw new RuntimeException("Cannot extract userId from JWT");
+    }
+
+    private String getJwtFromCurrentRequest() {
+        try {
+            org.springframework.web.context.request.ServletRequestAttributes attr =
+                    (org.springframework.web.context.request.ServletRequestAttributes)
+                            org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes();
+            jakarta.servlet.http.HttpServletRequest request = attr.getRequest();
+            String bearerToken = request.getHeader("Authorization");
+            if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+                return bearerToken.substring(7);
+            }
+        } catch (Exception e) {
+            
+        }
+        return null;
     }
 }

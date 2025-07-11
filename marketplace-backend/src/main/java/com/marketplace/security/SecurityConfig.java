@@ -53,101 +53,64 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-
-                        // Authentication endpoints
-                        .requestMatchers("/api/auth/**").permitAll()
-
-                        // Product browsing
-                        .requestMatchers("/api/products", "/api/products/**").permitAll()
-                        .requestMatchers("/api/categories", "/api/categories/**").permitAll()
-                        .requestMatchers("/api/reviews/product/**", "/api/reviews/stats/**").permitAll()
-
-                        // Search & recommendations
-                        .requestMatchers("/api/search/**").permitAll()
-                        .requestMatchers("/api/recommendations/similar/**").permitAll()
-                        .requestMatchers("/api/recommendations/trending").permitAll()
-                        .requestMatchers("/api/recommendations/cross-sell/**").permitAll()
-                        .requestMatchers("/api/recommendations/new-user").permitAll()
-
-                        // File access
-                        .requestMatchers("/api/files/**").permitAll()
-                        .requestMatchers("/static/**").permitAll()
-
-                        .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers("/actuator/info").permitAll()
-
-                        // API Documentation (public)
-                        .requestMatchers("/swagger-ui/**").permitAll()
-                        .requestMatchers("/v3/api-docs/**").permitAll()
-                        .requestMatchers("/swagger-ui.html").permitAll()
-
-                        // WebSocket endpoint (will be authenticated via JWT in headers)
-                        .requestMatchers("/ws/**").permitAll()
-                        .requestMatchers("/ws-native/**").permitAll()
-
-                        // Admin dashboard & management
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                        .requestMatchers("/api/recommendations/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/loyalty/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/categories/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/reviews/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/notifications/broadcast").hasRole("ADMIN")
-                        .requestMatchers("/api/notifications/send").hasRole("ADMIN")
-                        .requestMatchers("/api/notifications/admin/**").hasRole("ADMIN")
-
-                        // Advanced monitoring
-                        .requestMatchers("/actuator/**").hasRole("ADMIN")
-
-                        // User profile & account management
-                        .requestMatchers("/api/profile/**").authenticated()
-
-                        // Shopping cart & orders
-                        .requestMatchers("/api/cart/**").authenticated()
-                        .requestMatchers("/api/orders/**").authenticated()
-
-                        // Payments
-                        .requestMatchers("/api/payments/**").authenticated()
-
-                        // Reviews
-                        .requestMatchers("/api/reviews").authenticated()
-                        .requestMatchers("/api/reviews/my-reviews").authenticated()
-                        .requestMatchers("/api/reviews/check/**").authenticated()
-
-                        // Recommendations
-                        .requestMatchers("/api/recommendations/for-you").authenticated()
-                        .requestMatchers("/api/recommendations/track").authenticated()
-                        .requestMatchers("/api/recommendations/category/**").authenticated()
-                        .requestMatchers("/api/recommendations/recently-viewed").authenticated()
-                        .requestMatchers("/api/recommendations/preferences").authenticated()
-                        .requestMatchers("/api/recommendations/price-range").authenticated()
-
-                        // Loyalty system
-                        .requestMatchers("/api/loyalty/**").authenticated()
-
-                        // Chat system
-                        .requestMatchers("/api/chat/**").authenticated()
-
-                        // Notifications
-                        .requestMatchers("/api/notifications").authenticated()
-                        .requestMatchers("/api/notifications/unread-count").authenticated()
-                        .requestMatchers("/api/notifications/mark-all-read").authenticated()
-
-                        // File uploads
-                        .requestMatchers("/api/upload/**").authenticated()
-
-                        // Dashboard access
-                        .requestMatchers("/api/dashboard/user/**").authenticated()
-                        .requestMatchers("/api/dashboard/seller/**").authenticated()
-                        .requestMatchers("/api/dashboard/admin/**").hasRole("ADMIN")
-
-                        .anyRequest().authenticated()
-                )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/chat/test-broadcast").permitAll()
+                .requestMatchers("/ws/**", "/ws-native/**", "/topic/**", "/user/**", "/queue/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/products", "/api/products/**").permitAll()
+                .requestMatchers("/api/categories", "/api/categories/**").permitAll()
+                .requestMatchers("/api/reviews/product/**", "/api/reviews/stats/**").permitAll()
+                .requestMatchers("/api/users/**").permitAll()
+                .requestMatchers("/api/search/**").permitAll()
+                .requestMatchers("/api/recommendations/similar/**").permitAll()
+                .requestMatchers("/api/recommendations/trending").permitAll()
+                .requestMatchers("/api/recommendations/cross-sell/**").permitAll()
+                .requestMatchers("/api/recommendations/new-user").permitAll()
+                .requestMatchers("/api/files/**").permitAll()
+                .requestMatchers("/static/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/actuator/info").permitAll()
+                .requestMatchers("/swagger-ui/**").permitAll()
+                .requestMatchers("/v3/api-docs/**").permitAll()
+                .requestMatchers("/swagger-ui.html").permitAll()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/recommendations/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/loyalty/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/categories/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/reviews/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/notifications/broadcast").hasRole("ADMIN")
+                .requestMatchers("/api/notifications/send").hasRole("ADMIN")
+                .requestMatchers("/api/notifications/admin/**").hasRole("ADMIN")
+                .requestMatchers("/actuator/**").hasRole("ADMIN")
+                .requestMatchers("/api/profile/**").authenticated()
+                .requestMatchers("/api/cart/**").authenticated()
+                .requestMatchers("/api/orders/**").authenticated()
+                .requestMatchers("/api/payments/**").authenticated()
+                .requestMatchers("/api/reviews").authenticated()
+                .requestMatchers("/api/reviews/my-reviews").authenticated()
+                .requestMatchers("/api/reviews/check/**").authenticated()
+                .requestMatchers("/api/recommendations/for-you").authenticated()
+                .requestMatchers("/api/recommendations/track").authenticated()
+                .requestMatchers("/api/recommendations/category/**").authenticated()
+                .requestMatchers("/api/recommendations/recently-viewed").authenticated()
+                .requestMatchers("/api/recommendations/preferences").authenticated()
+                .requestMatchers("/api/recommendations/price-range").authenticated()
+                .requestMatchers("/api/loyalty/**").authenticated()
+                .requestMatchers("/api/chat/**").authenticated()
+                .requestMatchers("/api/notifications").authenticated()
+                .requestMatchers("/api/notifications/unread-count").authenticated()
+                .requestMatchers("/api/notifications/mark-all-read").authenticated()
+                .requestMatchers("/api/upload/**").authenticated()
+                .requestMatchers("/api/dashboard/user/**").authenticated()
+                .requestMatchers("/api/dashboard/seller/**").authenticated()
+                .requestMatchers("/api/dashboard/admin/**").hasRole("ADMIN")
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

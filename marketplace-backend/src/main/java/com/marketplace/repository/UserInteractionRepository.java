@@ -50,4 +50,7 @@ public interface UserInteractionRepository extends MongoRepository<UserInteracti
     @Query(value = "{'createdAt': {'$gte': ?0}}",
             sort = "{'createdAt': -1}")
     List<UserInteraction> findTrendingInteractions(LocalDateTime since);
+
+    // Đếm interactions của user với 1 sản phẩm cụ thể
+    long countByUserIdAndProductIdAndInteractionType(String userId, String productId, String interactionType);
 }

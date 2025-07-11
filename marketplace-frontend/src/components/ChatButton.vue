@@ -70,7 +70,6 @@
       />
     </transition>
 
-    <!-- Quick Action Buttons (when chat is minimized) -->
     <transition name="fade">
       <div v-if="showQuickActions && !showChatWindow" class="quick-actions">
         <button
@@ -99,7 +98,6 @@
       </div>
     </transition>
 
-    <!-- Connection Error Notification -->
     <transition name="fade">
       <div v-if="connectionError" class="connection-error">
         <div class="error-content">
@@ -116,8 +114,9 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { chatAPI } from '@/services/api'
-import websocketService from '@/services/websocket'
+import getWebSocketService from '@/services/websocket'
 import ChatWindow from './ChatWindow.vue'
+import { sellerAPI } from '@/services/sellerAPI'
 
 export default {
   name: 'ChatButton',
@@ -126,13 +125,11 @@ export default {
   },
 
   props: {
-    // Seller information
     sellerId: {
       type: String,
       required: true,
     },
 
-    // Product context (optional)
     productId: {
       type: String,
       default: null,
@@ -143,7 +140,6 @@ export default {
       default: null,
     },
 
-    // Position of the button
     position: {
       type: String,
       default: 'bottom-right', // bottom-right, bottom-left, top-right, top-left
@@ -151,13 +147,11 @@ export default {
         ['bottom-right', 'bottom-left', 'top-right', 'top-left'].includes(value),
     },
 
-    // Auto-open chat
     autoOpen: {
       type: Boolean,
       default: false,
     },
 
-    // Show quick actions
     enableQuickActions: {
       type: Boolean,
       default: true,
@@ -169,7 +163,6 @@ export default {
   setup(props, { emit }) {
     const authStore = useAuthStore()
 
-    // Reactive state
     const showChatWindow = ref(false)
     const showSellerPreview = ref(false)
     const showQuickActions = ref(false)
@@ -178,12 +171,9 @@ export default {
     const conversationId = ref(null)
     const sellerInfo = ref(null)
     const unreadCount = ref(0)
-
-    // Loading states
     const loadingSellerInfo = ref(false)
     const creatingConversation = ref(false)
 
-    // Computed properties
     const shouldShowButton = computed(() => {
       return authStore.isAuthenticated && props.sellerId && props.sellerId !== authStore.user?.id
     })
@@ -196,32 +186,26 @@ export default {
     })
 
     const connectionStatusClass = computed(() => {
+      const websocketService = getWebSocketService()
       if (connecting.value) return 'connecting'
       if (websocketService.connected) return 'connected'
       return 'disconnected'
     })
 
-    // Load seller information
     const loadSellerInfo = async () => {
       if (!props.sellerId || loadingSellerInfo.value) return
-
       loadingSellerInfo.value = true
-
       try {
-        // TODO: Replace with actual seller API
-        // const response = await sellerAPI.getById(props.sellerId)
-        // sellerInfo.value = response.data
-
-        // Mock seller info for now
+        const response = await sellerAPI.getById(props.sellerId)
+        console.log('Seller info API response:', response.data)
+        const user = response.data.user || response.data
         sellerInfo.value = {
-          id: props.sellerId,
-          name: 'Cửa hàng ABC',
-          avatar: '/placeholder-avatar.jpg',
-          rating: 4.8,
-          responseTime: '15 phút',
-          isOnline: Math.random() > 0.3, // Mock online status
-          totalProducts: 245,
-          completedOrders: 1532,
+          id: user.id,
+          name: user.name || user.fullName || user.username || 'Người bán',
+          avatar: user.avatar || '/placeholder-avatar.jpg',
+          rating: user.rating || 0,
+          responseTime: user.responseTime || '1h',
+          isOnline: user.isOnline || false,
         }
       } catch (error) {
         console.error('Error loading seller info:', error)
@@ -238,7 +222,6 @@ export default {
       }
     }
 
-    // Get or create conversation
     const getOrCreateConversation = async () => {
       if (conversationId.value || creatingConversation.value) return conversationId.value
 
@@ -264,8 +247,8 @@ export default {
       }
     }
 
-    // Connect to WebSocket
     const connectWebSocket = async () => {
+      const websocketService = getWebSocketService()
       if (websocketService.connected || connecting.value) return
 
       connecting.value = true
@@ -286,7 +269,6 @@ export default {
       }
     }
 
-    // Toggle chat window
     const toggleChat = async () => {
       if (showChatWindow.value) {
         closeChat()
@@ -295,20 +277,15 @@ export default {
       }
     }
 
-    // Open chat window
     const openChat = async () => {
       try {
-        // Ensure WebSocket connection
         await connectWebSocket()
 
-        // Get or create conversation
         await getOrCreateConversation()
 
-        // Open chat window
         showChatWindow.value = true
         showQuickActions.value = false
 
-        // Reset unread count
         unreadCount.value = 0
 
         emit('chat-opened', {
@@ -322,11 +299,9 @@ export default {
       }
     }
 
-    // Close chat window
     const closeChat = () => {
       showChatWindow.value = false
 
-      // Show quick actions after a delay
       setTimeout(() => {
         if (!showChatWindow.value && props.enableQuickActions) {
           showQuickActions.value = true
@@ -339,13 +314,11 @@ export default {
       })
     }
 
-    // Send quick message
     const sendQuickMessage = async (message) => {
       try {
-        // Ensure conversation exists
         await getOrCreateConversation()
 
-        // Send message via WebSocket
+        const websocketService = getWebSocketService()
         if (websocketService.connected) {
           await websocketService.sendMessage(conversationId.value, message, 'TEXT')
 
@@ -355,7 +328,6 @@ export default {
             messageType: 'TEXT',
           })
 
-          // Open chat window to see the conversation
           showChatWindow.value = true
           showQuickActions.value = false
         } else {
@@ -367,19 +339,16 @@ export default {
       }
     }
 
-    // Retry connection
     const retryConnection = async () => {
       connectionError.value = null
       await connectWebSocket()
     }
 
-    // Handle button hover
     const handleButtonHover = (hovering) => {
       if (!showChatWindow.value) {
         showSellerPreview.value = hovering
 
         if (!hovering) {
-          // Show quick actions after preview disappears
           setTimeout(() => {
             if (!showSellerPreview.value && !showChatWindow.value && props.enableQuickActions) {
               showQuickActions.value = true
@@ -431,19 +400,16 @@ export default {
       if (props.sellerId) {
         loadSellerInfo()
 
-        // Auto-connect WebSocket in background
         if (authStore.isAuthenticated) {
           connectWebSocket()
         }
 
-        // Setup button hover events
         const chatButton = document.querySelector('.chat-button')
         if (chatButton) {
           chatButton.addEventListener('mouseenter', () => handleButtonHover(true))
           chatButton.addEventListener('mouseleave', () => handleButtonHover(false))
         }
 
-        // Auto-open if requested
         if (props.autoOpen) {
           setTimeout(() => openChat(), 1000)
         } else if (props.enableQuickActions) {
@@ -455,14 +421,13 @@ export default {
     })
 
     onUnmounted(() => {
-      // Clean up WebSocket subscriptions
       if (conversationId.value) {
+        const websocketService = getWebSocketService()
         websocketService.leaveConversation(conversationId.value)
       }
     })
 
     return {
-      // State
       showChatWindow,
       showSellerPreview,
       showQuickActions,
@@ -472,12 +437,10 @@ export default {
       sellerInfo,
       unreadCount,
 
-      // Computed
       shouldShowButton,
       buttonTooltip,
       connectionStatusClass,
 
-      // Methods
       toggleChat,
       openChat,
       closeChat,

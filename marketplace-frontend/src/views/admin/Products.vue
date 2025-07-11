@@ -792,10 +792,8 @@ export default {
       try {
         console.log('🔄 Deleting product...', product.id)
 
-        // Call real API
         await adminAPI.deleteProduct(product.id)
 
-        // Remove from local state
         const index = products.value.findIndex((p) => p.id === product.id)
         if (index !== -1) {
           products.value.splice(index, 1)
@@ -823,7 +821,6 @@ export default {
         console.log('🔄 Submitting product...', productForm.value)
 
         if (showCreateModal.value) {
-          // ✅ SỬ DỤNG productAPI thay vì fetch
           const productData = {
             name: productForm.value.name,
             description: productForm.value.description,
@@ -835,13 +832,11 @@ export default {
 
           console.log('📤 Creating product with productAPI:', productData)
 
-          // Sử dụng productAPI.create
           const response = await productAPI.create(productData)
           console.log('✅ Product created successfully:', response.data)
 
           alert('Đã thêm sản phẩm thành công')
         } else {
-          // Update existing product
           await productAPI.update(productForm.value.id, productForm.value)
           alert('Đã cập nhật sản phẩm thành công')
         }

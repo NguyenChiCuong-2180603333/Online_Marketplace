@@ -24,15 +24,14 @@ public class RewardRedemption {
             message = "Status must be PENDING, APPROVED, DELIVERED, USED, EXPIRED, or CANCELLED")
     private String status = "PENDING";
 
-    private String redemptionCode; // Mã để sử dụng reward
-    private String deliveryAddress; // Nếu cần giao hàng
-    private String orderId; // Nếu áp dụng cho order cụ thể
+    private String redemptionCode; 
+    private String deliveryAddress; 
+    private String orderId; 
 
     private LocalDateTime redeemedAt = LocalDateTime.now();
     private LocalDateTime usedAt;
     private LocalDateTime expiryDate;
 
-    // Constructors
     public RewardRedemption() {}
 
     public RewardRedemption(String userId, String rewardId, int pointsSpent) {
@@ -42,7 +41,6 @@ public class RewardRedemption {
         this.redemptionCode = generateRedemptionCode();
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

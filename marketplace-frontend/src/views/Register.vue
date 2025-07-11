@@ -148,7 +148,6 @@ export default {
     const success = ref('')
     const fieldErrors = ref({})
 
-    // Enhanced error parsing function
     const parseErrorResponse = (error) => {
       console.log('Full error object:', error)
       
@@ -156,32 +155,26 @@ export default {
         const errorData = error.response.data
         console.log('Error data:', errorData)
         
-        // Case 1: Validation errors with 'errors' object
         if (errorData.errors && typeof errorData.errors === 'object') {
           fieldErrors.value = { ...errorData.errors }
           
-          // Get first error message to display as main error
           const firstFieldError = Object.values(errorData.errors)[0]
           return firstFieldError || 'Dữ liệu không hợp lệ'
         }
         
-        // Case 2: Single error message
         if (errorData.error) {
           return errorData.error
         }
         
-        // Case 3: Message field
         if (errorData.message) {
           return errorData.message
         }
         
-        // Case 4: Direct string errors
         if (typeof errorData === 'string') {
           return errorData
         }
       }
       
-      // Default fallback
       return 'Đăng ký thất bại. Vui lòng thử lại.'
     }
 
@@ -191,7 +184,6 @@ export default {
       success.value = ''
       fieldErrors.value = {}
 
-      // Validate passwords match
       if (userData.value.password !== confirmPassword.value) {
         error.value = 'Mật khẩu xác nhận không khớp'
         loading.value = false
@@ -215,12 +207,10 @@ export default {
       }
     }
 
-    // Helper function to check if a field has error
     const hasFieldError = (fieldName) => {
       return fieldErrors.value[fieldName]
     }
 
-    // Helper function to get field error message
     const getFieldError = (fieldName) => {
       return fieldErrors.value[fieldName] || ''
     }

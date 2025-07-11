@@ -1,13 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
-// 🆕 Import seller guard
 import { sellerGuard } from '@/utils/routerGuards'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // Public routes
     {
       path: '/',
       name: 'Home',
@@ -111,15 +109,6 @@ const router = createRouter({
         title: 'Chi tiết đơn hàng - Cosmic Marketplace',
       },
       props: true,
-    },
-    {
-      path: '/loyalty',
-      name: 'LoyaltyPage',
-      component: () => import('@/views/LoyaltyPage.vue'),
-      meta: {
-        requiresAuth: true,
-        title: 'Chương trình khách hàng thân thiết - Cosmic Marketplace',
-      },
     },
     {
       path: '/notifications',
@@ -230,14 +219,13 @@ const router = createRouter({
       ],
     },
 
-    // 🆕 Seller routes with layout + seller guard
     {
       path: '/seller',
       name: 'SellerLayout',
       component: () => import('@/layouts/SellerLayout.vue'),
       meta: {
         requiresAuth: true,
-        requiresSeller: true, // 🆕 Added seller requirement
+        requiresSeller: true, 
         title: 'Seller Dashboard',
       },
       children: [
@@ -252,7 +240,7 @@ const router = createRouter({
           meta: {
             title: 'Dashboard - Seller',
             breadcrumb: 'Dashboard',
-            requiresSeller: true, // 🆕 Added to children too
+            requiresSeller: true, 
           },
         },
         {
@@ -289,12 +277,7 @@ const router = createRouter({
         {
           path: 'chat',
           name: 'SellerChat',
-          component: () => import('@/views/seller/Chat.vue'),
-          meta: {
-            title: 'Tin nhắn khách hàng - Seller',
-            breadcrumb: 'Tin nhắn',
-            requiresSeller: true,
-          },
+          redirect: '/chat?context=seller',
         },
         {
           path: 'settings',
@@ -319,7 +302,6 @@ const router = createRouter({
   ],
 })
 
-// 🆕 Enhanced Navigation guards
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
@@ -328,15 +310,12 @@ router.beforeEach(async (to, from, next) => {
     document.title = to.meta.title
   }
 
-  // 🆕 PRIORITY: Handle seller routes with special guard
   if (to.path.startsWith('/seller') || to.meta.requiresSeller) {
     console.log('🎯 Applying seller guard for:', to.path)
 
-    // Use the dedicated seller guard
     return sellerGuard(to, from, next)
   }
 
-  // Check if route requires authentication
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     console.log('❌ Not authenticated, redirecting to login')
     next({
@@ -346,39 +325,32 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
-  // Check if route requires admin role
   if (to.meta.requiresAdmin && !authStore.isAdmin) {
     console.log('❌ Not admin, redirecting to home')
     next('/')
     return
   }
 
-  // Redirect authenticated users away from guest pages
   if (to.meta.guest && authStore.isAuthenticated) {
     console.log('✅ Already authenticated, redirecting from guest page')
     next('/')
     return
   }
 
-  // 🆕 Add debug logging for normal routes
   console.log('✅ Normal route access granted:', to.path)
   next()
 })
 
-// 🆕 Add global error handler
 router.onError((error) => {
   console.error('🚨 Router error:', error)
 
-  // Handle chunk loading errors (when JS files fail to load)
   if (error.message.includes('Loading chunk')) {
     console.log('🔄 Chunk loading failed, reloading page...')
     window.location.reload()
     return
   }
 
-  // Handle other router errors
   router.push('/').catch(() => {
-    // Fallback if even home page fails
     window.location.href = '/'
   })
 })

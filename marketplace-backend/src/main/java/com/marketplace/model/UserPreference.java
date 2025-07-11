@@ -18,41 +18,32 @@ public class UserPreference {
     @NotBlank(message = "User ID is required")
     private String userId;
 
-    // Danh mục yêu thích (category -> score)
     private Map<String, Double> categoryPreferences = new HashMap<>();
 
-    // Thương hiệu yêu thích (brand -> score)
     private Map<String, Double> brandPreferences = new HashMap<>();
 
-    // Khoảng giá ưa thích
     private Double minPreferredPrice = 0.0;
     private Double maxPreferredPrice = Double.MAX_VALUE;
 
-    // Tags yêu thích (tag -> score)
     private Map<String, Double> tagPreferences = new HashMap<>();
 
-    // Sellers yêu thích (sellerId -> score)
     private Map<String, Double> sellerPreferences = new HashMap<>();
 
-    // Thời gian mua sắm ưa thích (hour -> score)
     private Map<Integer, Double> timePreferences = new HashMap<>();
 
-    // Behavioral scores
-    private double browseBehaviorScore = 0.0; // Điểm dựa trên lịch sử duyệt
-    private double purchaseBehaviorScore = 0.0; // Điểm dựa trên lịch sử mua
-    private double reviewBehaviorScore = 0.0; // Điểm dựa trên việc đánh giá
+    private double browseBehaviorScore = 0.0; 
+    private double purchaseBehaviorScore = 0.0; 
+    private double reviewBehaviorScore = 0.0; 
 
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    // Constructors
     public UserPreference() {}
 
     public UserPreference(String userId) {
         this.userId = userId;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

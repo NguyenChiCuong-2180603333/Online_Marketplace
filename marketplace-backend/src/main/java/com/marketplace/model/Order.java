@@ -35,7 +35,7 @@ public class Order {
             message = "Status must be PENDING, PROCESSING, SHIPPED, DELIVERED, or CANCELLED")
     private String status = "PENDING";
 
-    private String paymentId; // Stripe payment intent ID
+    private String paymentId; 
 
     @Pattern(regexp = "PENDING|COMPLETED|FAILED",
             message = "Payment status must be PENDING, COMPLETED, or FAILED")
@@ -47,12 +47,12 @@ public class Order {
     private LocalDateTime updatedAt = LocalDateTime.now();
     private LocalDateTime deliveredAt;
 
-    private String paymentMethod; // "card" hoặc "cod"
+    private String paymentMethod; 
 
     @JsonProperty("shippingFee")
     private Double shippingFee;
 
-    // Inner class for order items
+  
     public static class OrderItem {
         @NotBlank(message = "Product ID is required")
         private String productId;
@@ -75,7 +75,6 @@ public class Order {
         @NotBlank(message = "Seller ID is required")
         private String sellerId;
 
-        // Constructors
         public OrderItem() {}
 
         public OrderItem(String productId, String productName, Double productPrice, String productImage, int quantity, String sellerId) {
@@ -88,7 +87,6 @@ public class Order {
             this.subtotal = productPrice * quantity;
         }
 
-        // Getters and Setters
         public String getProductId() { return productId; }
         public void setProductId(String productId) { this.productId = productId; }
 
@@ -111,7 +109,6 @@ public class Order {
         public void setSellerId(String sellerId) { this.sellerId = sellerId; }
     }
 
-    // Constructors
     public Order() {}
 
     public Order(String userId, String userEmail, List<OrderItem> items, Double totalAmount, Double shippingFee) {
@@ -126,7 +123,6 @@ public class Order {
         this(userId, userEmail, items, totalAmount, 0.0);
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

@@ -1,14 +1,12 @@
-// Test file để kiểm tra consistency của order status labels
 import { getStatusLabel, ORDER_STATUS } from './constants.js'
 
-// Test function để kiểm tra tất cả status labels
 export const testOrderStatusConsistency = () => {
   console.log('🧪 Testing Order Status Consistency...')
 
   const testCases = [
     { status: ORDER_STATUS.PENDING, expected: 'Chờ xử lý' },
     { status: ORDER_STATUS.PROCESSING, expected: 'Đang xử lý' },
-    { status: ORDER_STATUS.SHIPPED, expected: 'Đang giao' }, // Admin/Customer
+    { status: ORDER_STATUS.SHIPPED, expected: 'Đang giao' }, 
     { status: ORDER_STATUS.DELIVERED, expected: 'Đã giao' },
     { status: ORDER_STATUS.CANCELLED, expected: 'Đã hủy' },
   ]

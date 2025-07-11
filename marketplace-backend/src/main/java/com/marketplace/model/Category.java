@@ -18,14 +18,13 @@ public class Category {
     @Size(max = 200, message = "Description must not exceed 200 characters")
     private String description;
 
-    private String icon; // Icon cho category
+    private String icon; 
     private boolean active = true;
 
     @Min(value = 0, message = "Product count cannot be negative")
-    private int productCount = 0; // Số sản phẩm trong category
+    private int productCount = 0; 
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // Constructors
     public Category() {}
 
     public Category(String name, String description) {
@@ -33,7 +32,6 @@ public class Category {
         this.description = description;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

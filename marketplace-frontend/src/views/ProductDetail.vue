@@ -39,7 +39,6 @@
                 :src="selectedImage || product.images?.[0] || '/placeholder-product.jpg'"
                 :alt="product.name"
                 class="main-product-image"
-                @click="openImageModal"
               />
               <div class="image-controls">
                 <button
@@ -92,9 +91,7 @@
                   </span>
                 </div>
                 <span class="rating-text">
-                  {{ (product.averageRating || 0).toFixed(1) }}/5 ({{
-                    product.reviewCount || 0
-                  }}
+                  {{ (product.averageRating || 0).toFixed(1) }}/5 ({{ product.reviewCount || 0 }}
                   đánh giá)
                 </span>
                 <div class="rating-actions" style="margin-top: 8px; display: flex; gap: 10px">
@@ -185,18 +182,10 @@
                 </div>
                 <div class="seller-data">
                   <h5>{{ seller?.name || 'Người bán' }}</h5>
-                  <div class="seller-stats">
-                    <span>⭐ {{ seller?.rating || 0 }}/5</span>
-                    <span>📦 {{ seller?.totalProducts || 0 }} sản phẩm</span>
-                    <span>✅ {{ seller?.completedOrders || 0 }} đơn hoàn thành</span>
-                  </div>
                 </div>
                 <div class="seller-actions">
                   <button @click="contactSeller" class="btn btn-secondary btn-sm">
                     💬 Liên hệ
-                  </button>
-                  <button @click="viewSellerStore" class="btn btn-outline btn-sm">
-                    🏪 Xem cửa hàng
                   </button>
                 </div>
               </div>
@@ -281,14 +270,6 @@
 
     <!-- Modals -->
 
-    <!-- Image Modal -->
-    <div v-if="showImageModal" class="modal-overlay" @click="closeImageModal">
-      <div class="modal-content image-modal">
-        <button @click="closeImageModal" class="modal-close">❌</button>
-        <img :src="modalImage" :alt="product?.name" />
-      </div>
-    </div>
-
     <!-- Review Modal -->
     <div v-if="showReviewModal" class="modal-overlay" @click="closeReviewModal">
       <div class="modal-content review-modal" @click.stop>
@@ -361,13 +342,13 @@
     </div>
 
     <!-- Chat Button for Contacting Seller -->
-    <ChatButton
+    <!-- <ChatButton
       v-if="product && authStore.isAuthenticated"
       :seller-id="product.sellerId"
       :product-id="product.id"
       :product-name="product.name"
       @chat-opened="handleChatOpened"
-    />
+    /> -->
 
     <!-- Modal danh sách đánh giá -->
     <div
@@ -439,7 +420,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
-import { productAPI, reviewAPI } from '@/services/api'
+import { productAPI, reviewAPI, chatAPI } from '@/services/api'
 import SimilarProducts from '@/components/SimilarProducts.vue'
 import ChatButton from '@/components/ChatButton.vue'
 import recommendationService from '@/services/recommendationService'
@@ -483,7 +464,6 @@ export default {
     const showImageModal = ref(false)
     const showReviewModal = ref(false)
     const showShareModal = ref(false)
-    const modalImage = ref('')
     const linkCopied = ref(false)
     const showReviewListModal = ref(false)
 
@@ -527,7 +507,7 @@ export default {
         seller.value = response.data.seller
 
         // Set initial state
-        selectedImage.value = product.value.images?.[0] || ''
+        selectedImage.value = product.value.images?.[0] || '/placeholder-product.jpg'
         selectedVariant.value = product.value.variants?.[0] || null
         isFavorited.value = userStore.wishlist?.some((item) => item.id === productId) || false
 
@@ -700,13 +680,11 @@ export default {
 
     // Modal handlers
     const openImageModal = (image = null) => {
-      modalImage.value = image || selectedImage.value
       showImageModal.value = true
     }
 
     const closeImageModal = () => {
       showImageModal.value = false
-      modalImage.value = ''
     }
 
     const openReviewModal = () => {
@@ -724,7 +702,6 @@ export default {
       newReview.value = { rating: 5, comment: '' }
     }
 
-    // Review actions
     const submitReview = async () => {
       if (!newReview.value.comment.trim()) return
 
@@ -739,14 +716,11 @@ export default {
 
         await reviewAPI.create(reviewData)
 
-        // Track review submission
         await recommendationService.trackInteraction(product.value.id, 'PRODUCT_REVIEW', {
           rating: newReview.value.rating,
         })
 
-        // Reload reviews
         await loadReviews(product.value.id)
-        // Reload product info to update average rating and review count
         await loadProduct(product.value.id)
 
         closeReviewModal()
@@ -816,9 +790,18 @@ export default {
     }
 
     // Seller actions
-    const contactSeller = () => {
-      // This will open the chat with the seller
-      // ChatButton component will handle the actual chat functionality
+    const contactSeller = async () => {
+      try {
+        const res = await chatAPI.createConversation(product.value.sellerId, product.value.id)
+        const conversation = res.data
+        router.push({
+          path: '/chat',
+          query: { conversationId: conversation.id },
+        })
+      } catch (e) {
+        alert('Không thể tạo cuộc trò chuyện!')
+        console.error(e)
+      }
     }
 
     const viewSellerStore = () => {
@@ -826,14 +809,12 @@ export default {
     }
 
     const handleChatOpened = (data) => {
-      // Track seller contact
       recommendationService.trackInteraction(product.value.id, 'SELLER_CONTACT', {
         sellerId: data.sellerId,
         method: 'chat',
       })
     }
 
-    // Utility functions
     const formatPrice = (price) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
@@ -856,7 +837,6 @@ export default {
       }
     }
 
-    // Review statistics
     const getRatingPercentage = (rating) => {
       if (!reviews.value.length) return 0
       const count = reviews.value.filter((r) => r.rating === rating).length
@@ -867,7 +847,6 @@ export default {
       return reviews.value.filter((r) => r.rating === rating).length
     }
 
-    // Watch for route changes
     watch(
       () => route.params.id,
       (newId) => {
@@ -877,7 +856,6 @@ export default {
       }
     )
 
-    // Lifecycle
     onMounted(() => {
       if (route.params.id) {
         loadProduct(route.params.id)
@@ -915,7 +893,6 @@ export default {
       showImageModal,
       showReviewModal,
       showShareModal,
-      modalImage,
       linkCopied,
       showReviewListModal,
 
@@ -975,8 +952,7 @@ export default {
 </script>
 
 <style scoped>
-/* Existing styles remain the same */
-/* Adding styles for new cross-sell section */
+
 
 .cross-sell-section {
   margin: 3rem 0;
@@ -1216,15 +1192,19 @@ export default {
   position: relative;
   border-radius: 16px;
   overflow: hidden;
-  background: rgba(26, 26, 46, 0.5);
+  background: linear-gradient(135deg, #f8fafc 60%, #e0f7fa 100%); /* nền sáng nhẹ */
   cursor: pointer;
 }
 
 .main-product-image {
   width: 100%;
   height: 400px;
-  object-fit: cover;
+  object-fit: contain;
   transition: transform 0.3s ease;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #00d4ff22;
+  background: transparent;
+  display: block;
 }
 
 .main-image:hover .main-product-image {

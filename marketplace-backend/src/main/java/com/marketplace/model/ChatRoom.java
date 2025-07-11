@@ -17,19 +17,18 @@ public class ChatRoom {
     private String name;
 
     @NotNull(message = "Participants list cannot be null")
-    private List<String> participants = new ArrayList<>(); // User IDs
+    private List<String> participants = new ArrayList<>(); 
 
-    private String productId; // Chat về sản phẩm cụ thể
+    private String productId; 
     private String sellerId;
     private String buyerId;
 
-    private String roomType = "PRODUCT_INQUIRY"; // PRODUCT_INQUIRY, SUPPORT, GROUP
+    private String roomType = "PRODUCT_INQUIRY"; 
     private boolean active = true;
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
     private LocalDateTime lastMessageAt;
 
-    // Constructors
     public ChatRoom() {}
 
     public ChatRoom(String sellerId, String buyerId, String productId) {
@@ -41,7 +40,6 @@ public class ChatRoom {
         this.name = "Product Chat";
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

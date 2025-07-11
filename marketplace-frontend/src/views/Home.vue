@@ -64,7 +64,6 @@
       </div>
     </section>
 
-    <!-- AI Recommendations Section -->
     <section class="recommendations-section" v-if="authStore.isAuthenticated">
       <div class="container">
         <RecommendedProducts

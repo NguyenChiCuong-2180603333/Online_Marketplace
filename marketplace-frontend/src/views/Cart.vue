@@ -126,33 +126,6 @@
               </div>
             </div>
 
-            <!-- Promo Code -->
-            <div class="promo-section">
-              <div class="promo-input-group">
-                <input
-                  v-model="promoCode"
-                  type="text"
-                  placeholder="Nhập mã giảm giá"
-                  class="promo-input"
-                  :disabled="promoLoading"
-                />
-                <button
-                  @click="applyPromoCode"
-                  class="promo-btn"
-                  :disabled="!promoCode.trim() || promoLoading"
-                >
-                  {{ promoLoading ? '🔄' : '✨' }} Áp dụng
-                </button>
-              </div>
-              <div
-                v-if="promoMessage"
-                class="promo-message"
-                :class="{ error: promoError, success: !promoError }"
-              >
-                {{ promoMessage }}
-              </div>
-            </div>
-
             <!-- Checkout Button -->
             <button
               @click="proceedToCheckout"
@@ -303,27 +276,18 @@ export default {
     const cartStore = useCartStore()
     const authStore = useAuthStore()
 
-    // Reactive data
     const loading = ref(false)
-    const promoCode = ref('')
-    const promoLoading = ref(false)
-    const promoMessage = ref('')
-    const promoError = ref(false)
-    // ✅ FIX: Use real cart data from store
     const cartItems = computed(() => cartStore.items || [])
     const isEmpty = computed(() => cartStore.isEmpty)
 
-    // ✅ FIX: Use real API data instead of mock
     const savedItems = ref([])
     const recommendedProducts = ref([])
     const popularCategories = ref([])
 
-    // ✅ FIX: Use real computed properties from store
     const totalItems = computed(() => cartStore.totalItems || 0)
     const subtotal = computed(() => cartStore.totalAmount || 0)
 
     const discount = computed(() => {
-      // Calculate discount based on promo code or other factors
       return 0
     })
 
@@ -343,7 +307,6 @@ export default {
       }).format(amount)
     }
 
-    // ✅ FIX: Load saved items from API
     const loadSavedItems = async () => {
       try {
         const response = await profileAPI.getSavedItems()
@@ -354,26 +317,22 @@ export default {
       }
     }
 
-    // ✅ FIX: Load recommended products from API
     const loadRecommendedProducts = async () => {
       try {
         const response = await recommendationAPI.forUser(3)
         recommendedProducts.value = response.data?.recommendations || []
       } catch (error) {
         console.error('Error loading recommended products:', error)
-        // Fallback to empty array
         recommendedProducts.value = []
       }
     }
 
-    // ✅ FIX: Load popular categories from API
     const loadPopularCategories = async () => {
       try {
         const response = await categoryAPI.getAll()
         popularCategories.value = response.data?.slice(0, 4) || []
       } catch (error) {
         console.error('Error loading popular categories:', error)
-        // Fallback to empty array
         popularCategories.value = []
       }
     }
@@ -429,7 +388,6 @@ export default {
       }
     }
 
-    // ✅ FIX: Real API call for clear cart
     const clearCart = async () => {
       if (!confirm('Bạn có chắc muốn xóa tất cả sản phẩm trong giỏ hàng?')) return
 
@@ -466,13 +424,10 @@ export default {
       if (!product) return
 
       try {
-        // Add to cart via store
         await cartStore.addItem(product.id, 1)
 
-        // Remove from saved items via API
         await profileAPI.removeFromSavedItems(productId)
 
-        // Remove from saved items
         const index = savedItems.value.findIndex((p) => p.id === productId)
         if (index > -1) {
           savedItems.value.splice(index, 1)
@@ -489,7 +444,6 @@ export default {
       if (!confirm('Bạn có chắc muốn xóa sản phẩm đã lưu này?')) return
 
       try {
-        // Remove from saved items via API
         await profileAPI.removeFromSavedItems(itemId)
 
         const index = savedItems.value.findIndex((item) => item.id === itemId)
@@ -501,32 +455,6 @@ export default {
       } catch (error) {
         console.error('Error deleting saved item:', error)
         alert('Có lỗi xảy ra khi xóa sản phẩm')
-      }
-    }
-
-    const applyPromoCode = async () => {
-      if (!promoCode.value.trim()) return
-
-      promoLoading.value = true
-      promoMessage.value = ''
-      promoError.value = false
-
-      try {
-        const response = await orderAPI.validatePromoCode(promoCode.value)
-        if (response.data.valid) {
-          promoMessage.value = 'Mã giảm giá đã được áp dụng thành công!'
-          promoError.value = false
-          // Apply discount logic here
-        } else {
-          promoMessage.value = response.data.message || 'Mã giảm giá không hợp lệ'
-          promoError.value = true
-        }
-      } catch (error) {
-        console.error('Error applying promo code:', error)
-        promoMessage.value = 'Có lỗi xảy ra khi áp dụng mã giảm giá'
-        promoError.value = true
-      } finally {
-        promoLoading.value = false
       }
     }
 
@@ -556,7 +484,6 @@ export default {
       }
     }
 
-    // ✅ FIX: Load real cart data on mount
     onMounted(async () => {
       console.log('Cart page mounted - loading real cart data...')
 
@@ -582,7 +509,6 @@ export default {
     })
 
     return {
-      // Cart data
       cartItems,
       isEmpty,
       totalItems,
@@ -591,19 +517,12 @@ export default {
       discount,
       hasOutOfStockItems,
 
-      // UI state
       loading,
-      promoCode,
-      promoLoading,
-      promoMessage,
-      promoError,
 
-      // Additional data
       savedItems,
       recommendedProducts,
       popularCategories,
 
-      // Methods
       formatCurrency,
       updateQuantity,
       removeItem,
@@ -611,7 +530,6 @@ export default {
       saveForLater,
       moveToCart,
       deleteSavedItem,
-      applyPromoCode,
       proceedToCheckout,
       addRecommendedToCart,
     }
@@ -1003,72 +921,6 @@ export default {
   font-size: 1.3rem;
 }
 
-.promo-section {
-  margin-bottom: 1.5rem;
-}
-
-.promo-input-group {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.promo-input {
-  flex: 1;
-  background: rgba(26, 26, 46, 0.8);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  color: var(--text-primary);
-  border-radius: 8px;
-  padding: 0.75rem;
-  font-size: 0.9rem;
-}
-
-.promo-input:focus {
-  outline: none;
-  border-color: var(--text-accent);
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
-}
-
-.promo-btn {
-  background: var(--aurora-gradient);
-  border: none;
-  color: white;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
-  white-space: nowrap;
-}
-
-.promo-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--neon-glow);
-}
-
-.promo-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.promo-message {
-  font-size: 0.8rem;
-  padding: 0.5rem;
-  border-radius: 6px;
-}
-
-.promo-message.success {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.promo-message.error {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
 .checkout-btn {
   width: 100%;
   background: var(--accent-gradient);
@@ -1404,10 +1256,6 @@ export default {
   }
 
   .empty-cart-actions {
-    flex-direction: column;
-  }
-
-  .promo-input-group {
     flex-direction: column;
   }
 

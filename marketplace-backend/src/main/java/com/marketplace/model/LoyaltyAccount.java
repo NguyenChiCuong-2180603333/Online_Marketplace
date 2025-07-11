@@ -31,14 +31,12 @@ public class LoyaltyAccount {
     private LocalDateTime updatedAt = LocalDateTime.now();
     private LocalDateTime tierUpdatedAt = LocalDateTime.now();
 
-    // Constructors
     public LoyaltyAccount() {}
 
     public LoyaltyAccount(String userId) {
         this.userId = userId;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

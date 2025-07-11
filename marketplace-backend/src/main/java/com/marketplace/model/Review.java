@@ -30,13 +30,12 @@ public class Review {
     @Size(max = 1000, message = "Comment must not exceed 1000 characters")
     private String comment;
 
-    private boolean verified = false; // Đã mua sản phẩm hay chưa
-    private String orderId; // ID của đơn hàng đã mua
+    private boolean verified = false; 
+    private String orderId; 
 
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt;
 
-    // Constructors
     public Review() {}
 
     public Review(String productId, String userId, String userName, int rating, String comment) {
@@ -47,7 +46,6 @@ public class Review {
         this.comment = comment;
     }
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

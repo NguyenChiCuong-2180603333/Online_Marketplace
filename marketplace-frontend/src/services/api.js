@@ -234,6 +234,14 @@ export const chatAPI = {
   markAsRead: (conversationId) => api.put(`/chat/conversations/${conversationId}/read`),
   getUnreadCount: () => api.get('/chat/unread-count'),
   deleteMessage: (messageId) => api.delete(`/chat/messages/${messageId}`),
+  getUserById: (userId) => api.get(`/users/${userId}`),
+  sendMessage: (conversationId, content, messageType = 'TEXT') =>
+    api.post(`/chat/conversations/${conversationId}/messages`, {
+      content,
+      messageType,
+    }),
+  sendTyping: (conversationId) => api.post(`/chat/conversations/${conversationId}/typing`),
+  deleteConversation: (conversationId) => api.delete(`/chat/conversations/${conversationId}`),
 }
 
 export const notificationAPI = {
@@ -340,7 +348,10 @@ export const utils = {
   },
 }
 
-export default api
+export default {
+  ...api,
+  getLoyaltyPoints: () => api.get('/loyalty/points'),
+}
 
 export const apiUtils = {
   handleError: (error) => {

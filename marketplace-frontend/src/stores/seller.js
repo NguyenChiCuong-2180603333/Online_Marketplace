@@ -1,5 +1,3 @@
-// ✅ FIX: stores/seller.js - Fixed version
-
 import { defineStore } from 'pinia'
 import { profileAPI, productAPI } from '@/services/api'
 import { sellerAPI } from '@/services/sellerAPI'
@@ -7,7 +5,6 @@ import axios from 'axios'
 
 export const useSellerStore = defineStore('seller', {
   state: () => ({
-    // ✅ FIX: Rename dashboardStats to stats for consistency
     stats: {
       totalProducts: 0,
       activeProducts: 0,
@@ -21,7 +18,7 @@ export const useSellerStore = defineStore('seller', {
       revenueGrowth: 0,
       averageOrderValue: 0,
       lowStockProducts: 0,
-      newProductsThisMonth: 0, // ✅ Add missing field
+      newProductsThisMonth: 0, 
     },
 
     // Products Management
@@ -94,13 +91,10 @@ export const useSellerStore = defineStore('seller', {
   }),
 
   getters: {
-    // ✅ FIX: Add missing getters that components expect
 
-    // Dashboard getters - IMPORTANT: These match what components use
     totalRevenue: (state) => state.stats.totalRevenue || 0,
     monthlyGrowth: (state) => state.stats.revenueGrowth || 0,
 
-    // ✅ CRITICAL: Add these getters for SellerLayout compatibility
     dashboardStats: (state) => state.stats, // Alias for backward compatibility
 
     // Product getters
@@ -175,7 +169,6 @@ export const useSellerStore = defineStore('seller', {
       )
     },
 
-    // ✅ FIX: Add recent orders getter
     recentOrders: (state) => {
       return [...state.orders]
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -207,7 +200,6 @@ export const useSellerStore = defineStore('seller', {
   },
 
   actions: {
-    // ✅ FIX: Update action to use stats instead of dashboardStats
     async fetchDashboardStats() {
       this.loading.dashboard = true
       this.errors.dashboard = null
@@ -225,20 +217,15 @@ export const useSellerStore = defineStore('seller', {
       } catch (error) {
         this.errors.dashboard = error.response?.data?.message || 'Không thể tải thống kê dashboard'
         console.error('Error fetching dashboard stats:', error)
-        // Remove mock data fallback - use real API only
       } finally {
         this.loading.dashboard = false
       }
     },
 
-    // ✅ FIX: Add loadDashboardStats alias for compatibility
     async loadDashboardStats() {
       return this.fetchDashboardStats()
     },
 
-    // Remove mock data loader - use real API only
-
-    // ✅ FIX: Add resetSeller method for logout
     resetSeller() {
       this.stats = {
         totalProducts: 0,
@@ -260,7 +247,6 @@ export const useSellerStore = defineStore('seller', {
       this.notifications = []
     },
 
-    // ... (keep all other actions the same, just update references from dashboardStats to stats)
 
     // Order Actions (keep existing)
     async loadOrders(refresh = false) {
@@ -282,7 +268,6 @@ export const useSellerStore = defineStore('seller', {
       }
     },
 
-    // ... (keep all other existing actions)
 
     updateOrderStats() {
       this.orderStats = {
@@ -340,7 +325,7 @@ export const useSellerStore = defineStore('seller', {
     async createProduct(productData) {
       try {
         await sellerAPI.createProduct(productData)
-        await this.fetchProducts() // Luôn đồng bộ lại danh sách sản phẩm từ server
+        await this.fetchProducts() 
         this.updateProductStats()
       } catch (error) {
         throw error
@@ -449,7 +434,6 @@ export const useSellerStore = defineStore('seller', {
     async bulkUpdateOrderStatus(orderIds, status) {
       try {
         await Promise.all(orderIds.map((id) => sellerAPI.updateOrderStatus(id, status)))
-        // Refresh orders to get updated data
         await this.loadOrders(true)
       } catch (error) {
         throw error
@@ -553,6 +537,5 @@ export const useSellerStore = defineStore('seller', {
       this.notifications = this.notifications.filter((n) => n.id !== notificationId)
     },
 
-    // ... (copy all other actions from original, just update dashboardStats references to stats)
   },
 })

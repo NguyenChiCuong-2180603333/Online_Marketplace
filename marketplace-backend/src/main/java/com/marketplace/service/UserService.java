@@ -205,7 +205,6 @@ public class UserService implements UserDetailsService {
         }
     }
 
-    // Admin methods
     public void updateUserRole(String userId, String role) {
         User user = getUserById(userId);
         if (!role.equals("USER") && !role.equals("ADMIN") && !role.equals("SELLER")) {

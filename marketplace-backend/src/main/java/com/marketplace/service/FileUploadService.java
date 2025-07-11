@@ -64,15 +64,12 @@ public class FileUploadService {
 
     private String extractPublicIdFromUrl(String imageUrl) {
         try {
-            // Cloudinary URL format: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/folder/filename.jpg
             String[] parts = imageUrl.split("/upload/");
             if (parts.length > 1) {
                 String afterUpload = parts[1];
-                // Remove version if present
                 if (afterUpload.contains("/v")) {
                     afterUpload = afterUpload.substring(afterUpload.indexOf("/", 2) + 1);
                 }
-                // Remove file extension
                 int lastDotIndex = afterUpload.lastIndexOf(".");
                 if (lastDotIndex > 0) {
                     afterUpload = afterUpload.substring(0, lastDotIndex);
@@ -80,7 +77,6 @@ public class FileUploadService {
                 return afterUpload;
             }
         } catch (Exception e) {
-            // If we can't extract public_id, return null
         }
         return null;
     }

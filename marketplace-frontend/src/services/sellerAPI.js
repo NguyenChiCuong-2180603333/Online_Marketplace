@@ -124,7 +124,6 @@ export const sellerAPI = {
     })
   },
 
-  // ==================== ANALYTICS ====================
 
   getSellerAnalytics: (period = '30d', dateRange = null) => {
     const params = { period }
@@ -235,7 +234,6 @@ export const sellerAPI = {
     return api.get('/seller/payouts', { params })
   },
 
-  // Bulk operations
   bulkUpdateProductStatus: (productIds, isActive) => {
     return api.patch('/products/bulk/status', { productIds, isActive })
   },
@@ -337,6 +335,8 @@ export const sellerAPI = {
       responseType: 'blob',
     })
   },
+
+  getById: (sellerId) => api.get(`/users/${sellerId}`),
 }
 
 export const {

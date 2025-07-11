@@ -22,7 +22,6 @@ public class UpdateProfileRequest {
     private String birthday;
     private String address;
 
-    // Constructors
     public UpdateProfileRequest() {}
 
     public UpdateProfileRequest(String firstName, String lastName, String phone) {
@@ -39,7 +38,6 @@ public class UpdateProfileRequest {
         this.address = address;
     }
 
-    // Getters and Setters
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
 

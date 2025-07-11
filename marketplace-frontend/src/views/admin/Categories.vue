@@ -55,7 +55,6 @@
     <thead>
       <tr>
         <th>ID</th>
-        <!-- 🔧 SỬA: Thay "Hình ảnh" thành "Icon" -->
         <th>Icon</th>
         <th>Tên danh mục</th>
         <th>Mô tả</th>
@@ -71,14 +70,12 @@
           <span class="category-id">{{ category.id.substring(0, 8) }}...</span>
         </td>
         
-        <!-- 🔧 SỬA: Hiển thị icon thay vì image -->
         <td>
           <div class="category-icon">
             <span class="icon-display">{{ category.icon || '🏷️' }}</span>
           </div>
         </td>
         
-        <!-- 🔧 SỬA: Bỏ slug, chỉ hiển thị name -->
         <td>
           <div class="category-name">
             <strong>{{ category.name }}</strong>
@@ -269,7 +266,6 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue'
-// import { api } from '@/services/api'
 import { adminAPI } from '@/services/api'
 
 export default {

@@ -263,11 +263,9 @@ export default {
     const itemsPerPage = ref(12)
     const totalResults = ref(0)
     
-    // Data from API
     const products = ref([])
     const categories = ref([])
     
-    // Computed properties
     const totalPages = computed(() => {
       return Math.ceil(totalResults.value / itemsPerPage.value)
     })
@@ -310,7 +308,6 @@ export default {
       return pages
     })
     
-    // Methods
     const loadCategories = async () => {
       try {
         const response = await categoryAPI.getAll()
@@ -434,7 +431,6 @@ export default {
       event.target.src = '/placeholder-product.jpg'
     }
     
-    // Watch for route changes
     watch(() => route.query.q, (newQuery) => {
       if (newQuery !== searchQuery.value) {
         searchQuery.value = newQuery || ''
@@ -445,11 +441,9 @@ export default {
       }
     })
     
-    // Lifecycle
     onMounted(async () => {
       await loadCategories()
       
-      // Load from route query parameters
       if (route.query.q) {
         searchQuery.value = route.query.q
         await performSearch()

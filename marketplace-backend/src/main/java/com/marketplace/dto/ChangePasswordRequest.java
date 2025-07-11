@@ -14,7 +14,6 @@ public class ChangePasswordRequest {
     @NotBlank(message = "Confirm password is required")
     private String confirmPassword;
 
-    // Constructors
     public ChangePasswordRequest() {}
 
     public ChangePasswordRequest(String currentPassword, String newPassword, String confirmPassword) {
@@ -23,7 +22,6 @@ public class ChangePasswordRequest {
         this.confirmPassword = confirmPassword;
     }
 
-    // Getters and Setters
     public String getCurrentPassword() { return currentPassword; }
     public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }
 

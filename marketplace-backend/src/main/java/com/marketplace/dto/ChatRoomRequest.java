@@ -19,7 +19,6 @@ public class ChatRoomRequest {
             message = "Room type must be PRODUCT_INQUIRY, SUPPORT, or GROUP")
     private String roomType = "PRODUCT_INQUIRY";
 
-    // Constructors
     public ChatRoomRequest() {}
 
     public ChatRoomRequest(String name, List<String> participants) {
@@ -27,7 +26,6 @@ public class ChatRoomRequest {
         this.participants = participants;
     }
 
-    // Getters and Setters
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 

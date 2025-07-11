@@ -44,7 +44,6 @@
 
     <!-- Messages Container -->
     <div class="messages-container" ref="messagesContainer">
-      <!-- Loading State -->
       <div v-if="loadingMessages" class="loading-messages">
         <div class="loading-spinner">⏳</div>
         <p>Đang tải tin nhắn...</p>
@@ -71,7 +70,6 @@
 
       <!-- Messages List -->
       <div v-else class="messages-list">
-        <!-- Date Separators and Messages -->
         <template
           v-for="(item, index) in messagesWithSeparators"
           :key="item.id || `separator-${index}`"
@@ -84,9 +82,7 @@
           <!-- Message -->
           <div v-else class="message-wrapper" :class="{ 'own-message': item.isOwn }">
             <div class="message" :class="getMessageClass(item)">
-              <!-- Message Content -->
               <div class="message-content">
-                <!-- Text Message -->
                 <div v-if="item.messageType === 'TEXT'" class="text-content">
                   {{ item.content }}
                 </div>
@@ -144,7 +140,6 @@
 
     <!-- Message Input -->
     <div class="message-input-container">
-      <!-- File Preview (if uploading) -->
       <transition name="slide-up">
         <div v-if="uploadingFile" class="file-preview">
           <div class="preview-content">
@@ -163,7 +158,6 @@
 
       <!-- Input Area -->
       <div class="input-area">
-        <!-- Attachment Button -->
         <button @click="openFileSelector" class="attach-btn" title="Đính kèm file">📎</button>
 
         <!-- Text Input -->
@@ -177,7 +171,7 @@
             placeholder="Nhập tin nhắn..."
             class="message-input"
             rows="1"
-            :disabled="sendingMessage || !connected"
+            :disabled="sendingMessage || !connected || !conversationId"
           ></textarea>
 
           <!-- Emoji Button -->
@@ -260,7 +254,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { chatAPI } from '@/services/api'
-import websocketService from '@/services/websocket'
+import getWebSocketService from '@/services/websocket'
 
 export default {
   name: 'ChatWindow',
@@ -296,6 +290,9 @@ export default {
   setup(props, { emit }) {
     const router = useRouter()
     const authStore = useAuthStore()
+
+    // Helper function to get websocket service
+    const getWS = () => getWebSocketService()
 
     // Reactive state
     const messages = ref([])
@@ -361,7 +358,8 @@ export default {
         connected.value &&
         messageText.value.trim().length > 0 &&
         !sendingMessage.value &&
-        !uploadingFile.value
+        !uploadingFile.value &&
+        !!props.conversationId // Chỉ cho gửi khi đã có conversationId
       )
     })
 
@@ -390,20 +388,34 @@ export default {
       return result
     })
 
+    // Hàm gửi tin nhắn dùng chung
+    const sendMessageUnified = async (content, messageType = 'TEXT') => {
+      if (!props.conversationId || !content.trim()) return false
+      const ws = getWS()
+      let sent = false
+      if (ws.connected) {
+        sent = await ws.sendMessage(props.conversationId, content, messageType)
+      }
+      if (!sent) {
+        // Fallback REST
+        try {
+          await chatAPI.sendMessage(props.conversationId, content, messageType)
+          sent = true
+        } catch (e) {
+          console.error('REST gửi tin nhắn thất bại:', e)
+        }
+      }
+      return sent
+    }
+
     // Load conversation messages
     const loadMessages = async () => {
       if (!props.conversationId) return
-
       loadingMessages.value = true
-
       try {
         const response = await chatAPI.getMessages(props.conversationId)
         messages.value = response.data || []
-
-        // Mark messages as read
         await markAsRead()
-
-        // Scroll to bottom
         await nextTick()
         scrollToBottom()
       } catch (error) {
@@ -414,54 +426,50 @@ export default {
       }
     }
 
-    // Send message
     const sendMessage = async () => {
       if (!canSendMessage.value) return
-
       const content = messageText.value.trim()
       if (!content) return
-
       sendingMessage.value = true
-
       try {
-        // Send via WebSocket
-        if (websocketService.connected && props.conversationId) {
-          await websocketService.sendMessage(props.conversationId, content, 'TEXT')
-
-          // Clear input
+        const optimisticMessage = {
+          conversationId: props.conversationId,
+          senderId: authStore.user.id,
+          content,
+          messageType: 'TEXT',
+          createdAt: new Date().toISOString(),
+          status: 'sending',
+          isOwn: true,
+        }
+        messages.value.push(optimisticMessage)
+        const sent = await sendMessageUnified(content, 'TEXT')
+        if (sent) {
+          optimisticMessage.status = 'sent'
           messageText.value = ''
-
-          // Stop typing indicator
           stopTyping()
-
-          // Emit event
           emit('message-sent', {
             conversationId: props.conversationId,
             content,
             messageType: 'TEXT',
           })
-
-          // Auto-resize textarea
           autoResizeTextarea()
+          nextTick(() => scrollToBottom())
         } else {
-          throw new Error('WebSocket not connected')
+          const index = messages.value.indexOf(optimisticMessage)
+          if (index > -1) messages.value.splice(index, 1)
         }
       } catch (error) {
         console.error('Error sending message:', error)
-
-        // TODO: Add to retry queue
       } finally {
         sendingMessage.value = false
       }
     }
 
-    // Send quick message
     const sendQuickMessage = async (content) => {
       messageText.value = content
       await sendMessage()
     }
 
-    // Handle file selection
     const handleFileSelect = async (event) => {
       const file = event.target.files[0]
       if (!file) return
@@ -499,8 +507,8 @@ export default {
         const messageType = file.type.startsWith('image/') ? 'IMAGE' : 'FILE'
 
         // Send file message
-        if (websocketService.connected && props.conversationId) {
-          await websocketService.sendMessage(props.conversationId, fileUrl, messageType)
+        if (getWS().connected && props.conversationId) {
+          await getWS().sendMessage(props.conversationId, fileUrl, messageType)
 
           emit('message-sent', {
             conversationId: props.conversationId,
@@ -533,7 +541,7 @@ export default {
       // Start typing indicator
       if (!isUserTyping) {
         isUserTyping = true
-        websocketService.sendTypingIndicator(props.conversationId, true)
+        getWS().sendTypingIndicator(props.conversationId, true)
       }
 
       // Auto-resize textarea
@@ -550,7 +558,7 @@ export default {
     const stopTyping = () => {
       if (isUserTyping && connected.value && props.conversationId) {
         isUserTyping = false
-        websocketService.sendTypingIndicator(props.conversationId, false)
+        getWS().sendTypingIndicator(props.conversationId, false)
       }
       clearTimeout(typingTimer)
     }
@@ -610,11 +618,38 @@ export default {
 
     // WebSocket event handlers
     const handleIncomingMessage = (messageData) => {
+      console.log('💬 ChatWindow received message:', messageData)
+
+      // Check if this message is for the current conversation
+      if (messageData.conversationId !== props.conversationId) {
+        console.log('💬 Message is for different conversation, ignoring')
+        return
+      }
+
+      // Check if message is from current user (avoid duplicates)
+      if (messageData.senderId === authStore.user.id) {
+        console.log('💬 Message is from current user, checking if already exists')
+        const existingMessage = messages.value.find(
+          (m) =>
+            m.content === messageData.content &&
+            m.senderId === messageData.senderId &&
+            Math.abs(new Date(m.createdAt) - new Date(messageData.createdAt)) < 1000 // Within 1 second
+        )
+        if (existingMessage) {
+          console.log('💬 Message already exists, updating status')
+          existingMessage.status = 'delivered'
+          return
+        }
+      }
+
       // Add message to list
       messages.value.push({
         ...messageData,
         status: 'delivered',
+        isOwn: messageData.senderId === authStore.user.id,
       })
+
+      console.log('💬 Message added to UI, total messages:', messages.value.length)
 
       // Mark as read if window is focused
       if (document.hasFocus()) {
@@ -686,7 +721,7 @@ export default {
       try {
         const token = localStorage.getItem('token')
         if (token) {
-          await websocketService.connect(authStore.user.id, token)
+          await getWS().connect(authStore.user.id, token)
         }
       } catch (error) {
         console.error('Reconnection failed:', error)
@@ -787,7 +822,7 @@ export default {
 
     // Watch for connection status
     watch(
-      () => websocketService.connected,
+      () => getWS().connected,
       (isConnected) => {
         connected.value = isConnected
       }
@@ -796,53 +831,69 @@ export default {
     // Watch for conversation changes
     watch(
       () => props.conversationId,
-      (newConversationId) => {
-        if (newConversationId) {
+      (newId, oldId) => {
+        if (newId) {
           loadMessages()
-
-          // Join conversation room
-          websocketService.joinConversation(newConversationId)
         }
-      }
+      },
+      { immediate: true }
     )
 
     // Lifecycle
     onMounted(() => {
-      // Set initial connection status
-      connected.value = websocketService.connected
+      connected.value = getWS().connected
 
-      // Load messages if conversation exists
       if (props.conversationId) {
         loadMessages()
-        websocketService.joinConversation(props.conversationId)
+        getWS().joinConversation(props.conversationId)
       }
 
-      // Setup WebSocket event listeners
-      const unsubscribeMessage = websocketService.onMessage(
-        props.conversationId || '*',
-        handleIncomingMessage
-      )
-      const unsubscribeTyping = websocketService.onTyping(
-        props.conversationId || '*',
-        handleTypingIndicator
+      // Đăng ký callback cho conversationId hiện tại
+      let unsubscribeMessage = null
+      let unsubscribeTyping = null
+
+      const setupListeners = (convId) => {
+        if (unsubscribeMessage) unsubscribeMessage()
+        if (unsubscribeTyping) unsubscribeTyping()
+        if (convId) {
+          unsubscribeMessage = getWS().onMessage(convId, handleIncomingMessage)
+          unsubscribeTyping = getWS().onTyping(convId, handleTypingIndicator)
+        }
+      }
+
+      setupListeners(props.conversationId)
+
+      // Watch conversationId thay đổi để đăng ký lại callback
+      watch(
+        () => props.conversationId,
+        (newId, oldId) => {
+          if (newId !== oldId) {
+            loadMessages()
+            getWS().joinConversation(newId)
+            setupListeners(newId)
+          }
+        }
       )
 
-      // Focus input
       nextTick(() => {
         messageInput.value?.focus()
       })
 
-      // Cleanup function
-      return () => {
-        unsubscribeMessage()
-        unsubscribeTyping()
-      }
+      // Cleanup
+      onUnmounted(() => {
+        if (props.conversationId) {
+          getWS().leaveConversation(props.conversationId)
+        }
+        stopTyping()
+        if (unsubscribeMessage) unsubscribeMessage()
+        if (unsubscribeTyping) unsubscribeTyping()
+      })
     })
 
     onUnmounted(() => {
       // Leave conversation room
       if (props.conversationId) {
-        websocketService.leaveConversation(props.conversationId)
+        getWS().leaveConversation(props.conversationId)
       }
 
       // Stop typing

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import com.marketplace.model.LoyaltyAccount;
 
 @Service
 public class OrderService {
@@ -38,7 +39,7 @@ public class OrderService {
     @Autowired
     private MarketplaceEventListener eventListener;
 
-    public Order createOrderFromCart(String userId, String shippingAddress, String billingAddress, String paymentMethod, Double shippingFee) {
+    public Order createOrderFromCart(String userId, String shippingAddress, String billingAddress, String paymentMethod, Double shippingFee, Integer loyaltyPointsToUse) {
         User user = userService.getUserById(userId);
         Cart cart = cartService.getCartByUserId(userId);
 
@@ -74,6 +75,18 @@ public class OrderService {
 
         // Tính tổng tiền đã bao gồm phí vận chuyển
         double totalAmount = cart.getTotalAmount() + (shippingFee != null ? shippingFee : 0.0);
+
+        // Xử lý sử dụng điểm thưởng
+        if (loyaltyPointsToUse != null && loyaltyPointsToUse > 0) {
+            LoyaltyAccount account = loyaltyService.getLoyaltyAccount(userId);
+            int availablePoints = account.getAvailablePoints();
+            int pointsToUse = Math.min(loyaltyPointsToUse, availablePoints);
+            pointsToUse = (int) Math.min(pointsToUse, totalAmount); // Không vượt quá tổng tiền
+            if (pointsToUse > 0) {
+                loyaltyService.spendPoints(userId, pointsToUse, "ORDER_DISCOUNT", "Dùng điểm giảm giá đơn hàng", null);
+                totalAmount -= pointsToUse;
+            }
+        }
 
         // Create order với shippingFee từ frontend
         Order order = new Order(userId, user.getEmail(), orderItems, totalAmount, shippingFee);
@@ -117,9 +130,8 @@ public class OrderService {
         order.setStatus(status);
         order.setUpdatedAt(LocalDateTime.now());
 
-        if ("DELIVERED".equals(status)) {
+        if ("DELIVERED".equalsIgnoreCase(status)) {
             order.setDeliveredAt(LocalDateTime.now());
-
             // 🆕 NEW: Award loyalty points for completed order
             loyaltyService.awardPointsFromOrder(order);
         }
@@ -186,7 +198,6 @@ public class OrderService {
                 product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
                 productService.saveProduct(product);
             } catch (Exception e) {
-                // Log but continue with cancellation
                 System.err.println("Failed to restore stock for product: " + item.getProductId());
             }
         }

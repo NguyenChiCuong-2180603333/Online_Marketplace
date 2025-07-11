@@ -51,13 +51,13 @@
       </div>
     </div>
 
-    <!-- Products Grid (3 columns, wrap) -->
-    <div v-else class="products-grid">
+    <!-- Products Slider (kéo ngang) -->
+    <div v-else class="products-slider">
       <div
-        v-for="(product, index) in paginatedProducts"
+        v-for="(product, index) in displayProducts"
         :key="product.id"
         class="similar-product-card"
-        @click="handleProductClick(product, index + (currentPage - 1) * pageSize)"
+        @click="handleProductClick(product, index)"
       >
         <!-- Product Image -->
         <div class="product-image-wrapper">
@@ -215,48 +215,40 @@ import recommendationService from '@/services/recommendationService'
 export default {
   name: 'SimilarProducts',
   props: {
-    // ID sản phẩm gốc để tìm similar products
     productId: {
       type: String,
       required: true,
     },
-    // Giá sản phẩm gốc để so sánh
     productPrice: {
       type: Number,
       required: false,
       default: null,
     },
-    // Danh mục sản phẩm gốc để so sánh
     productCategory: {
       type: String,
       required: false,
       default: null,
     },
-    // Số lượng sản phẩm hiển thị
     limit: {
       type: Number,
       default: 12,
     },
 
-    // Số lượng sản phẩm hiển thị ban đầu (responsive)
     displayLimit: {
       type: Number,
       default: 6,
     },
 
-    // Hiển thị similarity scores (debug mode)
     showSimilarityScores: {
       type: Boolean,
       default: false,
     },
 
-    // Tự động load khi component mount
     autoLoad: {
       type: Boolean,
       default: true,
     },
 
-    // Custom CSS classes
     containerClass: {
       type: String,
       default: '',
@@ -270,7 +262,6 @@ export default {
     const userStore = useUserStore()
     const cartStore = useCartStore()
 
-    // Reactive state
     const similarProducts = ref([])
     const loading = ref(false)
     const error = ref(null)
@@ -347,13 +338,10 @@ export default {
 
     // Handle product click
     const handleProductClick = async (product, index) => {
-      // Track click
       await recommendationService.trackClick(product.id, 'similar_products')
 
-      // Emit event
       emit('product-click', { product, index, source: 'similar' })
 
-      // Navigate to product detail
       router.push(`/products/${product.id}`)
     }
 
@@ -362,13 +350,9 @@ export default {
       if (isAddingToCart.value) return
       isAddingToCart.value = true
       try {
-        // Track add to cart from similar products
         await recommendationService.trackAddToCart(product.id, 1)
-        // Thêm thực sự vào giỏ hàng
         await cartStore.addItem(product.id, 1)
-        // Emit to parent
         emit('add-to-cart', product)
-        // Thông báo thành công
         alert(`Đã thêm ${product.name} vào giỏ hàng!`)
       } catch (err) {
         console.error('Error adding to cart:', err)
@@ -382,10 +366,8 @@ export default {
     const toggleWishlist = async (product) => {
       try {
         if (isInWishlist(product.id)) {
-          // Remove from wishlist
           await recommendationService.trackInteraction(product.id, 'REMOVE_FROM_WISHLIST')
         } else {
-          // Add to wishlist
           await recommendationService.trackInteraction(product.id, 'ADD_TO_WISHLIST')
         }
 
@@ -395,7 +377,6 @@ export default {
       }
     }
 
-    // Compare functionality
     const addToCompare = (product) => {
       if (compareProducts.value.length >= maxCompareProducts) {
         alert(`Chỉ có thể so sánh tối đa ${maxCompareProducts} sản phẩm`)
@@ -479,7 +460,6 @@ export default {
       ) {
         reasons.push('Giá tương đương')
       }
-      // Có thể bổ sung thêm các lý do khác nếu cần
       return reasons
     }
 
@@ -516,7 +496,7 @@ export default {
       () => props.productId,
       (newId, oldId) => {
         if (newId && newId !== oldId) {
-          compareProducts.value = [] // Clear compare when changing product
+          compareProducts.value = [] 
           if (props.autoLoad) {
             loadSimilarProducts()
           }
@@ -524,14 +504,12 @@ export default {
       }
     )
 
-    // Lifecycle
     onMounted(() => {
       if (props.autoLoad && props.productId) {
         loadSimilarProducts()
       }
     })
 
-    // Return reactive data and methods
     return {
       // State
       similarProducts,
@@ -1089,6 +1067,21 @@ export default {
   transform: translateY(-1px);
 }
 
+/* Products Slider */
+.products-slider {
+  display: flex;
+  overflow-x: auto;
+  gap: 1.2rem;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+.similar-product-card {
+  flex: 0 0 220px;
+  scroll-snap-align: start;
+  /* giữ các style cũ */
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .similar-product-card {
@@ -1144,5 +1137,9 @@ export default {
   .compare-panel {
     padding: 0.75rem;
   }
+}
+/* Ẩn pagination */
+.pagination {
+  display: none;
 }
 </style>

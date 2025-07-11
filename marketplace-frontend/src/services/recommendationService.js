@@ -198,6 +198,7 @@ class RecommendationService {
         productId,
         interactionType: interactionType.toUpperCase(),
         timestamp: new Date().toISOString(),
+        sessionId: localStorage.getItem('sessionId') || null,
         context: {
           source: 'web_app',
           userAgent: navigator.userAgent,
@@ -210,8 +211,8 @@ class RecommendationService {
       this.clearUserRelatedCaches()
       return response.data
     } catch (error) {
-      console.error('❌ Error tracking interaction:', error)
-      return { success: false, error: error.message }
+      console.error('❌ Error tracking interaction:', error, error.response?.data)
+      return { success: false, error: error.message, details: error.response?.data }
     }
   }
 
