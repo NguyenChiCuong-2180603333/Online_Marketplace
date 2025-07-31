@@ -210,8 +210,8 @@ export default {
     // Reactive data
     const addingToCart = ref(false)
     const loading = ref(false)
-    const isInWishlist = ref(false) // This would come from wishlist store
-    const isInCompare = ref(false) // This would come from compare store
+    const isInWishlist = ref(false) 
+    const isInCompare = ref(false) 
 
     // Computed properties
     const discountPercentage = computed(() => {
@@ -225,7 +225,6 @@ export default {
 
     const installmentPrice = computed(() => {
       if (props.product.price >= 3000000) {
-        // Show installment for products >= 3M VND
         return Math.round(props.product.price / 12)
       }
       return 0
@@ -297,9 +296,7 @@ export default {
       showToast(message, 'info')
     }
 
-    // Simple toast notification (you can replace with a toast library)
     const showToast = (message, type = 'info') => {
-      // This is a simple implementation - in real app, use a toast library
       const toast = document.createElement('div')
       toast.className = `toast toast-${type}`
       toast.textContent = message
@@ -352,9 +349,10 @@ export default {
   cursor: pointer;
   transition: all 0.3s ease;
   overflow: hidden;
-  height: fit-content;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 500px;
 }
 
 .product-card:hover {
@@ -394,7 +392,8 @@ export default {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 12px 0 rgba(0, 212, 255, 0.08);
-  background: linear-gradient(135deg, #f8fafc 60%, #e0f7fa 100%); /* nền sáng nhẹ */
+  background: linear-gradient(135deg, #f8fafc 60%, #e0f7fa 100%); 
+  flex-shrink: 0;
 }
 .product-image {
   width: 100%;
@@ -516,6 +515,9 @@ export default {
   font-weight: 600;
   backdrop-filter: blur(10px);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
 }
 
 .new-badge {
@@ -580,6 +582,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  justify-content: space-between;
 }
 
 .product-category {
@@ -594,6 +597,11 @@ export default {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   transition: color 0.3s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  display: block;
 }
 
 .category-link:hover {
@@ -610,6 +618,9 @@ export default {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;
+  word-wrap: break-word;
+  min-height: 2.6rem;
 }
 
 .product-description {
@@ -629,6 +640,7 @@ export default {
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+  min-height: 1.2rem;
 }
 
 .stars {
@@ -659,6 +671,7 @@ export default {
 /* Price Section */
 .price-section {
   margin-top: auto;
+  flex-shrink: 0;
 }
 
 .price-container {
@@ -667,6 +680,7 @@ export default {
   gap: 0.75rem;
   flex-wrap: wrap;
   margin-bottom: 0.5rem;
+  min-height: 1.5rem;
 }
 
 .original-price {
@@ -681,6 +695,10 @@ export default {
   font-weight: 700;
   color: var(--text-accent);
   text-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .installment-info {
@@ -807,6 +825,7 @@ export default {
 @media (max-width: 768px) {
   .product-card {
     max-width: 100%;
+    min-height: 400px;
   }
 
   .product-image-container {
@@ -820,6 +839,7 @@ export default {
 
   .product-name {
     font-size: 1rem;
+    min-height: 2rem;
   }
 
   .current-price {
@@ -858,6 +878,7 @@ export default {
 @media (max-width: 480px) {
   .product-card {
     border-radius: 8px;
+    min-height: 350px;
   }
 
   .product-image-container {
@@ -871,6 +892,7 @@ export default {
 
   .product-name {
     font-size: 0.95rem;
+    min-height: 1.9rem;
   }
 
   .current-price {

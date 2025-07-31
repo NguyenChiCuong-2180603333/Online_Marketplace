@@ -25,14 +25,22 @@
                 v-model="credentials.email"
                 type="email"
                 class="form-input"
-                :class="{ 'error-input': hasFieldError('email') }"
+                :class="{ 'error-input': hasFieldError('email') || emailValidationError }"
                 placeholder="Nhập email của bạn"
                 required
                 autocomplete="email"
+                @blur="validateEmail"
+                @input="clearEmailError"
               />
-              <span v-if="hasFieldError('email')" class="field-error">
-                {{ getFieldError('email') }}
-              </span>
+              <div
+                v-if="hasFieldError('email') || emailValidationError"
+                class="field-error-container"
+              >
+                <span class="error-icon">⚠️</span>
+                <span class="field-error">
+                  {{ getFieldError('email') || emailValidationError }}
+                </span>
+              </div>
             </div>
 
             <div class="form-group">
@@ -42,42 +50,37 @@
                   v-model="credentials.password"
                   :type="showPassword ? 'text' : 'password'"
                   class="form-input"
-                  :class="{ 'error-input': hasFieldError('password') }"
-                  placeholder="Nhập mật khẩu"
+                  :class="{ 'error-input': hasFieldError('password') || passwordValidationError }"
+                  placeholder="Mật khẩu (chữ hoa, thường, số, ký tự đặc biệt)"
                   required
                   autocomplete="current-password"
+                  @blur="validatePassword"
+                  @input="clearPasswordError"
                 />
-                <button 
-                  type="button" 
-                  @click="togglePassword" 
-                  class="password-toggle"
-                  tabindex="-1"
-                >
+                <button type="button" @click="togglePassword" class="password-toggle" tabindex="-1">
                   {{ showPassword ? '🙈' : '👁️' }}
                 </button>
               </div>
-              <span v-if="hasFieldError('password')" class="field-error">
-                {{ getFieldError('password') }}
-              </span>
+              <div
+                v-if="hasFieldError('password') || passwordValidationError"
+                class="field-error-container"
+              >
+                <span class="error-icon">🔒</span>
+                <span class="field-error">
+                  {{ getFieldError('password') || passwordValidationError }}
+                </span>
+              </div>
             </div>
 
             <!-- Remember Me & Forgot Password -->
             <div class="form-options">
               <label class="remember-me-wrapper">
-                <input 
-                  v-model="rememberMe" 
-                  type="checkbox" 
-                  class="checkbox-input"
-                />
+                <input v-model="rememberMe" type="checkbox" class="checkbox-input" />
                 <span class="checkbox-custom"></span>
                 <span class="checkbox-label">Ghi nhớ đăng nhập</span>
               </label>
-              
-              <button 
-                type="button" 
-                @click="showForgotPassword" 
-                class="forgot-password-link"
-              >
+
+              <button type="button" @click="showForgotPassword" class="forgot-password-link">
                 Quên mật khẩu?
               </button>
             </div>
@@ -89,7 +92,8 @@
           </form>
 
           <div class="login-footer">
-            <p>Chưa có tài khoản?
+            <p>
+              Chưa có tài khoản?
               <router-link to="/register" class="text-accent">Đăng ký ngay</router-link>
             </p>
           </div>
@@ -105,9 +109,7 @@
           <button @click="closeForgotModal" class="modal-close">✕</button>
         </div>
         <form @submit.prevent="handleForgotPassword" class="forgot-form">
-          <p class="modal-description">
-            Nhập email của bạn để nhận liên kết đặt lại mật khẩu
-          </p>
+          <p class="modal-description">Nhập email của bạn để nhận liên kết đặt lại mật khẩu</p>
           <div class="form-group">
             <input
               v-model="forgotEmail"
@@ -118,9 +120,7 @@
             />
           </div>
           <div class="modal-actions">
-            <button type="button" @click="closeForgotModal" class="btn btn-secondary">
-              Hủy
-            </button>
+            <button type="button" @click="closeForgotModal" class="btn btn-secondary">Hủy</button>
             <button type="submit" class="btn btn-primary" :disabled="forgotLoading">
               {{ forgotLoading ? 'Đang gửi...' : 'Gửi email' }}
             </button>
@@ -142,83 +142,89 @@ export default {
     const authStore = useAuthStore()
     const router = useRouter()
     const route = useRoute()
-    
+
     const credentials = ref({
       email: '',
-      password: ''
+      password: '',
     })
-    
+
     const loading = ref(false)
     const error = ref('')
     const success = ref('')
     const fieldErrors = ref({})
     const showPassword = ref(false)
     const rememberMe = ref(false)
-    
+
     const showForgotModal = ref(false)
     const forgotEmail = ref('')
     const forgotLoading = ref(false)
+    const emailValidationError = ref('')
+    const passwordValidationError = ref('')
 
     const parseErrorResponse = (error) => {
       console.log('Login error object:', error)
-      
+
       if (error.response?.data) {
         const errorData = error.response.data
         console.log('Login error data:', errorData)
-        
+
         if (errorData.errors && typeof errorData.errors === 'object') {
           fieldErrors.value = { ...errorData.errors }
-          
+
           const firstFieldError = Object.values(errorData.errors)[0]
           return firstFieldError || 'Dữ liệu không hợp lệ'
         }
-        
+
         if (errorData.error) {
           const errorMsg = errorData.error
-          
+
           if (errorMsg.includes('Tài khoản không tồn tại')) {
             return '❌ Tài khoản không tồn tại'
           }
-          
+
           if (errorMsg.includes('Mật khẩu không đúng')) {
             return '❌ Mật khẩu không đúng'
           }
-          
+
           if (errorMsg.includes('Tài khoản đã bị khóa')) {
             return '🔒 Tài khoản đã bị khóa. Vui lòng liên hệ hỗ trợ'
           }
-          
+
           return errorMsg
         }
-        
+
         if (errorData.message) {
           return errorData.message
         }
-        
+
         if (typeof errorData === 'string') {
           return errorData
         }
       }
-      
+
       return 'Đăng nhập thất bại. Vui lòng thử lại.'
     }
 
     const handleLogin = async () => {
+      if (!validateEmail() || !validatePassword()) {
+        return
+      }
+
       loading.value = true
       error.value = ''
       success.value = ''
       fieldErrors.value = {}
-      
+
       try {
-        const loginData = { 
+        const loginData = {
           email: credentials.value.email.trim(),
-          password: credentials.value.password
+          password: credentials.value.password,
         }
-        
+
         await authStore.login(loginData)
-        
+
         success.value = '✅ Đăng nhập thành công!'
-        
+
         if (rememberMe.value) {
           localStorage.setItem('rememberMe', 'true')
           localStorage.setItem('rememberedEmail', credentials.value.email)
@@ -226,16 +232,14 @@ export default {
           localStorage.removeItem('rememberMe')
           localStorage.removeItem('rememberedEmail')
         }
-        
+
         setTimeout(() => {
           const redirectTo = route.query.redirect || '/'
           router.push(redirectTo)
         }, 1000)
-        
       } catch (err) {
         error.value = parseErrorResponse(err)
         console.error('Login error:', err)
-        
       } finally {
         loading.value = false
       }
@@ -257,16 +261,13 @@ export default {
 
     const handleForgotPassword = async () => {
       forgotLoading.value = true
-      
+
       try {
-        
         alert('📧 Email đặt lại mật khẩu đã được gửi!')
         closeForgotModal()
-        
       } catch (err) {
         alert('❌ Có lỗi xảy ra. Vui lòng thử lại.')
         console.error('Forgot password error:', err)
-        
       } finally {
         forgotLoading.value = false
       }
@@ -280,10 +281,79 @@ export default {
       return fieldErrors.value[fieldName] || ''
     }
 
+    const validateEmail = () => {
+      const email = credentials.value.email.trim()
+
+      if (!email) {
+        emailValidationError.value = 'Vui lòng nhập email của bạn'
+        return false
+      }
+
+      if (!email.includes('@')) {
+        emailValidationError.value = `Vui lòng nhập '@' trong địa chỉ email. '${email}' thiếu '@'.`
+        return false
+      }
+
+      const parts = email.split('@')
+      if (parts.length !== 2 || !parts[1]) {
+        emailValidationError.value = 'Email không hợp lệ. Vui lòng nhập đúng định dạng email.'
+        return false
+      }
+
+      if (!parts[1].includes('.')) {
+        emailValidationError.value = 'Email không hợp lệ. Thiếu phần domain (ví dụ: .com, .vn)'
+        return false
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email)) {
+        emailValidationError.value = 'Email không đúng định dạng. Vui lòng kiểm tra lại.'
+        return false
+      }
+
+      emailValidationError.value = ''
+      return true
+    }
+
+    const clearEmailError = () => {
+      emailValidationError.value = ''
+    }
+
+    const validatePassword = () => {
+      const password = credentials.value.password
+
+      if (!password) {
+        passwordValidationError.value = 'Vui lòng nhập mật khẩu'
+        return false
+      }
+
+      if (password.length < 6) {
+        passwordValidationError.value = 'Mật khẩu phải có ít nhất 6 ký tự'
+        return false
+      }
+
+      const hasUpperCase = /[A-Z]/.test(password)
+      const hasLowerCase = /[a-z]/.test(password)
+      const hasNumbers = /\d/.test(password)
+      const hasSpecialChars = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+
+      if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChars) {
+        passwordValidationError.value = 'Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt'
+        return false
+      }
+
+      passwordValidationError.value = ''
+      return true
+    }
+
+    const clearPasswordError = () => {
+      passwordValidationError.value = ''
+    }
+
     onMounted(() => {
       const remembered = localStorage.getItem('rememberMe')
       const rememberedEmail = localStorage.getItem('rememberedEmail')
-      
+
       if (remembered === 'true' && rememberedEmail) {
         credentials.value.email = rememberedEmail
         rememberMe.value = true
@@ -301,15 +371,21 @@ export default {
       showForgotModal,
       forgotEmail,
       forgotLoading,
+      emailValidationError,
+      passwordValidationError,
       handleLogin,
       togglePassword,
       showForgotPassword,
       closeForgotModal,
       handleForgotPassword,
       hasFieldError,
-      getFieldError
+      getFieldError,
+      validateEmail,
+      clearEmailError,
+      validatePassword,
+      clearPasswordError,
     }
-  }
+  },
 }
 </script>
 
@@ -466,12 +542,62 @@ export default {
   background-color: rgba(255, 107, 107, 0.1) !important;
 }
 
+.field-error-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 8px;
+  color: #ff6b6b;
+  animation: slideInDown 0.3s ease;
+}
+
+/* Different error types */
+.field-error-container.warning {
+  background: rgba(255, 193, 7, 0.1);
+  border-color: rgba(255, 193, 7, 0.3);
+  color: #ffc107;
+}
+
+.field-error-container.info {
+  background: rgba(13, 202, 240, 0.1);
+  border-color: rgba(13, 202, 240, 0.3);
+  color: #0dcaf0;
+}
+
+.field-error-container.success {
+  background: rgba(25, 135, 84, 0.1);
+  border-color: rgba(25, 135, 84, 0.3);
+  color: #198754;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.error-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
 .field-error {
   display: block;
   color: #ff6b6b;
   font-size: 0.875rem;
-  margin-top: 0.5rem;
   font-weight: 500;
+  line-height: 1.4;
+  flex: 1;
 }
 
 .alert {
@@ -570,17 +696,30 @@ export default {
   .login-card {
     padding: 2rem 1.5rem;
   }
-  
+
   .form-options {
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
   }
-  
+
+  .field-error-container {
+    padding: 0.5rem;
+    gap: 0.25rem;
+  }
+
+  .error-icon {
+    font-size: 0.9rem;
+  }
+
+  .field-error {
+    font-size: 0.8rem;
+  }
+
   .modal-content {
     padding: 1.5rem;
   }
-  
+
   .modal-actions {
     flex-direction: column;
   }

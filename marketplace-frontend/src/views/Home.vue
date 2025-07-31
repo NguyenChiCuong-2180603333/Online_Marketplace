@@ -11,8 +11,8 @@
               <span class="gradient-text">Vũ trụ mua sắm</span>
             </h1>
             <p class="hero-subtitle">
-              Trải nghiệm mua sắm thông minh.
-              Khám phá hàng ngàn sản phẩm chất lượng từ khắp nơi trên thế giới.
+              Trải nghiệm mua sắm thông minh. Khám phá hàng ngàn sản phẩm chất lượng từ khắp nơi
+              trên thế giới.
             </p>
 
             <!-- Hero Search -->
@@ -79,7 +79,7 @@
     </section>
 
     <!-- Trending Section for Non-authenticated Users -->
-    <section class="trending-section" v-else>
+    <!-- <section class="trending-section" v-else>
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">
@@ -95,7 +95,7 @@
           @add-to-cart="handleAddToCart"
         />
       </div>
-    </section>
+    </section> -->
 
     <!-- Featured Products Section -->
     <section class="featured-section">
@@ -203,7 +203,11 @@
                 <span class="rating-count">({{ product.reviewCount || 0 }})</span>
               </div>
 
-              <button @click.stop="handleAddToCart(product)" class="btn btn-primary btn-sm">
+              <button
+                @click.stop="handleAddToCart(product)"
+                class="btn btn-primary btn-sm"
+                style="margin-top: auto"
+              >
                 🛒 Thêm vào giỏ
               </button>
             </div>
@@ -826,8 +830,9 @@ export default {
 /* Products Grid */
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1.2rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  align-items: start;
 }
 
 .product-card {
@@ -840,6 +845,10 @@ export default {
   cursor: pointer;
   position: relative;
   padding: 0.5rem 0.5rem 1rem 0.5rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 450px;
 }
 
 .product-card:hover {
@@ -864,6 +873,10 @@ export default {
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 80px;
 }
 
 .badge-new {
@@ -889,6 +902,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .product-image {
@@ -942,6 +956,9 @@ export default {
 
 .product-info {
   padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .product-category {
@@ -950,6 +967,10 @@ export default {
   font-weight: 600;
   text-transform: uppercase;
   margin-bottom: 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .product-name {
@@ -958,6 +979,13 @@ export default {
   color: var(--text-primary);
   margin-bottom: 1rem;
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-wrap: break-word;
+  min-height: 2.6rem;
 }
 
 .product-price {
@@ -965,12 +993,18 @@ export default {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+  min-height: 1.5rem;
 }
 
 .current-price {
   font-size: 1.3rem;
   font-weight: 700;
   color: var(--text-accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .original-price {
@@ -984,6 +1018,8 @@ export default {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+  min-height: 1.2rem;
 }
 
 .stars {
@@ -1199,6 +1235,7 @@ export default {
 
   .products-grid {
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
   }
 }
 
@@ -1224,6 +1261,10 @@ export default {
     gap: 1.5rem;
   }
 
+  .product-card {
+    min-height: 400px;
+  }
+
   .newsletter-form {
     flex-direction: column;
   }
@@ -1242,6 +1283,11 @@ export default {
 
   .products-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .product-card {
+    min-height: 350px;
   }
 
   .categories-grid,

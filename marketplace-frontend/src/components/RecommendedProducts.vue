@@ -1,6 +1,5 @@
 <template>
   <div class="recommended-products">
-    <!-- Header với AI badge -->
     <div class="section-header">
       <div class="header-content">
         <h2 class="section-title">
@@ -109,7 +108,6 @@
             <!-- Discount badge -->
             <div v-if="product.discount > 0" class="discount-badge">-{{ product.discount }}%</div>
 
-            <!-- AI recommendation reason -->
             <div class="ai-reason" v-if="getRecommendationReason(product, index)">
               <small>{{ getRecommendationReason(product, index) }}</small>
             </div>
@@ -141,19 +139,19 @@
             </div>
 
             <!-- Rating & reviews -->
-            <div class="product-rating" v-if="product.rating || product.reviewCount">
+            <div class="product-rating" v-if="product.averageRating || product.reviewCount">
               <div class="stars">
                 <span
                   v-for="star in 5"
                   :key="star"
                   class="star"
-                  :class="{ filled: star <= (product.rating || 0) }"
+                  :class="{ filled: star <= (product.averageRating || 0) }"
                 >
                   ⭐
                 </span>
               </div>
               <span class="rating-text">
-                {{ product.rating || 0 }}/5
+                {{ product.averageRating || 0 }}/5
                 <span v-if="product.reviewCount" class="review-count">
                   ({{ product.reviewCount }})
                 </span>
@@ -314,10 +312,8 @@ export default {
       router.push(`/products/${product.id}`)
     }
 
-    // Quick add to cart
     const quickAddToCart = async (product) => {
       try {
-        // Add to cart logic here (call cart store)
         await recommendationService.trackAddToCart(product.id, 1)
 
         emit('add-to-cart', product)
@@ -327,7 +323,6 @@ export default {
       }
     }
 
-    // Add to wishlist
     const addToWishlist = async (product) => {
       try {
         await recommendationService.trackInteraction(product.id, 'ADD_TO_WISHLIST')
@@ -338,7 +333,6 @@ export default {
       }
     }
 
-    // Helper functions
     const formatPrice = (price) => {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
@@ -373,13 +367,12 @@ export default {
       return reasons[index % reasons.length]
     }
 
-    // Auto refresh
     let refreshInterval = null
 
     const setupAutoRefresh = () => {
       if (props.autoRefreshInterval > 0) {
         refreshInterval = setInterval(() => {
-          loadRecommendations(false) // Silent refresh
+          loadRecommendations(false) 
         }, props.autoRefreshInterval * 60 * 1000)
       }
     }
@@ -391,20 +384,16 @@ export default {
       }
     }
 
-    // Lifecycle
     onMounted(() => {
       loadRecommendations()
       setupAutoRefresh()
     })
 
-    // Cleanup
     const cleanup = () => {
       clearAutoRefresh()
     }
 
-    // Return reactive data and methods
     return {
-      // State
       recommendations,
       loading,
       loadingMore,
@@ -412,7 +401,6 @@ export default {
       algorithmInfo,
       canLoadMore,
 
-      // Methods
       loadRecommendations,
       loadMore,
       refreshRecommendations,
@@ -420,7 +408,6 @@ export default {
       quickAddToCart,
       addToWishlist,
 
-      // Helpers
       formatPrice,
       formatTime,
       truncate,
@@ -428,7 +415,6 @@ export default {
       isInWishlist,
       getRecommendationReason,
 
-      // Cleanup
       cleanup,
     }
   },
@@ -769,7 +755,8 @@ export default {
 .product-name {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-primary, #2d3748);
+  color: #000000; 
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.1); 
   margin: 0 0 0.75rem 0;
   line-height: 1.3;
 }
